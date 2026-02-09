@@ -4,7 +4,28 @@ let productosGlobal = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     cargarCatalogo();
+    cargarClientes();
 });
+
+async function cargarClientes() {
+    const select = document.getElementById('cliente-select');
+    try {
+        const response = await fetch(`${API_URL}/clients`);
+        const clientes = await response.json();
+        
+        select.innerHTML = '<option value="">Cliente General (Público)</option>';
+        
+        clientes.forEach(c => {
+            const option = document.createElement('option');
+            option.value = c.id_cliente;
+            option.textContent = c.nombre + (c.documento ? ` - ${c.documento}` : '');
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error cargando clientes:', error);
+        select.innerHTML = '<option value="">Error al cargar clientes</option>';
+    }
+}
 
 // Cargar productos disponibles
 async function cargarCatalogo() {
@@ -150,12 +171,13 @@ async function procesarVenta() {
     }));
 
     const totalVenta = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+    const clienteId = document.getElementById('cliente-select').value;
 
     const data = {
         items: itemsVenta,
         total: totalVenta,
         metodo_pago: 'efectivo', // Por defecto
-        cliente_id: 1 // Cliente genérico o null por ahora
+        cliente_id: clienteId || null // Si es vacío envía null
     };
 
     try {

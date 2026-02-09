@@ -1,10 +1,45 @@
 const API_URL = 'http://localhost/proyecto_final/backend';
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('App iniciada');
     cargarProductos();
-    cargarCategoriasSelect(); // Nueva función
+    cargarCategoriasSelect();
+    cargarUnidadesSelect();
+    
+    // Configurar modales
     setupModal();
+    setupUnidadesModal(); 
+    
+    // Listener global para cerrar modales al hacer click fuera
+    window.onclick = function(event) {
+        const modalProductos = document.getElementById('productoModal');
+        const modalUnidades = document.getElementById('unidadesModal');
+        
+        if (modalProductos && event.target == modalProductos) {
+            modalProductos.style.display = "none";
+        }
+        if (modalUnidades && event.target == modalUnidades) {
+            modalUnidades.style.display = "none";
+            cargarUnidadesSelect(); 
+        }
+    };
 });
+
+// Cargar unidades en el select del modal
+async function cargarUnidadesSelect() {
+    const select = document.getElementById('unidad_medida_id');
+    try {
+        const response = await fetch(`${API_URL}/units`);
+        const unidades = await response.json();
+        
+        select.innerHTML = '<option value="">Seleccione una unidad</option>';
+        unidades.forEach(uni => {
+            select.innerHTML += `<option value="${uni.id_unidad}">${uni.nombre} (${uni.abreviatura})</option>`;
+        });
+    } catch (error) {
+        console.error('Error cargando unidades:', error);
+    }
+}
 
 // Cargar categorías en el select del modal
 async function cargarCategoriasSelect() {
@@ -37,8 +72,17 @@ async function cargarProductos() {
         }
 
         productos.forEach(prod => {
+            // El backend guarda 'uploads/products/xxx.jpg'. 
+            // API_URL es '.../backend'.
+            // La imagen está en '.../backend/uploads/products/xxx.jpg'.
+            // Entonces: API_URL + '/' + prod.imagen debería ser correcto si prod.imagen no tiene slash inicial.
+            const imgSrc = prod.imagen ? `${API_URL}/${prod.imagen}` : 'https://via.placeholder.com/150?text=Sin+Imagen';
+            
             const card = `
                 <div class="card-producto">
+                    <div class="card-img-wrapper" style="height: 150px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f0f0f0;">
+                        <img src="${imgSrc}" alt="${prod.nombre}" style="max-width: 100%; max-height: 100%; object-fit: cover;">
+                    </div>
                     <span class="stock-badge ${prod.stock_actual <= prod.stock_minimo ? 'stock-low' : ''}">
                         Stock: ${prod.stock_actual}
                     </span>
@@ -62,7 +106,138 @@ async function cargarProductos() {
     }
 }
 
-// Lógica del Modal
+// Lógica del Modal de Gestión de Unidades
+function setupUnidadesModal() {
+    const modal = document.getElementById('unidadesModal');
+    const btnGestionar = document.getElementById('btnGestionarUnidades');
+    const spanClose = document.getElementsByClassName('close-modal-unidades')[0];
+    const btnClose = document.getElementsByClassName('close-modal-unidades-btn')[0];
+    const btnGuardar = document.getElementById('btnGuardarUnidad');
+    const tbody = document.getElementById('tablaUnidadesBody');
+
+    // Abrir modal
+    if (btnGestionar) {
+        btnGestionar.onclick = function() {
+            console.log('Abriendo modal unidades');
+            if(modal) {
+                modal.style.display = "block";
+                cargarTablaUnidades();
+            } else {
+                console.error('Modal unidades no encontrado');
+            }
+        }
+    } else {
+        console.error('Botón gestionar unidades no encontrado');
+    }
+
+    // Cerrar modal
+    function closeModal() {
+        modal.style.display = "none";
+        // Recargar select de unidades en el formulario de producto
+        cargarUnidadesSelect();
+    }
+
+    spanClose.onclick = closeModal;
+    btnClose.onclick = closeModal;
+
+    // Clic fuera del modal (Manejado globalmente en DOMContentLoaded)
+    /*
+    window.onclick = function(event) {
+        const modalProductos = document.getElementById('productoModal');
+        const modalUnidades = document.getElementById('unidadesModal');
+        
+        if (event.target == modalProductos) {
+            modalProductos.style.display = "none";
+        }
+        if (event.target == modalUnidades) {
+            modalUnidades.style.display = "none";
+            cargarUnidadesSelect(); // Recargar al cerrar
+        }
+    }
+    */
+
+    // Cargar tabla de unidades
+    async function cargarTablaUnidades() {
+        tbody.innerHTML = '<tr><td colspan="3">Cargando...</td></tr>';
+        try {
+            const response = await fetch(`${API_URL}/units`);
+            const unidades = await response.json();
+            
+            tbody.innerHTML = '';
+            if (unidades.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3">No hay unidades registradas.</td></tr>';
+                return;
+            }
+
+            unidades.forEach(uni => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${uni.nombre}</td>
+                    <td>${uni.abreviatura}</td>
+                    <td>
+                        <button class="btn-danger btn-sm" onclick="eliminarUnidadDesdeModal(${uni.id_unidad})">Eliminar</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            console.error(error);
+            tbody.innerHTML = '<tr><td colspan="3" style="color:red">Error al cargar unidades.</td></tr>';
+        }
+    }
+
+    // Guardar nueva unidad
+    btnGuardar.onclick = async function() {
+        const nombre = document.getElementById('nuevaUnidadNombre').value;
+        const abrev = document.getElementById('nuevaUnidadAbrev').value;
+
+        if (!nombre || !abrev) {
+            alert('Por favor complete ambos campos.');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/units`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre: nombre, abreviatura: abrev })
+            });
+
+            if (response.ok) {
+                document.getElementById('nuevaUnidadNombre').value = '';
+                document.getElementById('nuevaUnidadAbrev').value = '';
+                cargarTablaUnidades();
+            } else {
+                alert('Error al guardar unidad.');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Error de conexión.');
+        }
+    }
+
+    // Función global para eliminar (necesaria para el onclick en el HTML generado)
+    window.eliminarUnidadDesdeModal = async function(id) {
+        if (!confirm('¿Eliminar esta unidad?')) return;
+        
+        try {
+            const response = await fetch(`${API_URL}/units/${id}`, {
+                method: 'DELETE'
+            });
+            
+            if (response.ok) {
+                cargarTablaUnidades();
+            } else {
+                alert('No se puede eliminar (posiblemente en uso).');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Error al eliminar.');
+        }
+    }
+}
+
+// Lógica del Modal Producto (setupModal existente)
 function setupModal() {
     const modal = document.getElementById('productoModal');
     const btnNuevo = document.getElementById('btnNuevoProducto');
@@ -85,11 +260,12 @@ function setupModal() {
     spanClose.onclick = closeModal;
     btnCancel.onclick = closeModal;
     
+    // Clic fuera del modal (Manejado globalmente)
+    /*
     window.onclick = function(event) {
-        if (event.target == modal) {
-            closeModal();
-        }
+        // Manejado globalmente en setupUnidadesModal o unificado abajo
     }
+    */
 
     // Manejar envío del formulario
     form.onsubmit = async function(e) {
@@ -98,28 +274,63 @@ function setupModal() {
         const id = document.getElementById('productoId').value;
         const nombre = document.getElementById('nombre').value;
         const categoria_id = document.getElementById('categoria_id').value;
+        const unidad_medida_id = document.getElementById('unidad_medida_id').value;
         const precio = document.getElementById('precio_venta').value;
         const stock = document.getElementById('stock_actual').value;
+        const imagenInput = document.getElementById('imagen');
 
-        const data = {
-            nombre: nombre,
-            categoria_id: categoria_id,
-            precio_venta: precio,
-            stock_actual: stock,
-            // Valores por defecto
-            estado: 'activo'
-        };
+        const formData = new FormData();
+        formData.append('nombre', nombre);
+        formData.append('categoria_id', categoria_id);
+        formData.append('unidad_medida_id', unidad_medida_id);
+        formData.append('precio_venta', precio);
+        formData.append('stock_actual', stock);
+        formData.append('estado', 'activo');
 
-        const method = id ? 'PUT' : 'POST';
-        const url = id ? `${API_URL}/products/${id}` : `${API_URL}/products`;
+        if (imagenInput.files.length > 0) {
+            formData.append('imagen', imagenInput.files[0]);
+        }
+
+        // Si es PUT, PHP no parsea multipart/form-data automáticamente en $_POST/$_FILES
+        // Un truco común es enviar POST con _method='PUT', o usar POST siempre y manejar la lógica en el backend.
+        // Pero nuestro router backend soporta POST para creación. Para update, usaremos POST con parámetro de query string o manejaremos en backend.
+        // Sin embargo, nuestro router usa REQUEST_METHOD. 
+        // En PHP estándar, PUT no parsea body multipart.
+        // Solución: Usar POST siempre para subida de archivos y enviar ID en la URL para update, 
+        // pero el Router espera PUT.
+        // Vamos a cambiar la estrategia: Usar POST para update también, pero el router necesita coincidir.
+        // O mejor: En el frontend enviamos POST a una ruta específica de update o usamos un header X-HTTP-Method-Override.
+        
+        // Simplemente usaremos POST para todo si hay archivo, pero nuestro backend Router espera PUT para updates.
+        // Vamos a intentar enviar POST a la ruta de update, pero el Router no lo va a matchear.
+        // Modifiquemos el backend Router o usemos X-HTTP-Method-Override si el router lo soporta? No lo soporta.
+        
+        // Simplificación: Para update con archivo, PHP tiene problemas con PUT.
+        // Lo más robusto en PHP puro sin frameworks avanzados es enviar POST y que el backend detecte si es update.
+        // Pero queremos mantener REST.
+        
+        // Alternativa: Enviar POST a /products/{id} y registrar esa ruta en el router como POST también.
+        
+        let url = `${API_URL}/products`;
+        let method = 'POST';
+
+        if (id) {
+            // Update
+            // Si usamos POST para update, necesitamos registrar esa ruta en backend
+            // O podemos intentar enviar PUT y parsear manualmente en backend (muy complejo).
+            // Vamos a usar POST para update en este caso y modificar el router/index.php para aceptar POST en update.
+            url = `${API_URL}/products/${id}`; 
+            // method sigue siendo POST para que PHP parsee el archivo
+            // Pero en el backend, la ruta POST /products/{id} no existe. Debemos crearla.
+            
+            // AGREGAR ESTO AL BACKEND index.php: $router->add('POST', '/products/{id}', ...)
+        }
 
         try {
             const response = await fetch(url, {
                 method: method,
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
+                // headers: { 'Content-Type': 'multipart/form-data' }, // NO poner header, el navegador lo pone con boundary
+                body: formData
             });
 
             if (response.ok) {
@@ -145,9 +356,13 @@ window.editarProducto = async function(id) {
         // Llenar formulario
         document.getElementById('productoId').value = prod.id_producto;
         document.getElementById('nombre').value = prod.nombre;
-        document.getElementById('categoria_id').value = prod.categoria_id; // Cargar categoría
+        document.getElementById('categoria_id').value = prod.categoria_id;
+        document.getElementById('unidad_medida_id').value = prod.unidad_medida_id;
         document.getElementById('precio_venta').value = prod.precio_venta;
         document.getElementById('stock_actual').value = prod.stock_actual;
+        
+        // Limpiar input file
+        document.getElementById('imagen').value = '';
 
         // Abrir modal
         document.getElementById('productoModal').style.display = "block";

@@ -21,6 +21,8 @@ include_once 'controllers/CategoryController.php';
 include_once 'controllers/ProductController.php';
 include_once 'controllers/InvoiceController.php';
 include_once 'controllers/ReportController.php';
+include_once 'controllers/ClientController.php';
+include_once 'controllers/UnitMeasureController.php';
 
 $database = new Database();
 $db = $database->getConnection();
@@ -31,6 +33,8 @@ $categoryController = new CategoryController($db);
 $productController = new ProductController($db);
 $invoiceController = new InvoiceController($db);
 $reportController = new ReportController($db);
+$clientController = new ClientController($db);
+$unitController = new UnitMeasureController($db);
 
 $request_uri = $_SERVER['REQUEST_URI'];
 $base_path = '/proyecto_final/backend'; 
@@ -62,6 +66,23 @@ $router->add('POST', '/login', function() use ($userController) {
     $userController->login();
 });
 
+// Rutas de Clientes
+$router->add('GET', '/clients', function() use ($clientController) {
+    $clientController->getAll();
+});
+$router->add('GET', '/clients/{id}', function($id) use ($clientController) {
+    $clientController->getOne($id);
+});
+$router->add('POST', '/clients', function() use ($clientController) {
+    $clientController->create();
+});
+$router->add('PUT', '/clients/{id}', function($id) use ($clientController) {
+    $clientController->update($id);
+});
+$router->add('DELETE', '/clients/{id}', function($id) use ($clientController) {
+    $clientController->delete($id);
+});
+
 // Rutas de Categorías
 $router->add('GET', '/categories', function() use ($categoryController) {
     $categoryController->getAll();
@@ -79,6 +100,23 @@ $router->add('DELETE', '/categories/{id}', function($id) use ($categoryControlle
     $categoryController->delete($id);
 });
 
+// Rutas de Unidades de Medida
+$router->add('GET', '/units', function() use ($unitController) {
+    $unitController->getAll();
+});
+$router->add('GET', '/units/{id}', function($id) use ($unitController) {
+    $unitController->getOne($id);
+});
+$router->add('POST', '/units', function() use ($unitController) {
+    $unitController->create();
+});
+$router->add('PUT', '/units/{id}', function($id) use ($unitController) {
+    $unitController->update($id);
+});
+$router->add('DELETE', '/units/{id}', function($id) use ($unitController) {
+    $unitController->delete($id);
+});
+
 // Rutas de Productos
 $router->add('GET', '/products', function() use ($productController) {
     $productController->getAll();
@@ -90,6 +128,10 @@ $router->add('POST', '/products', function() use ($productController) {
     $productController->create();
 });
 $router->add('PUT', '/products/{id}', function($id) use ($productController) {
+    $productController->update($id);
+});
+// Soporte para actualización con imagen vía POST (FormData)
+$router->add('POST', '/products/{id}', function($id) use ($productController) {
     $productController->update($id);
 });
 $router->add('DELETE', '/products/{id}', function($id) use ($productController) {

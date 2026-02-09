@@ -18,13 +18,14 @@
         <div class="header-content">
             <div class="logo">TRIUNFO GO</div>
             <nav class="main-nav">
-                    <a href="index.html">Inventario</a>
-                    <a href="categorias.html">Categorías</a>
-                    <a href="ventas.html" class="active">Ventas</a>
-                    <a href="historial.html">Historial</a>
-                    <a href="reportes.html">Reportes</a>
-                    <a href="#" id="logoutBtn">Salir</a>
-                </nav>
+                <a href="index.html">Inventario</a>
+                <a href="clientes.html">Clientes</a>
+                <a href="categorias.html">Categorías</a>
+                <a href="ventas.html" class="active">Ventas</a>
+                <a href="historial.html">Historial</a>
+                <a href="reportes.html">Reportes</a>
+                <a href="#" id="logoutBtn">Salir</a>
+            </nav>
         </div>
     </header>
 
@@ -43,6 +44,12 @@
         <div class="cart-section">
             <div class="cart-header">
                 <h3>Nueva Venta</h3>
+                <div style="margin: 10px 0;">
+                    <select id="cliente-select" style="width: 100%; padding: 8px; margin-bottom: 5px;">
+                        <option value="">Cargando clientes...</option>
+                    </select>
+                    <small><a href="clientes.html" target="_blank">Gestionar Clientes</a></small>
+                </div>
                 <span id="fecha-actual"></span>
             </div>
             

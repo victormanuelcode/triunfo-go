@@ -18,20 +18,24 @@
         <div class="header-content">
             <div class="logo">TRIUNFO GO</div>
             <nav class="main-nav">
-                    <a href="index.html" class="active">Inventario</a>
-                    <a href="categorias.html">Categorías</a>
-                    <a href="ventas.html">Ventas</a>
-                    <a href="historial.html">Historial</a>
-                    <a href="reportes.html">Reportes</a>
-                    <a href="#" id="logoutBtn">Salir</a>
-                </nav>
+                <a href="index.html" class="active">Inventario</a>
+                <a href="clientes.html">Clientes</a>
+                <a href="categorias.html">Categorías</a>
+                <a href="ventas.html">Ventas</a>
+                <a href="historial.html">Historial</a>
+                <a href="reportes.html">Reportes</a>
+                <a href="#" id="logoutBtn">Salir</a>
+            </nav>
         </div>
     </header>
 
     <main class="container">
         <div class="page-header">
             <h2>Inventario de Productos</h2>
-            <button class="btn-primary" id="btnNuevoProducto">+ Nuevo Producto</button>
+            <div>
+                <button class="btn-primary" id="btnNuevoProducto">+ Nuevo Producto</button>
+                <button class="btn-secondary" id="btnGestionarUnidades" style="margin-left: 10px;">Gestionar Unidades</button>
+            </div>
         </div>
 
         <div class="products-grid" id="productos-container">
@@ -44,7 +48,7 @@
     <div id="productoModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Gestión de Producto</h3>
+                <h3>Producto</h3>
                 <span class="close-modal">&times;</span>
             </div>
             <div class="modal-body">
@@ -55,10 +59,19 @@
                         <input type="text" id="nombre" required>
                     </div>
                     <div class="form-group">
+                        <label for="descripcion">Descripción</label>
+                        <input type="text" id="descripcion">
+                    </div>
+                    <div class="form-group">
                         <label for="categoria_id">Categoría</label>
-                        <select id="categoria_id" required>
+                        <select id="categoria_id">
                             <option value="">Seleccione una categoría</option>
-                            <!-- Se llena dinámicamente -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="unidad_medida_id">Unidad de Medida</label>
+                        <select id="unidad_medida_id">
+                            <option value="">Seleccione una unidad</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -69,11 +82,48 @@
                         <label for="stock_actual">Stock Inicial</label>
                         <input type="number" id="stock_actual" value="0">
                     </div>
+                    <div class="form-group">
+                        <label for="imagen">Imagen del Producto</label>
+                        <input type="file" id="imagen" accept="image/*">
+                    </div>
                     <div class="modal-actions">
                         <button type="button" class="btn-secondary close-modal-btn">Cancelar</button>
                         <button type="submit" class="btn-primary">Guardar</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Gestión de Unidades -->
+    <div id="unidadesModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3>Gestión de Unidades de Medida</h3>
+                <span class="close-modal-unidades">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+                    <input type="text" id="nuevaUnidadNombre" placeholder="Nombre (ej. Kilogramo)" style="flex: 1; padding: 8px;">
+                    <input type="text" id="nuevaUnidadAbrev" placeholder="Abrev. (ej. kg)" style="width: 100px; padding: 8px;">
+                    <button id="btnGuardarUnidad" class="btn-primary">Agregar</button>
+                </div>
+                
+                <table class="table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Abreviatura</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaUnidadesBody">
+                        <!-- Unidades aquí -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer" style="padding: 15px; text-align: right; border-top: 1px solid #eee;">
+                <button type="button" class="btn-secondary close-modal-unidades-btn">Cerrar</button>
             </div>
         </div>
     </div>

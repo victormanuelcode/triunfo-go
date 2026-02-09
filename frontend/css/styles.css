@@ -118,12 +118,15 @@ a {
 
 .modal-content {
     background-color: white;
-    margin: 10% auto;
+    margin: 5% auto; /* Reduced from 10% */
     padding: 20px;
     width: 50%;
     max-width: 500px;
     border-radius: 8px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    max-height: 90vh; /* Limit height to viewport */
+    display: flex;
+    flex-direction: column;
 }
 
 .modal-header {
@@ -133,6 +136,12 @@ a {
     margin-bottom: 20px;
     border-bottom: 1px solid #eee;
     padding-bottom: 10px;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.modal-body {
+    overflow-y: auto; /* Enable scrolling for form */
+    padding-right: 5px; /* Space for scrollbar */
 }
 
 .close-modal {

@@ -46,19 +46,21 @@ class ProductController {
     }
 
     public function create() {
-        $data = json_decode(file_get_contents("php://input"));
+        $data = $this->processRequestData();
 
-        if (!empty($data->nombre) && !empty($data->precio_venta)) {
-            $this->product->nombre = $data->nombre;
-            $this->product->descripcion = isset($data->descripcion) ? $data->descripcion : null;
-            $this->product->categoria_id = isset($data->categoria_id) ? $data->categoria_id : null;
-            $this->product->unidad_medida_id = isset($data->unidad_medida_id) ? $data->unidad_medida_id : null;
-            $this->product->precio_compra = isset($data->precio_compra) ? $data->precio_compra : 0;
-            $this->product->precio_venta = $data->precio_venta;
-            $this->product->stock_actual = isset($data->stock_actual) ? $data->stock_actual : 0;
-            $this->product->stock_minimo = isset($data->stock_minimo) ? $data->stock_minimo : 5;
-            $this->product->imagen = isset($data->imagen) ? $data->imagen : null;
-            $this->product->estado = isset($data->estado) ? $data->estado : 'activo';
+        if (!empty($data['nombre']) && !empty($data['precio_venta'])) {
+            $this->product->nombre = $data['nombre'];
+            $this->product->descripcion = $data['descripcion'] ?? null;
+            $this->product->categoria_id = $data['categoria_id'] ?? null;
+            $this->product->unidad_medida_id = $data['unidad_medida_id'] ?? null;
+            $this->product->precio_compra = $data['precio_compra'] ?? 0;
+            $this->product->precio_venta = $data['precio_venta'];
+            $this->product->stock_actual = $data['stock_actual'] ?? 0;
+            $this->product->stock_minimo = $data['stock_minimo'] ?? 5;
+            $this->product->estado = $data['estado'] ?? 'activo';
+            
+            // Handle Image Upload
+            $this->product->imagen = $this->handleImageUpload() ?? ($data['imagen'] ?? null);
 
             if ($this->product->create()) {
                 http_response_code(201);
@@ -74,20 +76,28 @@ class ProductController {
     }
 
     public function update($id) {
-        $data = json_decode(file_get_contents("php://input"));
+        $data = $this->processRequestData();
         $this->product->id_producto = $id;
 
-        if (!empty($data->nombre)) {
-            $this->product->nombre = $data->nombre;
-            $this->product->descripcion = isset($data->descripcion) ? $data->descripcion : null;
-            $this->product->categoria_id = isset($data->categoria_id) ? $data->categoria_id : null;
-            $this->product->unidad_medida_id = isset($data->unidad_medida_id) ? $data->unidad_medida_id : null;
-            $this->product->precio_compra = isset($data->precio_compra) ? $data->precio_compra : 0;
-            $this->product->precio_venta = isset($data->precio_venta) ? $data->precio_venta : 0;
-            $this->product->stock_actual = isset($data->stock_actual) ? $data->stock_actual : 0;
-            $this->product->stock_minimo = isset($data->stock_minimo) ? $data->stock_minimo : 0;
-            $this->product->imagen = isset($data->imagen) ? $data->imagen : null;
-            $this->product->estado = isset($data->estado) ? $data->estado : 'activo';
+        // Retrieve existing product to keep old image if no new one is uploaded
+        $oldProduct = new Product($this->db);
+        $oldProduct->id_producto = $id;
+        $oldProduct->readOne();
+
+        if (!empty($data['nombre'])) {
+            $this->product->nombre = $data['nombre'];
+            $this->product->descripcion = $data['descripcion'] ?? null;
+            $this->product->categoria_id = $data['categoria_id'] ?? null;
+            $this->product->unidad_medida_id = $data['unidad_medida_id'] ?? null;
+            $this->product->precio_compra = $data['precio_compra'] ?? 0;
+            $this->product->precio_venta = $data['precio_venta'] ?? 0;
+            $this->product->stock_actual = $data['stock_actual'] ?? 0;
+            $this->product->stock_minimo = $data['stock_minimo'] ?? 0;
+            $this->product->estado = $data['estado'] ?? 'activo';
+
+            // Handle Image Upload
+            $newImage = $this->handleImageUpload();
+            $this->product->imagen = $newImage ? $newImage : $oldProduct->imagen;
 
             if ($this->product->update()) {
                 http_response_code(200);
@@ -106,11 +116,47 @@ class ProductController {
         $this->product->id_producto = $id;
         if ($this->product->delete()) {
             http_response_code(200);
-            echo json_encode(["message" => "Producto eliminado."]);
+            echo json_encode(["message" => "Producto eliminado (Soft Delete)."]);
         } else {
             http_response_code(503);
             echo json_encode(["message" => "No se pudo eliminar el producto."]);
         }
+    }
+
+    private function processRequestData() {
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        if (strpos($contentType, 'application/json') !== false) {
+            return (array) json_decode(file_get_contents("php://input"), true);
+        }
+        return $_POST;
+    }
+
+    private function handleImageUpload() {
+        if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = __DIR__ . '/../uploads/products/';
+            if (!file_exists($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+
+            $fileTmpPath = $_FILES['imagen']['tmp_name'];
+            $fileName = $_FILES['imagen']['name'];
+            $fileSize = $_FILES['imagen']['size'];
+            $fileType = $_FILES['imagen']['type'];
+            
+            $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+            $allowedFileExtensions = ['jpg', 'gif', 'png', 'jpeg', 'webp'];
+
+            if (in_array($fileExt, $allowedFileExtensions)) {
+                $newFileName = uniqid() . '.' . $fileExt;
+                $dest_path = $uploadDir . $newFileName;
+
+                if (move_uploaded_file($fileTmpPath, $dest_path)) {
+                    // Return relative path for DB
+                    return 'uploads/products/' . $newFileName;
+                }
+            }
+        }
+        return null;
     }
 }
 ?>
