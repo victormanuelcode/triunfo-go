@@ -76,16 +76,21 @@ class Category {
 
     // Eliminar categoría
     public function delete() {
-        $query = "DELETE FROM " . $this->table_name . " WHERE id_categoria = ?";
-        $stmt = $this->conn->prepare($query);
-        
-        $this->id_categoria = htmlspecialchars(strip_tags($this->id_categoria));
-        $stmt->bindParam(1, $this->id_categoria);
+        try {
+            $query = "DELETE FROM " . $this->table_name . " WHERE id_categoria = ?";
+            $stmt = $this->conn->prepare($query);
+            
+            $this->id_categoria = htmlspecialchars(strip_tags($this->id_categoria));
+            $stmt->bindParam(1, $this->id_categoria);
 
-        if ($stmt->execute()) {
-            return true;
+            if ($stmt->execute()) {
+                return true;
+            }
+            return false;
+        } catch (PDOException $e) {
+            // Error por restricción de llave foránea (tiene productos asociados)
+            return false;
         }
-        return false;
     }
 }
 ?>

@@ -126,4 +126,4 @@ URL Base: `http://localhost/proyecto_final/backend`
 - [ ] **Gestión de Clientes**: CRUD de clientes (Pendiente).
 
 ---
-*Documentación generada automáticamente por Trae AI.*
+

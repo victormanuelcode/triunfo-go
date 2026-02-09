@@ -10,6 +10,37 @@ class InvoiceController {
         $this->invoice = new Invoice($db);
     }
 
+    public function getAll() {
+        $stmt = $this->invoice->read();
+        $invoices_arr = [];
+        
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            array_push($invoices_arr, $row);
+        }
+        
+        echo json_encode($invoices_arr);
+    }
+
+    public function getOne($id) {
+        $this->invoice->id_factura = $id;
+        if ($this->invoice->readOne()) {
+            $invoice_arr = [
+                "id_factura" => $this->invoice->id_factura,
+                "numero_factura" => $this->invoice->numero_factura,
+                "fecha" => $this->invoice->fecha,
+                "cliente_nombre" => $this->invoice->cliente_nombre,
+                "total" => $this->invoice->total,
+                "metodo_pago" => $this->invoice->metodo_pago,
+                "observaciones" => $this->invoice->observaciones,
+                "detalles" => $this->invoice->detalles
+            ];
+            echo json_encode($invoice_arr);
+        } else {
+            http_response_code(404);
+            echo json_encode(["message" => "Factura no encontrada."]);
+        }
+    }
+
     public function create() {
         $data = json_decode(file_get_contents("php://input"), true);
 

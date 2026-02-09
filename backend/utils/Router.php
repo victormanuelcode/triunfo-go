@@ -14,7 +14,7 @@ class Router {
     public function dispatch($method, $uri) {
         foreach ($this->routes as $route) {
             if ($route['method'] === $method && preg_match($route['path'], $uri, $matches)) {
-                array_shift($matches); // Remove full match
+                array_shift($matches); 
                 return call_user_func_array($route['callback'], $matches);
             }
         }

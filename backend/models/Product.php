@@ -26,6 +26,7 @@ class Product {
         $query = "SELECT p.*, c.nombre as categoria_nombre 
                   FROM " . $this->table_name . " p
                   LEFT JOIN categorias c ON p.categoria_id = c.id_categoria
+                  WHERE p.estado = 'activo'
                   ORDER BY p.creado_en DESC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
@@ -60,6 +61,19 @@ class Product {
         $stmt->bindParam(":estado", $this->estado);
 
         if ($stmt->execute()) {
+            // Si hay stock inicial, registrar movimiento
+            if ($this->stock_actual > 0) {
+                $this->id_producto = $this->conn->lastInsertId();
+                $query_mov = "INSERT INTO movimientos_inventario 
+                              SET tipo='entrada', producto_id=:producto_id, 
+                                  cantidad=:cantidad, descripcion='Stock Inicial', 
+                                  referencia='CREACION'";
+                
+                $stmt_mov = $this->conn->prepare($query_mov);
+                $stmt_mov->bindParam(":producto_id", $this->id_producto);
+                $stmt_mov->bindParam(":cantidad", $this->stock_actual);
+                $stmt_mov->execute();
+            }
             return true;
         }
         return false;
@@ -129,13 +143,39 @@ class Product {
         return false;
     }
 
-    // Eliminar producto
+    // Eliminar producto (Soft Delete)
     public function delete() {
-        $query = "DELETE FROM " . $this->table_name . " WHERE id_producto = ?";
+        // En lugar de borrar, cambiamos el estado a 'inactivo'
+        $query = "UPDATE " . $this->table_name . " SET estado = 'inactivo' WHERE id_producto = ?";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(1, $this->id_producto);
 
         if ($stmt->execute()) {
+            // Registrar movimiento de salida por baja
+            // Primero obtenemos el stock actual para registrar qué se perdió
+            $check = "SELECT stock_actual FROM " . $this->table_name . " WHERE id_producto = ?";
+            $stmtCheck = $this->conn->prepare($check);
+            $stmtCheck->bindParam(1, $this->id_producto);
+            $stmtCheck->execute();
+            $currentStock = $stmtCheck->fetchColumn();
+
+            if ($currentStock > 0) {
+                $query_mov = "INSERT INTO movimientos_inventario 
+                              SET tipo='salida', producto_id=:producto_id, 
+                                  cantidad=:cantidad, descripcion='Baja de Producto (Eliminado)', 
+                                  referencia='BAJA'";
+                $stmt_mov = $this->conn->prepare($query_mov);
+                $stmt_mov->bindParam(":producto_id", $this->id_producto);
+                $stmt_mov->bindParam(":cantidad", $currentStock);
+                $stmt_mov->execute();
+                
+                // Opcional: poner stock a 0
+                $zero = 0;
+                $updateStock = $this->conn->prepare("UPDATE " . $this->table_name . " SET stock_actual = 0 WHERE id_producto = ?");
+                $updateStock->bindParam(1, $this->id_producto);
+                $updateStock->execute();
+            }
+
             return true;
         }
         return false;

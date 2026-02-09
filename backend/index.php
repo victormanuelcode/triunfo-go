@@ -91,6 +91,12 @@ $router->add('DELETE', '/products/{id}', function($id) use ($productController) 
 });
 
 // Rutas de Ventas (Facturas)
+$router->add('GET', '/invoices', function() use ($invoiceController) {
+    $invoiceController->getAll();
+});
+$router->add('GET', '/invoices/:id', function($id) use ($invoiceController) {
+    $invoiceController->getOne($id);
+});
 $router->add('POST', '/invoices', function() use ($invoiceController) {
     $invoiceController->create();
 });
