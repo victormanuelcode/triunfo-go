@@ -1,0 +1,22 @@
+# IDEs y Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema Operativo
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Dependencias (Futuras)
+vendor/
+node_modules/
+
+# Logs
+*.log
+error_log
+
+# Configuración local (opcional, por si agregamos .env después)
+.env
+config/config.local.php

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ventas - TRIUNFO GO</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/ventas.css">
+</head>
+<body>
+    <script>
+        if (!localStorage.getItem('sesion_activa')) {
+            window.location.href = 'login.html';
+        }
+    </script>
+
+    <header class="main-header">
+        <div class="header-content">
+            <div class="logo">TRIUNFO GO</div>
+            <nav class="main-nav">
+                <a href="index.html">Inventario</a>
+                <a href="categorias.html">Categorías</a>
+                <a href="ventas.html" class="active">Ventas</a>
+                <a href="#" onclick="logout()">Salir</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="pos-container">
+        <!-- Panel Izquierdo: Catálogo -->
+        <div class="catalog-section">
+            <div class="search-bar">
+                <input type="text" id="buscador" placeholder="Buscar producto por nombre..." onkeyup="filtrarProductos()">
+            </div>
+            <div class="catalog-grid" id="productos-catalogo">
+                <div class="loading-spinner">Cargando productos...</div>
+            </div>
+        </div>
+
+        <!-- Panel Derecho: Carrito -->
+        <div class="cart-section">
+            <div class="cart-header">
+                <h3>Nueva Venta</h3>
+                <span id="fecha-actual"></span>
+            </div>
+            
+            <div class="cart-items" id="carrito-items">
+                <!-- Items agregados aparecerán aquí -->
+                <div class="empty-cart-msg">El carrito está vacío</div>
+            </div>
+
+            <div class="cart-footer">
+                <div class="cart-total">
+                    <span>Total:</span>
+                    <span id="total-amount">$0</span>
+                </div>
+                <button class="btn-checkout" onclick="procesarVenta()">Finalizar Venta</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/ventas.js"></script>
+    <script>
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+        document.getElementById('fecha-actual').innerText = new Date().toLocaleDateString();
+    </script>
+</body>
+</html>

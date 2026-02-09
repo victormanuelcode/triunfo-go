@@ -1,0 +1,39 @@
+<?php
+include_once __DIR__ . '/../models/Invoice.php';
+
+class InvoiceController {
+    private $db;
+    private $invoice;
+
+    public function __construct($db) {
+        $this->db = $db;
+        $this->invoice = new Invoice($db);
+    }
+
+    public function create() {
+        $data = json_decode(file_get_contents("php://input"), true);
+
+        if (!empty($data['items']) && !empty($data['total'])) {
+            $this->invoice->cliente_id = isset($data['cliente_id']) ? $data['cliente_id'] : null; // Nullable por ahora
+            $this->invoice->total = $data['total'];
+            $this->invoice->metodo_pago = isset($data['metodo_pago']) ? $data['metodo_pago'] : 'efectivo';
+            $this->invoice->observaciones = isset($data['observaciones']) ? $data['observaciones'] : '';
+            $this->invoice->items = $data['items'];
+
+            if ($this->invoice->create()) {
+                http_response_code(201);
+                echo json_encode([
+                    "message" => "Venta registrada exitosamente.",
+                    "numero_factura" => $this->invoice->numero_factura
+                ]);
+            } else {
+                http_response_code(503);
+                echo json_encode(["message" => "No se pudo registrar la venta. Verifique stock o datos."]);
+            }
+        } else {
+            http_response_code(400);
+            echo json_encode(["message" => "Datos incompletos. Se requieren items y total."]);
+        }
+    }
+}
+?>
