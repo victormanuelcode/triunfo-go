@@ -10,12 +10,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
+require_once __DIR__ . '/vendor/autoload.php';
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
 include_once 'config/Database.php';
 include_once 'utils/Router.php';
 include_once 'controllers/UserController.php';
 include_once 'controllers/CategoryController.php';
 include_once 'controllers/ProductController.php';
 include_once 'controllers/InvoiceController.php';
+include_once 'controllers/ReportController.php';
 
 $database = new Database();
 $db = $database->getConnection();
@@ -25,6 +30,7 @@ $userController = new UserController($db);
 $categoryController = new CategoryController($db);
 $productController = new ProductController($db);
 $invoiceController = new InvoiceController($db);
+$reportController = new ReportController($db);
 
 $request_uri = $_SERVER['REQUEST_URI'];
 $base_path = '/proyecto_final/backend'; 
@@ -94,11 +100,16 @@ $router->add('DELETE', '/products/{id}', function($id) use ($productController) 
 $router->add('GET', '/invoices', function() use ($invoiceController) {
     $invoiceController->getAll();
 });
-$router->add('GET', '/invoices/:id', function($id) use ($invoiceController) {
+$router->add('GET', '/invoices/{id}', function($id) use ($invoiceController) {
     $invoiceController->getOne($id);
 });
 $router->add('POST', '/invoices', function() use ($invoiceController) {
     $invoiceController->create();
+});
+
+// Rutas de Reportes
+$router->add('GET', '/reports/dashboard', function() use ($reportController) {
+    $reportController->getDashboardData();
 });
 
 // Despachar la ruta

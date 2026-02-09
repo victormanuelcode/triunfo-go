@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes - TRIUNFO GO</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+        .kpi-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .kpi-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .kpi-label {
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            grid-column: span 2; /* Ocupa 2 columnas en pantallas grandes */
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                grid-column: span 1;
+            }
+        }
+        .table-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background-color: #f8f9fa; }
+    </style>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-content">
+            <div class="logo">TRIUNFO GO</div>
+            <nav class="main-nav">
+                <a href="index.html">Inventario</a>
+                <a href="categorias.html">Categorías</a>
+                <a href="ventas.html">Ventas</a>
+                <a href="historial.html">Historial</a>
+                <a href="reportes.html" class="active">Reportes</a>
+                <a href="#" id="logoutBtn">Salir</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <h1>Dashboard de Reportes</h1>
+
+        <div class="dashboard-grid">
+            <!-- KPIs -->
+            <div class="kpi-card">
+                <div class="kpi-value" id="kpiSalesToday">$0</div>
+                <div class="kpi-label">Ventas Hoy</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value" id="kpiSalesMonth">$0</div>
+                <div class="kpi-label">Ventas Mes Actual</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value" id="kpiLowStock">0</div>
+                <div class="kpi-label">Productos Bajo Stock</div>
+            </div>
+
+            <!-- Gráfica de Ventas -->
+            <div class="chart-container">
+                <h3>Ventas Últimos 7 Días</h3>
+                <canvas id="salesChart"></canvas>
+            </div>
+
+            <!-- Top Productos -->
+            <div class="table-container">
+                <h3>Top 5 Productos Más Vendidos</h3>
+                <table id="topProductsTable">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Cantidad Vendida</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- Alerta Stock Bajo -->
+            <div class="table-container">
+                <h3>Alerta: Stock Bajo</h3>
+                <table id="lowStockTable">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Actual</th>
+                            <th>Mínimo</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/reportes.js"></script>
+    <script>
+        // Logout logic (duplicada por ahora, idealmente en un script común)
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('user');
+            localStorage.removeItem('sesion_activa');
+            window.location.href = 'login.html';
+        });
+    </script>
+</body>
+</html>

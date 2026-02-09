@@ -1,0 +1,7 @@
+{
+    "name": "triunfogo/backend",
+    "description": "Backend API para Triunfo Go",
+    "require": {
+        "vlucas/phpdotenv": "^5.6"
+    }
+}
