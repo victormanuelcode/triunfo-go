@@ -23,6 +23,7 @@ include_once 'controllers/InvoiceController.php';
 include_once 'controllers/ReportController.php';
 include_once 'controllers/ClientController.php';
 include_once 'controllers/UnitMeasureController.php';
+include_once 'controllers/SupplierController.php';
 
 $database = new Database();
 $db = $database->getConnection();
@@ -35,6 +36,7 @@ $invoiceController = new InvoiceController($db);
 $reportController = new ReportController($db);
 $clientController = new ClientController($db);
 $unitController = new UnitMeasureController($db);
+$supplierController = new SupplierController($db);
 
 $request_uri = $_SERVER['REQUEST_URI'];
 $base_path = '/proyecto_final/backend'; 
@@ -81,6 +83,23 @@ $router->add('PUT', '/clients/{id}', function($id) use ($clientController) {
 });
 $router->add('DELETE', '/clients/{id}', function($id) use ($clientController) {
     $clientController->delete($id);
+});
+
+// Rutas de Proveedores
+$router->add('GET', '/suppliers', function() use ($supplierController) {
+    $supplierController->getAll();
+});
+$router->add('GET', '/suppliers/{id}', function($id) use ($supplierController) {
+    $supplierController->getOne($id);
+});
+$router->add('POST', '/suppliers', function() use ($supplierController) {
+    $supplierController->create();
+});
+$router->add('PUT', '/suppliers/{id}', function($id) use ($supplierController) {
+    $supplierController->update($id);
+});
+$router->add('DELETE', '/suppliers/{id}', function($id) use ($supplierController) {
+    $supplierController->delete($id);
 });
 
 // Rutas de Categorías

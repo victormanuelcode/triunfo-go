@@ -16,6 +16,7 @@ class Product {
     public $estado;
     public $creado_en;
     public $actualizado_en;
+    public $proveedor_id; // Nuevo campo para proveedor
 
     public function __construct($db) {
         $this->conn = $db;
@@ -23,10 +24,13 @@ class Product {
 
     // Leer productos
     public function read() {
-        $query = "SELECT p.*, c.nombre as categoria_nombre 
+        $query = "SELECT p.*, c.nombre as categoria_nombre, pr.nombre as proveedor_nombre, pp.proveedor_id
                   FROM " . $this->table_name . " p
                   LEFT JOIN categorias c ON p.categoria_id = c.id_categoria
+                  LEFT JOIN proveedor_producto pp ON p.id_producto = pp.producto_id
+                  LEFT JOIN proveedores pr ON pp.proveedor_id = pr.id_proveedor
                   WHERE p.estado = 'activo'
+                  GROUP BY p.id_producto
                   ORDER BY p.creado_en DESC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
@@ -61,9 +65,20 @@ class Product {
         $stmt->bindParam(":estado", $this->estado);
 
         if ($stmt->execute()) {
+            $this->id_producto = $this->conn->lastInsertId();
+
+            // Guardar proveedor si existe
+            if (!empty($this->proveedor_id)) {
+                $query_prov = "INSERT INTO proveedor_producto (proveedor_id, producto_id) VALUES (:proveedor_id, :producto_id)";
+                $stmt_prov = $this->conn->prepare($query_prov);
+                $stmt_prov->bindParam(":proveedor_id", $this->proveedor_id);
+                $stmt_prov->bindParam(":producto_id", $this->id_producto);
+                $stmt_prov->execute();
+            }
+
             // Si hay stock inicial, registrar movimiento
             if ($this->stock_actual > 0) {
-                $this->id_producto = $this->conn->lastInsertId();
+                // $this->id_producto ya está seteado arriba
                 $query_mov = "INSERT INTO movimientos_inventario 
                               SET tipo='entrada', producto_id=:producto_id, 
                                   cantidad=:cantidad, descripcion='Stock Inicial', 
@@ -81,9 +96,10 @@ class Product {
 
     // Leer un producto
     public function readOne() {
-        $query = "SELECT p.*, c.nombre as categoria_nombre 
+        $query = "SELECT p.*, c.nombre as categoria_nombre, pp.proveedor_id 
                   FROM " . $this->table_name . " p
                   LEFT JOIN categorias c ON p.categoria_id = c.id_categoria
+                  LEFT JOIN proveedor_producto pp ON p.id_producto = pp.producto_id
                   WHERE p.id_producto = ? LIMIT 0,1";
         
         $stmt = $this->conn->prepare($query);
@@ -104,6 +120,7 @@ class Product {
             $this->imagen = $row['imagen'];
             $this->estado = $row['estado'];
             $this->creado_en = $row['creado_en'];
+            $this->proveedor_id = $row['proveedor_id']; // Asignar proveedor_id
             return true;
         }
         return false;
@@ -138,6 +155,22 @@ class Product {
         $stmt->bindParam(":id_producto", $this->id_producto);
 
         if ($stmt->execute()) {
+            // Actualizar proveedor
+            // Primero eliminamos relación anterior (asumimos 1 proveedor por producto para simplificar edición)
+            $del_prov = "DELETE FROM proveedor_producto WHERE producto_id = :producto_id";
+            $stmt_del = $this->conn->prepare($del_prov);
+            $stmt_del->bindParam(":producto_id", $this->id_producto);
+            $stmt_del->execute();
+
+            // Insertamos nuevo si existe
+            if (!empty($this->proveedor_id)) {
+                $query_prov = "INSERT INTO proveedor_producto (proveedor_id, producto_id) VALUES (:proveedor_id, :producto_id)";
+                $stmt_prov = $this->conn->prepare($query_prov);
+                $stmt_prov->bindParam(":proveedor_id", $this->proveedor_id);
+                $stmt_prov->bindParam(":producto_id", $this->id_producto);
+                $stmt_prov->execute();
+            }
+
             return true;
         }
         return false;

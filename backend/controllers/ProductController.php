@@ -30,6 +30,7 @@ class ProductController {
                 "descripcion" => $this->product->descripcion,
                 "categoria_id" => $this->product->categoria_id,
                 "unidad_medida_id" => $this->product->unidad_medida_id,
+                "proveedor_id" => $this->product->proveedor_id, // Añadir proveedor
                 "precio_compra" => $this->product->precio_compra,
                 "precio_venta" => $this->product->precio_venta,
                 "stock_actual" => $this->product->stock_actual,
@@ -53,6 +54,7 @@ class ProductController {
             $this->product->descripcion = $data['descripcion'] ?? null;
             $this->product->categoria_id = $data['categoria_id'] ?? null;
             $this->product->unidad_medida_id = $data['unidad_medida_id'] ?? null;
+            $this->product->proveedor_id = $data['proveedor_id'] ?? null; // Añadir proveedor
             $this->product->precio_compra = $data['precio_compra'] ?? 0;
             $this->product->precio_venta = $data['precio_venta'];
             $this->product->stock_actual = $data['stock_actual'] ?? 0;
@@ -89,6 +91,7 @@ class ProductController {
             $this->product->descripcion = $data['descripcion'] ?? null;
             $this->product->categoria_id = $data['categoria_id'] ?? null;
             $this->product->unidad_medida_id = $data['unidad_medida_id'] ?? null;
+            $this->product->proveedor_id = $data['proveedor_id'] ?? null; // Añadir proveedor
             $this->product->precio_compra = $data['precio_compra'] ?? 0;
             $this->product->precio_venta = $data['precio_venta'] ?? 0;
             $this->product->stock_actual = $data['stock_actual'] ?? 0;

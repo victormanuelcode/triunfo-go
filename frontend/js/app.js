@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarProductos();
     cargarCategoriasSelect();
     cargarUnidadesSelect();
+    cargarProveedoresSelect();
     
     // Configurar modales
     setupModal();
@@ -54,6 +55,22 @@ async function cargarCategoriasSelect() {
         });
     } catch (error) {
         console.error('Error cargando categorías:', error);
+    }
+}
+
+// Cargar proveedores en el select del modal
+async function cargarProveedoresSelect() {
+    const select = document.getElementById('proveedor_id');
+    try {
+        const response = await fetch(`${API_URL}/suppliers`);
+        const proveedores = await response.json();
+        
+        select.innerHTML = '<option value="">Seleccione un proveedor</option>';
+        proveedores.forEach(prov => {
+            select.innerHTML += `<option value="${prov.id_proveedor}">${prov.nombre}</option>`;
+        });
+    } catch (error) {
+        console.error('Error cargando proveedores:', error);
     }
 }
 
@@ -275,6 +292,7 @@ function setupModal() {
         const nombre = document.getElementById('nombre').value;
         const categoria_id = document.getElementById('categoria_id').value;
         const unidad_medida_id = document.getElementById('unidad_medida_id').value;
+        const proveedor_id = document.getElementById('proveedor_id').value;
         const precio = document.getElementById('precio_venta').value;
         const stock = document.getElementById('stock_actual').value;
         const imagenInput = document.getElementById('imagen');
@@ -283,6 +301,7 @@ function setupModal() {
         formData.append('nombre', nombre);
         formData.append('categoria_id', categoria_id);
         formData.append('unidad_medida_id', unidad_medida_id);
+        formData.append('proveedor_id', proveedor_id);
         formData.append('precio_venta', precio);
         formData.append('stock_actual', stock);
         formData.append('estado', 'activo');
@@ -358,6 +377,7 @@ window.editarProducto = async function(id) {
         document.getElementById('nombre').value = prod.nombre;
         document.getElementById('categoria_id').value = prod.categoria_id;
         document.getElementById('unidad_medida_id').value = prod.unidad_medida_id;
+        document.getElementById('proveedor_id').value = prod.proveedor_id || '';
         document.getElementById('precio_venta').value = prod.precio_venta;
         document.getElementById('stock_actual').value = prod.stock_actual;
         
