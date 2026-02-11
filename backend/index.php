@@ -25,6 +25,7 @@ include_once 'controllers/ClientController.php';
 include_once 'controllers/UnitMeasureController.php';
 include_once 'controllers/SupplierController.php';
 include_once 'controllers/CompanyController.php';
+include_once 'controllers/InventoryController.php';
 
 $database = new Database();
 $db = $database->getConnection();
@@ -39,6 +40,7 @@ $clientController = new ClientController($db);
 $unitController = new UnitMeasureController($db);
 $supplierController = new SupplierController($db);
 $companyController = new CompanyController($db);
+$inventoryController = new InventoryController($db);
 
 $request_uri = $_SERVER['REQUEST_URI'];
 $base_path = '/proyecto_final/backend'; 
@@ -197,6 +199,11 @@ $router->add('GET', '/company', function() use ($companyController) {
 });
 $router->add('POST', '/company', function() use ($companyController) {
     $companyController->save();
+});
+
+// Rutas de Inventario (Movimientos)
+$router->add('GET', '/inventory/movements', function() use ($inventoryController) {
+    $inventoryController->getAll();
 });
 
 // Despachar la ruta

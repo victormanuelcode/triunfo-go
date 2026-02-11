@@ -1,13 +1,16 @@
 <?php
 include_once __DIR__ . '/../models/Product.php';
+include_once __DIR__ . '/../models/InventoryMovement.php';
 
 class ProductController {
     private $db;
     private $product;
+    private $movement;
 
     public function __construct($db) {
         $this->db = $db;
         $this->product = new Product($db);
+        $this->movement = new InventoryMovement($db);
     }
 
     public function getAll() {
@@ -103,6 +106,20 @@ class ProductController {
             $this->product->imagen = $newImage ? $newImage : $oldProduct->imagen;
 
             if ($this->product->update()) {
+                // Registrar movimiento si hubo cambio de stock
+                $oldStock = (int)$oldProduct->stock_actual;
+                $newStock = (int)$this->product->stock_actual;
+                $diff = $newStock - $oldStock;
+
+                if ($diff !== 0) {
+                    $this->movement->producto_id = $id;
+                    $this->movement->cantidad = abs($diff);
+                    $this->movement->tipo = $diff > 0 ? 'entrada' : 'salida';
+                    $this->movement->descripcion = "Ajuste manual de stock (Edición de producto)";
+                    $this->movement->referencia = "MANUAL-" . date('YmdHis');
+                    $this->movement->create();
+                }
+
                 http_response_code(200);
                 echo json_encode(["message" => "Producto actualizado."]);
             } else {

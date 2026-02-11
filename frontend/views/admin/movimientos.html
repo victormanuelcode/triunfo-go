@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movimientos de Inventario - TRIUNFO GO</title>
+    <link rel="stylesheet" href="../../css/styles.css">
+    <style>
+        .badge-entrada {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .badge-salida {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        if (!localStorage.getItem('sesion_activa')) {
+            window.location.href = '../auth/login.html';
+        }
+    </script>
+
+    <header class="main-header">
+        <div class="header-content">
+            <div class="logo">TRIUNFO GO</div>
+            <nav class="main-nav">
+                <a href="productos.html">Inventario</a>
+                <a href="movimientos.html" class="active">Movimientos</a>
+                <a href="clientes.html">Clientes</a>
+                <a href="proveedores.html">Proveedores</a>
+                <a href="categorias.html">Categorías</a>
+                <a href="../cashier/ventas.html">Ventas</a>
+                <a href="historial.html">Historial</a>
+                <a href="reportes.html">Reportes</a>
+                <a href="usuarios.html">Usuarios</a>
+                <a href="configuracion.html">Configuración</a>
+                <a href="#" id="logoutBtn">Salir</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="page-header">
+            <h2>Movimientos de Inventario (Kardex)</h2>
+            <div class="header-actions">
+                <input type="text" id="buscador" placeholder="Buscar por producto..." class="search-input">
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Producto</th>
+                        <th>Tipo</th>
+                        <th>Cantidad</th>
+                        <th>Referencia</th>
+                        <th>Descripción</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-movimientos">
+                    <tr>
+                        <td colspan="7" style="text-align: center;">Cargando movimientos...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script src="../../js/movimientos.js"></script>
+    <script src="../../js/login.js"></script>
+</body>
+</html>
