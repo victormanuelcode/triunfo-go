@@ -48,6 +48,7 @@ class InvoiceController {
         if (!empty($data['items']) && !empty($data['total'])) {
             $this->invoice->cliente_id = isset($data['cliente_id']) ? $data['cliente_id'] : null; // Nullable por ahora
             $this->invoice->usuario_id = isset($data['usuario_id']) ? $data['usuario_id'] : null; // Nuevo: trazabilidad
+            $this->invoice->sesion_id = isset($data['sesion_id']) ? $data['sesion_id'] : null;
             $this->invoice->total = $data['total'];
             $this->invoice->metodo_pago = isset($data['metodo_pago']) ? $data['metodo_pago'] : 'efectivo';
             $this->invoice->observaciones = isset($data['observaciones']) ? $data['observaciones'] : '';

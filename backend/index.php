@@ -26,6 +26,7 @@ include_once 'controllers/UnitMeasureController.php';
 include_once 'controllers/SupplierController.php';
 include_once 'controllers/CompanyController.php';
 include_once 'controllers/InventoryController.php';
+include_once 'controllers/BoxController.php';
 
 $database = new Database();
 $db = $database->getConnection();
@@ -41,6 +42,7 @@ $unitController = new UnitMeasureController($db);
 $supplierController = new SupplierController($db);
 $companyController = new CompanyController($db);
 $inventoryController = new InventoryController($db);
+$boxController = new BoxController($db);
 
 $request_uri = $_SERVER['REQUEST_URI'];
 $base_path = '/proyecto_final/backend'; 
@@ -204,6 +206,17 @@ $router->add('POST', '/company', function() use ($companyController) {
 // Rutas de Inventario (Movimientos)
 $router->add('GET', '/inventory/movements', function() use ($inventoryController) {
     $inventoryController->getAll();
+});
+
+// Rutas de Caja (Apertura/Cierre)
+$router->add('GET', '/box/status', function() use ($boxController) {
+    $boxController->getStatus();
+});
+$router->add('POST', '/box/open', function() use ($boxController) {
+    $boxController->open();
+});
+$router->add('POST', '/box/close', function() use ($boxController) {
+    $boxController->close();
 });
 
 // Despachar la ruta

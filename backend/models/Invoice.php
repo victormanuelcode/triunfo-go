@@ -89,19 +89,21 @@ class Invoice {
                       SET numero_factura=:numero_factura, 
                           cliente_id=:cliente_id, 
                           usuario_id=:usuario_id,
+                          sesion_id=:sesion_id,
                           total=:total, 
                           metodo_pago=:metodo_pago, 
                           observaciones=:observaciones";
             
             $stmt = $this->conn->prepare($query);
-
+            
             // Sanitizar
             $this->observaciones = htmlspecialchars(strip_tags($this->observaciones));
-
+            
             // Bind
             $stmt->bindParam(":numero_factura", $this->numero_factura);
             $stmt->bindParam(":cliente_id", $this->cliente_id);
             $stmt->bindParam(":usuario_id", $this->usuario_id);
+            $stmt->bindParam(":sesion_id", $this->sesion_id);
             $stmt->bindParam(":total", $this->total);
             $stmt->bindParam(":metodo_pago", $this->metodo_pago);
             $stmt->bindParam(":observaciones", $this->observaciones);

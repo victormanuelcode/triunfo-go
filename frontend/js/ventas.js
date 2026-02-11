@@ -2,10 +2,132 @@ const API_URL = 'http://localhost/proyecto_final/backend';
 let carrito = [];
 let productosGlobal = [];
 
+let sesionCajaId = null;
+
 document.addEventListener('DOMContentLoaded', () => {
+    verificarEstadoCaja();
     cargarCatalogo();
     cargarClientes();
 });
+
+async function verificarEstadoCaja() {
+    const usuarioId = localStorage.getItem('usuario_id');
+    if (!usuarioId) return;
+
+    try {
+        const response = await fetch(`${API_URL}/box/status?usuario_id=${usuarioId}`);
+        const sesion = await response.json();
+
+        if (sesion && sesion.estado === 'abierta') {
+            sesionCajaId = sesion.id_sesion;
+            document.getElementById('modal-apertura-caja').style.display = 'none';
+            // Guardar datos sesión para el cierre
+            localStorage.setItem('sesion_actual', JSON.stringify(sesion));
+        } else {
+            sesionCajaId = null;
+            document.getElementById('modal-apertura-caja').style.display = 'flex';
+        }
+    } catch (error) {
+        console.error('Error verificando caja:', error);
+        alert('Error verificando estado de caja. Revise conexión.');
+    }
+}
+
+async function abrirCaja() {
+    const monto = document.getElementById('monto-apertura').value;
+    const usuarioId = localStorage.getItem('usuario_id');
+
+    if (monto === '') {
+        alert('Ingrese un monto inicial (0 si está vacía).');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/box/open`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                usuario_id: usuarioId,
+                monto_apertura: monto
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert('Caja abierta correctamente.');
+            verificarEstadoCaja();
+        } else {
+            alert('Error: ' + result.message);
+        }
+    } catch (error) {
+        console.error(error);
+        alert('Error de conexión al abrir caja.');
+    }
+}
+
+function mostrarModalCierreCaja() {
+    if (!sesionCajaId) {
+        alert('No hay caja abierta.');
+        return;
+    }
+
+    const sesion = JSON.parse(localStorage.getItem('sesion_actual'));
+    // Actualizar total ventas consultando API nuevamente para tener dato fresco
+    fetch(`${API_URL}/box/status?usuario_id=${localStorage.getItem('usuario_id')}`)
+        .then(res => res.json())
+        .then(data => {
+            if(data) {
+                const inicial = parseFloat(data.monto_apertura);
+                const ventas = parseFloat(data.total_ventas);
+                const total = inicial + ventas;
+
+                document.getElementById('cierre-inicial').innerText = `$${inicial.toLocaleString()}`;
+                document.getElementById('cierre-ventas').innerText = `$${ventas.toLocaleString()}`;
+                document.getElementById('cierre-esperado').innerText = `$${total.toLocaleString()}`;
+                
+                document.getElementById('modal-cierre-caja').style.display = 'flex';
+            }
+        });
+}
+
+function cerrarModalCierre() {
+    document.getElementById('modal-cierre-caja').style.display = 'none';
+}
+
+async function procesarCierreCaja() {
+    const montoCierre = document.getElementById('monto-cierre').value;
+
+    if (montoCierre === '') {
+        alert('Ingrese el monto real en caja.');
+        return;
+    }
+
+    if (!confirm('¿Seguro que desea cerrar la caja? Esta acción no se puede deshacer.')) return;
+
+    try {
+        const response = await fetch(`${API_URL}/box/close`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id_sesion: sesionCajaId,
+                monto_cierre: montoCierre
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert('Caja cerrada correctamente. Se cerrará la sesión.');
+            logout();
+        } else {
+            alert('Error: ' + result.message);
+        }
+    } catch (error) {
+        console.error(error);
+        alert('Error al cerrar caja.');
+    }
+}
 
 async function cargarClientes() {
     const select = document.getElementById('cliente-select');
@@ -179,7 +301,8 @@ async function procesarVenta() {
         total: totalVenta,
         metodo_pago: 'efectivo', // Por defecto
         cliente_id: clienteId || null, // Si es vacío envía null
-        usuario_id: usuarioId // Enviar usuario responsable
+        usuario_id: usuarioId, // Enviar usuario responsable
+        sesion_id: sesionCajaId
     };
 
     try {
