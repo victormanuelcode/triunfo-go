@@ -60,6 +60,22 @@ $router->add('GET', '/test-db', function() use ($db) {
 });
 
 // Rutas de Usuario
+$router->add('GET', '/users', function() use ($userController) {
+    $userController->getAll();
+});
+$router->add('GET', '/users/{id}', function($id) use ($userController) {
+    $userController->getOne($id);
+});
+$router->add('POST', '/users', function() use ($userController) {
+    $userController->register();
+});
+$router->add('PUT', '/users/{id}', function($id) use ($userController) {
+    $userController->update($id);
+});
+$router->add('DELETE', '/users/{id}', function($id) use ($userController) {
+    $userController->delete($id);
+});
+
 $router->add('POST', '/register', function() use ($userController) {
     $userController->register();
 });

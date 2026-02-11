@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Usuarios - TRIUNFO GO</title>
+    <link rel="stylesheet" href="../../css/styles.css">
+</head>
+<body>
+    <script>
+        if (!localStorage.getItem('sesion_activa')) {
+            window.location.href = '../auth/login.html';
+        }
+    </script>
+
+    <header class="main-header">
+        <div class="header-content">
+            <div class="logo">TRIUNFO GO</div>
+            <nav class="main-nav">
+                <a href="productos.html">Inventario</a>
+                <a href="clientes.html">Clientes</a>
+                <a href="proveedores.html">Proveedores</a>
+                <a href="categorias.html">Categorías</a>
+                <a href="../cashier/ventas.html">Ventas</a>
+                <a href="historial.html">Historial</a>
+                <a href="reportes.html">Reportes</a>
+                <a href="usuarios.html" class="active">Usuarios</a>
+                <a href="#" id="logoutBtn">Salir</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="page-header">
+            <h2>Gestión de Usuarios</h2>
+            <button class="btn-primary" id="btnNuevoUsuario">+ Nuevo Usuario</button>
+        </div>
+
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Usuario</th>
+                        <th>Email</th>
+                        <th>Rol</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="usuariosTableBody">
+                    <!-- Datos dinámicos -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modal Usuario -->
+    <div id="usuarioModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Usuario</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="usuarioForm">
+                    <input type="hidden" id="usuarioId">
+                    <div class="form-group">
+                        <label for="nombre">Nombre</label>
+                        <input type="text" id="nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="usuario">Usuario (Login)</label>
+                        <input type="text" id="usuario" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="contrasena">Contraseña</label>
+                        <input type="password" id="contrasena" placeholder="Dejar en blanco para no cambiar">
+                    </div>
+                    <div class="form-group">
+                        <label for="rol_id">Rol</label>
+                        <select id="rol_id" required>
+                            <option value="1">Administrador</option>
+                            <option value="2">Cajero</option>
+                        </select>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary close-modal-btn">Cancelar</button>
+                        <button type="submit" class="btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../js/usuarios.js"></script>
+    <script src="../../js/login.js"></script>
+</body>
+</html>
