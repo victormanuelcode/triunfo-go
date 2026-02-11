@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Categorías - TRIUNFO GO</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="../../css/styles.css">
 </head>
 <body>
     <script>
         if (!localStorage.getItem('sesion_activa')) {
-            window.location.href = 'login.html';
+            window.location.href = '../auth/login.html';
         }
     </script>
 
@@ -17,13 +17,14 @@
         <div class="header-content">
             <div class="logo">TRIUNFO GO</div>
             <nav class="main-nav">
-                <a href="index.html">Inventario</a>
+                <a href="productos.html">Inventario</a>
                 <a href="clientes.html">Clientes</a>
                 <a href="proveedores.html">Proveedores</a>
                 <a href="categorias.html" class="active">Categorías</a>
-                <a href="ventas.html">Ventas</a>
+                <a href="../cashier/ventas.html">Ventas</a>
                 <a href="historial.html">Historial</a>
                 <a href="reportes.html">Reportes</a>
+                <a href="usuarios.html">Usuarios</a>
                 <a href="#" id="logoutBtn">Salir</a>
             </nav>
         </div>
@@ -68,11 +69,11 @@
         </div>
     </div>
 
-    <script src="js/categorias.js"></script>
+    <script src="../../js/categorias.js"></script>
     <script>
         function logout() {
             localStorage.clear();
-            window.location.href = 'login.html';
+            window.location.href = '../auth/login.html';
         }
     </script>
 </body>

@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function checkSession() {
     if (!localStorage.getItem('sesion_activa')) {
-        window.location.href = 'login.html';
+        window.location.href = '../auth/login.html';
     }
 }
 

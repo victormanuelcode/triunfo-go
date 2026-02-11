@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Proveedores - TRIUNFO GO</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <title>Clientes - TRIUNFO GO</title>
+    <link rel="stylesheet" href="../../css/styles.css">
     <style>
         .header-actions {
             display: flex;
@@ -49,13 +49,14 @@
         <div class="header-content">
             <div class="logo">TRIUNFO GO</div>
             <nav class="main-nav">
-                <a href="index.html">Inventario</a>
-                <a href="clientes.html">Clientes</a>
-                <a href="proveedores.html" class="active">Proveedores</a>
+                <a href="productos.html">Inventario</a>
+                <a href="clientes.html" class="active">Clientes</a>
+                <a href="proveedores.html">Proveedores</a>
                 <a href="categorias.html">Categorías</a>
-                <a href="ventas.html">Ventas</a>
+                <a href="../cashier/ventas.html">Ventas</a>
                 <a href="historial.html">Historial</a>
                 <a href="reportes.html">Reportes</a>
+                <a href="usuarios.html">Usuarios</a>
                 <a href="#" id="logoutBtn">Salir</a>
             </nav>
         </div>
@@ -63,19 +64,19 @@
 
     <main class="main-content">
         <div class="header-actions">
-            <h1>Gestión de Proveedores</h1>
+            <h1>Gestión de Clientes</h1>
             <div>
-                <input type="text" id="buscador" placeholder="Buscar por nombre o NIT..." class="search-box" onkeyup="filtrarProveedores()">
-                <button class="btn-add" id="btnNuevoProveedor">Nuevo Proveedor</button>
+                <input type="text" id="buscador" placeholder="Buscar por nombre o documento..." class="search-box" onkeyup="filtrarClientes()">
+                <button class="btn-add" id="btnNuevoCliente">Nuevo Cliente</button>
             </div>
         </div>
 
         <div class="table-container">
-            <table id="tablaProveedores">
+            <table id="tablaClientes">
                 <thead>
                     <tr>
                         <th>Nombre</th>
-                        <th>NIT</th>
+                        <th>Documento</th>
                         <th>Teléfono</th>
                         <th>Email</th>
                         <th>Acciones</th>
@@ -88,20 +89,20 @@
         </div>
     </main>
 
-    <!-- Modal Proveedor -->
-    <div id="modalProveedor" class="modal">
+    <!-- Modal Cliente -->
+    <div id="modalCliente" class="modal">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
-            <h2 id="modalTitle">Nuevo Proveedor</h2>
-            <form id="formProveedor">
-                <input type="hidden" id="idProveedor">
+            <h2 id="modalTitle">Nuevo Cliente</h2>
+            <form id="formCliente">
+                <input type="hidden" id="idCliente">
                 <div class="form-group">
-                    <label>Nombre Empresa/Proveedor *</label>
+                    <label>Nombre Completo *</label>
                     <input type="text" id="nombre" required>
                 </div>
                 <div class="form-group">
-                    <label>NIT</label>
-                    <input type="text" id="nit">
+                    <label>Documento</label>
+                    <input type="text" id="documento">
                 </div>
                 <div class="form-group">
                     <label>Teléfono</label>
@@ -123,15 +124,16 @@
         </div>
     </div>
 
-    <script src="js/proveedores.js"></script>
+    <script src="../../js/clientes.js"></script>
     <script>
-        // Logout simple
-        document.getElementById('logoutBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            localStorage.removeItem('user');
-            localStorage.removeItem('sesion_activa');
-            window.location.href = 'login.html';
-        });
+        function logout() {
+            localStorage.clear();
+            window.location.href = '../auth/login.html';
+        }
+        
+        if (!localStorage.getItem('sesion_activa')) {
+            window.location.href = '../auth/login.html';
+        }
     </script>
 </body>
 </html>

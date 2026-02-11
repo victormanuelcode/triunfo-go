@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial de Ventas - TRIUNFO GO</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="../../css/styles.css">
     <style>
         /* Estilos específicos para tabla historial */
         .history-container {
@@ -111,13 +111,14 @@
         <div class="header-content">
             <div class="logo">TRIUNFO GO</div>
             <nav class="main-nav">
-                <a href="index.html">Inventario</a>
+                <a href="productos.html">Inventario</a>
                 <a href="clientes.html">Clientes</a>
                 <a href="proveedores.html">Proveedores</a>
                 <a href="categorias.html">Categorías</a>
-                <a href="ventas.html">Ventas</a>
+                <a href="../cashier/ventas.html">Ventas</a>
                 <a href="historial.html" class="active">Historial</a>
                 <a href="reportes.html">Reportes</a>
+                <a href="usuarios.html">Usuarios</a>
                 <a href="#" id="logoutBtn">Salir</a>
             </nav>
         </div>
@@ -132,6 +133,7 @@
                         <th># Factura</th>
                         <th>Fecha</th>
                         <th>Cliente</th>
+                        <th>Vendedor</th>
                         <th>Método Pago</th>
                         <th>Total</th>
                         <th>Acciones</th>
@@ -170,6 +172,12 @@
         </div>
     </div>
 
-    <script src="js/historial.js"></script>
+    <script src="../../js/historial.js"></script>
+    <script>
+        function logout() {
+            localStorage.clear();
+            window.location.href = '../auth/login.html';
+        }
+    </script>
 </body>
 </html>

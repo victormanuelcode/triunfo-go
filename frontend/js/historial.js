@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Verificar sesión
     if (!localStorage.getItem('sesion_activa')) {
-        window.location.href = 'login.html';
+        window.location.href = '../auth/login.html';
         return;
     }
 
@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
         logoutBtn.addEventListener('click', (e) => {
             e.preventDefault();
             localStorage.clear();
-            window.location.href = 'login.html';
+            window.location.href = '../auth/login.html';
         });
     }
 
@@ -44,7 +44,7 @@ async function loadHistory() {
         tbody.innerHTML = '';
 
         if (invoices.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No hay ventas registradas</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No hay ventas registradas</td></tr>';
             return;
         }
 
@@ -59,6 +59,7 @@ async function loadHistory() {
                 <td>${inv.numero_factura}</td>
                 <td>${fecha}</td>
                 <td>${inv.cliente_nombre || 'Cliente General'}</td>
+                <td>${inv.usuario_nombre || 'Desconocido'}</td>
                 <td>${inv.metodo_pago}</td>
                 <td>${total}</td>
                 <td>
@@ -91,6 +92,7 @@ async function viewDetail(id) {
             <div><strong>N° Factura:</strong> ${invoice.numero_factura}</div>
             <div><strong>Fecha:</strong> ${new Date(invoice.fecha).toLocaleString()}</div>
             <div><strong>Cliente:</strong> ${invoice.cliente_nombre || 'General'}</div>
+            <div><strong>Vendedor:</strong> ${invoice.usuario_nombre || 'Desconocido'}</div>
             <div><strong>Método Pago:</strong> ${invoice.metodo_pago}</div>
             <div style="grid-column: 1 / -1;"><strong>Observaciones:</strong> ${invoice.observaciones || '-'}</div>
             <div style="grid-column: 1 / -1; font-size: 1.2em; margin-top: 10px;"><strong>Total: ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(invoice.total)}</strong></div>

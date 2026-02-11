@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ventas - TRIUNFO GO</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/ventas.css">
+    <link rel="stylesheet" href="../../css/styles.css">
+    <link rel="stylesheet" href="../../css/ventas.css">
 </head>
 <body>
     <script>
         if (!localStorage.getItem('sesion_activa')) {
-            window.location.href = 'login.html';
+            window.location.href = '../auth/login.html';
         }
     </script>
 
@@ -18,13 +18,9 @@
         <div class="header-content">
             <div class="logo">TRIUNFO GO</div>
             <nav class="main-nav">
-                <a href="index.html">Inventario</a>
-                <a href="clientes.html">Clientes</a>
-                <a href="proveedores.html">Proveedores</a>
-                <a href="categorias.html">Categorías</a>
                 <a href="ventas.html" class="active">Ventas</a>
-                <a href="historial.html">Historial</a>
-                <a href="reportes.html">Reportes</a>
+                <!-- El cajero puede ver el historial global o solo el suyo. Por ahora enlazamos al global pero con ruta relativa -->
+                <a href="../admin/historial.html">Historial</a>
                 <a href="#" id="logoutBtn">Salir</a>
             </nav>
         </div>
@@ -49,7 +45,7 @@
                     <select id="cliente-select" style="width: 100%; padding: 8px; margin-bottom: 5px;">
                         <option value="">Cargando clientes...</option>
                     </select>
-                    <small><a href="clientes.html" target="_blank">Gestionar Clientes</a></small>
+                    <small><a href="../admin/clientes.html" target="_blank">Gestionar Clientes</a></small>
                 </div>
                 <span id="fecha-actual"></span>
             </div>
@@ -69,11 +65,11 @@
         </div>
     </div>
 
-    <script src="js/ventas.js"></script>
+    <script src="../../js/ventas.js"></script>
     <script>
         function logout() {
             localStorage.clear();
-            window.location.href = 'login.html';
+            window.location.href = '../auth/login.html';
         }
         document.getElementById('fecha-actual').innerText = new Date().toLocaleDateString();
     </script>

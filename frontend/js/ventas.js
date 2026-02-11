@@ -172,12 +172,14 @@ async function procesarVenta() {
 
     const totalVenta = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
     const clienteId = document.getElementById('cliente-select').value;
+    const usuarioId = localStorage.getItem('usuario_id'); // Obtener ID del usuario actual
 
     const data = {
         items: itemsVenta,
         total: totalVenta,
         metodo_pago: 'efectivo', // Por defecto
-        cliente_id: clienteId || null // Si es vacío envía null
+        cliente_id: clienteId || null, // Si es vacío envía null
+        usuario_id: usuarioId // Enviar usuario responsable
     };
 
     try {

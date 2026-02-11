@@ -84,15 +84,14 @@ function redirigirUsuario(rolId) {
 
     // Lógica de redirección
     if (rol === 1) {
-        // Rol 1: Administrador -> Va al Dashboard principal
-        window.location.href = 'index.html';
+        // Rol 1: Administrador -> Va al Dashboard de Admin (Productos)
+        window.location.href = '../admin/productos.html';
     } else if (rol === 2) {
-        // Rol 2: Empleado/Vendedor -> Va a otra vista (por ahora al mismo dashboard o ventas)
-        // window.location.href = 'ventas.html'; 
-        window.location.href = 'index.html'; // Temporalmente al index
+        // Rol 2: Cajero/Vendedor -> Va a Ventas
+        window.location.href = '../cashier/ventas.html'; 
     } else {
-        // Otros roles
-        window.location.href = 'index.html';
+        // Otros roles por defecto a login o admin
+        window.location.href = '../admin/productos.html';
     }
 }
 
