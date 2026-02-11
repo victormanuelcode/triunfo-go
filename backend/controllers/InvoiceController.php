@@ -29,6 +29,7 @@ class InvoiceController {
                 "numero_factura" => $this->invoice->numero_factura,
                 "fecha" => $this->invoice->fecha,
                 "cliente_nombre" => $this->invoice->cliente_nombre,
+                "usuario_nombre" => $this->invoice->usuario_nombre,
                 "total" => $this->invoice->total,
                 "metodo_pago" => $this->invoice->metodo_pago,
                 "observaciones" => $this->invoice->observaciones,
@@ -46,6 +47,7 @@ class InvoiceController {
 
         if (!empty($data['items']) && !empty($data['total'])) {
             $this->invoice->cliente_id = isset($data['cliente_id']) ? $data['cliente_id'] : null; // Nullable por ahora
+            $this->invoice->usuario_id = isset($data['usuario_id']) ? $data['usuario_id'] : null; // Nuevo: trazabilidad
             $this->invoice->total = $data['total'];
             $this->invoice->metodo_pago = isset($data['metodo_pago']) ? $data['metodo_pago'] : 'efectivo';
             $this->invoice->observaciones = isset($data['observaciones']) ? $data['observaciones'] : '';

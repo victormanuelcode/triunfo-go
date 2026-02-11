@@ -6,7 +6,9 @@ class Invoice {
     public $id_factura;
     public $numero_factura;
     public $cliente_id;
+    public $usuario_id; // Nuevo campo trazabilidad
     public $cliente_nombre; // Propiedad agregada para evitar errores de propiedad dinámica
+    public $usuario_nombre; // Nuevo campo trazabilidad
     public $total;
     public $metodo_pago;
     public $observaciones;
@@ -33,9 +35,10 @@ class Invoice {
     // Leer una factura con sus detalles
     public function readOne() {
         // 1. Obtener cabecera
-        $query = "SELECT f.*, c.nombre as cliente_nombre 
+        $query = "SELECT f.*, c.nombre as cliente_nombre, u.nombre as usuario_nombre
                   FROM " . $this->table_name . " f
                   LEFT JOIN clientes c ON f.cliente_id = c.id_cliente
+                  LEFT JOIN usuarios u ON f.usuario_id = u.id_usuario
                   WHERE f.id_factura = ? LIMIT 0,1";
         
         $stmt = $this->conn->prepare($query);
@@ -48,11 +51,13 @@ class Invoice {
             $this->numero_factura = $row['numero_factura'];
             $this->fecha = $row['fecha'];
             $this->cliente_id = $row['cliente_id']; // o el nombre si prefieres
+            $this->usuario_id = $row['usuario_id'];
             $this->total = $row['total'];
             $this->metodo_pago = $row['metodo_pago'];
             $this->observaciones = $row['observaciones'];
             // Propiedad auxiliar para el nombre del cliente
             $this->cliente_nombre = $row['cliente_nombre'];
+            $this->usuario_nombre = $row['usuario_nombre'];
 
             // 2. Obtener detalles
             $query_det = "SELECT d.*, p.nombre as producto_nombre 
@@ -83,6 +88,7 @@ class Invoice {
             $query = "INSERT INTO " . $this->table_name . " 
                       SET numero_factura=:numero_factura, 
                           cliente_id=:cliente_id, 
+                          usuario_id=:usuario_id,
                           total=:total, 
                           metodo_pago=:metodo_pago, 
                           observaciones=:observaciones";
@@ -95,6 +101,7 @@ class Invoice {
             // Bind
             $stmt->bindParam(":numero_factura", $this->numero_factura);
             $stmt->bindParam(":cliente_id", $this->cliente_id);
+            $stmt->bindParam(":usuario_id", $this->usuario_id);
             $stmt->bindParam(":total", $this->total);
             $stmt->bindParam(":metodo_pago", $this->metodo_pago);
             $stmt->bindParam(":observaciones", $this->observaciones);
