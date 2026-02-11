@@ -45,7 +45,7 @@ class InventoryMovement {
 
     // Obtener historial completo
     public function getAll() {
-        $query = "SELECT m.*, p.nombre as producto_nombre, p.codigo_barras 
+        $query = "SELECT m.*, p.nombre as producto_nombre 
                   FROM " . $this->table_name . " m
                   LEFT JOIN productos p ON m.producto_id = p.id_producto
                   ORDER BY m.fecha DESC";
