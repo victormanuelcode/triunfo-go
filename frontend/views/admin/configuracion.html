@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración de Empresa - TRIUNFO GO</title>
+    <link rel="stylesheet" href="../../css/styles.css">
+</head>
+<body>
+    <script>
+        if (!localStorage.getItem('sesion_activa')) {
+            window.location.href = '../auth/login.html';
+        }
+    </script>
+
+    <header class="main-header">
+        <div class="header-content">
+            <div class="logo">TRIUNFO GO</div>
+            <nav class="main-nav">
+                <a href="productos.html">Inventario</a>
+                <a href="clientes.html">Clientes</a>
+                <a href="proveedores.html">Proveedores</a>
+                <a href="categorias.html">Categorías</a>
+                <a href="../cashier/ventas.html">Ventas</a>
+                <a href="historial.html">Historial</a>
+                <a href="reportes.html">Reportes</a>
+                <a href="usuarios.html">Usuarios</a>
+                <a href="configuracion.html" class="active">Configuración</a>
+                <a href="#" id="logoutBtn">Salir</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="page-header">
+            <h2>Configuración de Empresa</h2>
+        </div>
+
+        <div class="config-container" style="max-width: 800px; margin: 0 auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <form id="empresaForm">
+                <div class="form-group">
+                    <label for="nombre">Nombre de la Empresa</label>
+                    <input type="text" id="nombre" name="nombre" required>
+                </div>
+                <div class="form-group">
+                    <label for="nit">NIT / RUC</label>
+                    <input type="text" id="nit" name="nit">
+                </div>
+                <div class="form-group">
+                    <label for="direccion">Dirección</label>
+                    <input type="text" id="direccion" name="direccion">
+                </div>
+                <div class="form-group">
+                    <label for="telefono">Teléfono</label>
+                    <input type="text" id="telefono" name="telefono">
+                </div>
+                <div class="form-group">
+                    <label for="lema">Lema / Slogan</label>
+                    <input type="text" id="lema" name="lema">
+                </div>
+                
+                <div class="form-group">
+                    <label for="logo">Logo de la Empresa</label>
+                    <input type="file" id="logo" name="logo" accept="image/*">
+                    <div id="logoPreview" style="margin-top: 10px;">
+                        <!-- Imagen actual se mostrará aquí -->
+                    </div>
+                </div>
+
+                <div class="form-actions" style="margin-top: 2rem; text-align: right;">
+                    <button type="submit" class="btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script src="../../js/configuracion.js"></script>
+    <script src="../../js/login.js"></script>
+</body>
+</html>

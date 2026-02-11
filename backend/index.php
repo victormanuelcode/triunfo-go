@@ -24,6 +24,7 @@ include_once 'controllers/ReportController.php';
 include_once 'controllers/ClientController.php';
 include_once 'controllers/UnitMeasureController.php';
 include_once 'controllers/SupplierController.php';
+include_once 'controllers/CompanyController.php';
 
 $database = new Database();
 $db = $database->getConnection();
@@ -37,6 +38,7 @@ $reportController = new ReportController($db);
 $clientController = new ClientController($db);
 $unitController = new UnitMeasureController($db);
 $supplierController = new SupplierController($db);
+$companyController = new CompanyController($db);
 
 $request_uri = $_SERVER['REQUEST_URI'];
 $base_path = '/proyecto_final/backend'; 
@@ -187,6 +189,14 @@ $router->add('POST', '/invoices', function() use ($invoiceController) {
 // Rutas de Reportes
 $router->add('GET', '/reports/dashboard', function() use ($reportController) {
     $reportController->getDashboardData();
+});
+
+// Rutas de Empresa (Configuración)
+$router->add('GET', '/company', function() use ($companyController) {
+    $companyController->get();
+});
+$router->add('POST', '/company', function() use ($companyController) {
+    $companyController->save();
 });
 
 // Despachar la ruta
