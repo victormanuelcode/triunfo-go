@@ -8,21 +8,18 @@
     <link rel="stylesheet" href="../../css/ventas.css">
 </head>
 <body>
-    <script>
-        if (!localStorage.getItem('sesion_activa')) {
-            window.location.href = '../auth/login.html';
-        }
-    </script>
+    <!-- Auth Guard -->
+    <script src="../../js/auth.js"></script>
 
     <header class="main-header">
         <div class="header-content">
             <div class="logo">TRIUNFO GO</div>
             <nav class="main-nav">
                 <a href="ventas.html" class="active">Ventas</a>
-                <a href="#" onclick="mostrarModalCierreCaja()">Caja</a>
+                <a href="#" id="btn-gestion-caja" onclick="mostrarModalAperturaCaja()">Caja</a>
                 <!-- El cajero puede ver el historial global o solo el suyo. Por ahora enlazamos al global pero con ruta relativa -->
                 <a href="../admin/historial.html">Historial</a>
-                <a href="#" id="logoutBtn">Salir</a>
+                <a href="#" id="logoutBtn" onclick="logout()">Salir</a>
             </nav>
         </div>
     </header>
@@ -67,7 +64,8 @@
     </div>
 
     <div id="modal-apertura-caja" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
-        <div class="modal-content" style="background:white; padding:30px; border-radius:8px; width:400px; text-align:center;">
+        <div class="modal-content" style="background:white; padding:30px; border-radius:8px; width:400px; text-align:center; position:relative;">
+            <span onclick="cerrarModalApertura()" style="position:absolute; top:10px; right:15px; cursor:pointer; font-size:24px; font-weight:bold;">&times;</span>
             <h2>Apertura de Caja</h2>
             <p>Debes abrir caja para comenzar a vender.</p>
             <div class="form-group" style="margin: 20px 0;">
@@ -79,7 +77,8 @@
     </div>
 
     <div id="modal-cierre-caja" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
-        <div class="modal-content" style="background:white; padding:30px; border-radius:8px; width:400px;">
+        <div class="modal-content" style="background:white; padding:30px; border-radius:8px; width:400px; position:relative;">
+            <span onclick="cerrarModalCierre()" style="position:absolute; top:10px; right:15px; cursor:pointer; font-size:24px; font-weight:bold;">&times;</span>
             <h2 style="text-align:center;">Cierre de Caja</h2>
             
             <div style="background:#f8f9fa; padding:15px; margin:15px 0; border-radius:5px;">
@@ -109,12 +108,8 @@
         </div>
     </div>
 
-    <script src="../../js/ventas.js"></script>
+    <script src="../../js/ventas.js?v=1.2"></script>
     <script>
-        function logout() {
-            localStorage.clear();
-            window.location.href = '../auth/login.html';
-        }
         document.getElementById('fecha-actual').innerText = new Date().toLocaleDateString();
     </script>
 </body>

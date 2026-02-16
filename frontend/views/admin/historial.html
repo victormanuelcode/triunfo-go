@@ -106,6 +106,9 @@
     </style>
 </head>
 <body>
+    <!-- Auth Guard -->
+    <script src="../../js/auth.js"></script>
+
     <!-- Navbar -->
     <header class="main-header">
         <div class="header-content">
@@ -120,7 +123,7 @@
                 <a href="reportes.html">Reportes</a>
                 <a href="usuarios.html">Usuarios</a>
                 <a href="configuracion.html">Configuración</a>
-                <a href="#" id="logoutBtn">Salir</a>
+                <a href="#" id="logoutBtn" onclick="logout()">Salir</a>
             </nav>
         </div>
     </header>
@@ -174,11 +177,5 @@
     </div>
 
     <script src="../../js/historial.js"></script>
-    <script>
-        function logout() {
-            localStorage.clear();
-            window.location.href = '../auth/login.html';
-        }
-    </script>
 </body>
 </html>

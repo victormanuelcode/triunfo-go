@@ -20,17 +20,40 @@ async function verificarEstadoCaja() {
 
         if (sesion && sesion.estado === 'abierta') {
             sesionCajaId = sesion.id_sesion;
-            document.getElementById('modal-apertura-caja').style.display = 'none';
+            // document.getElementById('modal-apertura-caja').style.display = 'none'; // Ya no es bloqueante
             // Guardar datos sesión para el cierre
             localStorage.setItem('sesion_actual', JSON.stringify(sesion));
+            actualizarBotonCaja(true);
         } else {
             sesionCajaId = null;
-            document.getElementById('modal-apertura-caja').style.display = 'flex';
+            // document.getElementById('modal-apertura-caja').style.display = 'flex'; // ELIMINADO: Ya no bloqueamos la pantalla
+            actualizarBotonCaja(false);
         }
     } catch (error) {
         console.error('Error verificando caja:', error);
-        alert('Error verificando estado de caja. Revise conexión.');
+        // alert('Error verificando estado de caja. Revise conexión.'); // Silencioso para no molestar
     }
+}
+
+function actualizarBotonCaja(estaAbierta) {
+    const btnCaja = document.getElementById('btn-gestion-caja');
+    if (btnCaja) {
+        if (estaAbierta) {
+            btnCaja.innerText = "Cerrar Caja";
+            btnCaja.onclick = mostrarModalCierreCaja;
+        } else {
+            btnCaja.innerText = "Abrir Caja";
+            btnCaja.onclick = mostrarModalAperturaCaja;
+        }
+    }
+}
+
+function mostrarModalAperturaCaja() {
+    document.getElementById('modal-apertura-caja').style.display = 'flex';
+}
+
+function cerrarModalApertura() {
+    document.getElementById('modal-apertura-caja').style.display = 'none';
 }
 
 async function abrirCaja() {
@@ -56,6 +79,7 @@ async function abrirCaja() {
 
         if (response.ok) {
             alert('Caja abierta correctamente.');
+            document.getElementById('modal-apertura-caja').style.display = 'none'; // Cerrar modal al éxito
             verificarEstadoCaja();
         } else {
             alert('Error: ' + result.message);
