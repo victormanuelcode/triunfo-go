@@ -2,6 +2,10 @@
 const URL_API = 'http://localhost/proyecto_final/backend';
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Limpiar sesión al entrar al login
+    localStorage.clear();
+    sessionStorage.clear();
+
     // Referencia al formulario
     const formulario = document.getElementById('formularioLogin');
     if (formulario) {
@@ -68,6 +72,7 @@ async function manejarInicioSesion(evento) {
  */
 function guardarSesion(datos) {
     localStorage.setItem('sesion_activa', 'true');
+    localStorage.setItem('token', datos.token); // Guardar JWT
     localStorage.setItem('usuario_id', datos.user_id);
     localStorage.setItem('usuario_nombre', datos.nombre);
     localStorage.setItem('usuario_rol', datos.rol_id);
@@ -84,14 +89,15 @@ function redirigirUsuario(rolId) {
 
     // Lógica de redirección
     if (rol === 1) {
-        // Rol 1: Administrador -> Va al Dashboard de Admin (Productos)
-        window.location.href = '../admin/productos.html';
+        // Rol 1: Administrador -> Va al Dashboard o Historial
+        window.location.href = '../admin/historial.html';
     } else if (rol === 2) {
         // Rol 2: Cajero/Vendedor -> Va a Ventas
         window.location.href = '../cashier/ventas.html'; 
     } else {
-        // Otros roles por defecto a login o admin
-        window.location.href = '../admin/productos.html';
+        // Otros roles por defecto a login
+        alert('Rol no reconocido. Contacte al administrador.');
+        localStorage.clear();
     }
 }
 
