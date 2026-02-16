@@ -11,14 +11,35 @@ class InvoiceController {
     }
 
     public function getAll() {
-        $stmt = $this->invoice->read();
+        // Paginación
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        
+        if ($limit < 1) $limit = 10;
+        if ($page < 1) $page = 1;
+
+        $offset = ($page - 1) * $limit;
+
+        $stmt = $this->invoice->read($limit, $offset);
         $invoices_arr = [];
         
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             array_push($invoices_arr, $row);
         }
         
-        echo json_encode($invoices_arr);
+        // Metadata
+        $total_rows = $this->invoice->count();
+        $total_pages = ceil($total_rows / $limit);
+
+        echo json_encode([
+            "data" => $invoices_arr,
+            "meta" => [
+                "current_page" => $page,
+                "limit" => $limit,
+                "total_items" => $total_rows,
+                "total_pages" => $total_pages
+            ]
+        ]);
     }
 
     public function getOne($id) {
@@ -45,11 +66,39 @@ class InvoiceController {
     public function create() {
         $data = json_decode(file_get_contents("php://input"), true);
 
-        if (!empty($data['items']) && !empty($data['total'])) {
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Formato de datos inválido."]);
+            return;
+        }
+
+        if (!empty($data['items']) && isset($data['total'])) {
+            $total = (float) $data['total'];
+            if ($total <= 0) {
+                http_response_code(400);
+                echo json_encode(["message" => "El total de la venta debe ser mayor a cero."]);
+                return;
+            }
+
+            foreach ($data['items'] as $item) {
+                if (!isset($item['producto_id'], $item['cantidad'], $item['precio_unitario'])) {
+                    http_response_code(400);
+                    echo json_encode(["message" => "Cada ítem debe incluir producto_id, cantidad y precio_unitario."]);
+                    return;
+                }
+                $cantidad = (int) $item['cantidad'];
+                $precioUnitario = (float) $item['precio_unitario'];
+                if ($cantidad <= 0 || $precioUnitario <= 0) {
+                    http_response_code(400);
+                    echo json_encode(["message" => "Cantidad y precio unitario deben ser mayores a cero."]);
+                    return;
+                }
+            }
+
             $this->invoice->cliente_id = isset($data['cliente_id']) ? $data['cliente_id'] : null; // Nullable por ahora
             $this->invoice->usuario_id = isset($data['usuario_id']) ? $data['usuario_id'] : null; // Nuevo: trazabilidad
             $this->invoice->sesion_id = isset($data['sesion_id']) ? $data['sesion_id'] : null;
-            $this->invoice->total = $data['total'];
+            $this->invoice->total = $total;
             $this->invoice->metodo_pago = isset($data['metodo_pago']) ? $data['metodo_pago'] : 'efectivo';
             $this->invoice->observaciones = isset($data['observaciones']) ? $data['observaciones'] : '';
             $this->invoice->items = $data['items'];

@@ -5,10 +5,27 @@ let productosGlobal = [];
 let sesionCajaId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Cargar carrito desde localStorage
+    const carritoGuardado = localStorage.getItem('pos_carrito');
+    if (carritoGuardado) {
+        try {
+            carrito = JSON.parse(carritoGuardado);
+            actualizarCarritoUI();
+        } catch (e) {
+            console.error('Error cargando carrito guardado', e);
+            carrito = [];
+        }
+    }
+
     verificarEstadoCaja();
     cargarCatalogo();
     cargarClientes();
 });
+
+// Función auxiliar para persistir el carrito
+function guardarCarrito() {
+    localStorage.setItem('pos_carrito', JSON.stringify(carrito));
+}
 
 async function verificarEstadoCaja() {
     const usuarioId = localStorage.getItem('usuario_id');
@@ -204,6 +221,7 @@ function renderizarCatalogo(productos) {
             item.onclick = () => agregarAlCarrito(prod);
             item.innerHTML = `
                 <h4>${prod.nombre}</h4>
+                <div class="desc" style="font-size: 12px; color: #666; margin: 4px 0;">${(prod.descripcion || '').substring(0, 80)}${(prod.descripcion && prod.descripcion.length > 80) ? '…' : ''}</div>
                 <div class="price">$${parseFloat(prod.precio_venta).toLocaleString()}</div>
                 <div class="stock">Stock: ${prod.stock_actual}</div>
             `;
@@ -214,9 +232,11 @@ function renderizarCatalogo(productos) {
 
 function filtrarProductos() {
     const texto = document.getElementById('buscador').value.toLowerCase();
-    const filtrados = productosGlobal.filter(p => 
-        p.nombre.toLowerCase().includes(texto)
-    );
+    const filtrados = productosGlobal.filter(p => {
+        const nombre = (p.nombre || '').toLowerCase();
+        const desc = (p.descripcion || '').toLowerCase();
+        return nombre.includes(texto) || desc.includes(texto);
+    });
     renderizarCatalogo(filtrados);
 }
 
@@ -239,6 +259,7 @@ function agregarAlCarrito(producto) {
             max_stock: producto.stock_actual
         });
     }
+    guardarCarrito();
     actualizarCarritoUI();
 }
 
@@ -256,11 +277,13 @@ function cambiarCantidad(id, delta) {
     } else {
         alert('Stock máximo alcanzado');
     }
+    guardarCarrito();
     actualizarCarritoUI();
 }
 
 function eliminarDelCarrito(id) {
     carrito = carrito.filter(p => p.id_producto !== id);
+    guardarCarrito();
     actualizarCarritoUI();
 }
 
@@ -341,6 +364,7 @@ async function procesarVenta() {
         if (response.ok) {
             alert(`Venta exitosa! Factura: ${result.numero_factura}`);
             carrito = []; // Vaciar carrito
+            localStorage.removeItem('pos_carrito'); // Limpiar persistencia
             actualizarCarritoUI();
             cargarCatalogo(); // Recargar stock
         } else {

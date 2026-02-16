@@ -30,10 +30,16 @@ include_once 'controllers/BoxController.php';
 include_once 'utils/AuthMiddleware.php';
 
 $database = new Database();
-$db = $database->getConnection();
+try {
+    $db = $database->getConnection();
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode(["message" => "Error de conexión a base de datos"]);
+    exit();
+}
 
 $router = new Router();
-$auth = new AuthMiddleware(); // Instancia del middleware de autenticación
+$auth = new AuthMiddleware($db);
 
 $userController = new UserController($db);
 $categoryController = new CategoryController($db);
@@ -69,6 +75,15 @@ $router->add('GET', '/test-db', function() use ($db) {
 });
 
 // Rutas de Usuario
+$router->add('GET', '/profile', function() use ($userController, $auth) {
+    $tokenData = $auth->validateToken(); // Obtener datos del token
+    $userController->getProfile($tokenData);
+});
+$router->add('PUT', '/profile', function() use ($userController, $auth) {
+    $tokenData = $auth->validateToken();
+    $userController->updateProfile($tokenData);
+});
+
 $router->add('GET', '/users', function() use ($userController, $auth) {
     $auth->requireRole([1]); // Solo Admin
     $userController->getAll();
@@ -100,6 +115,12 @@ $router->add('POST', '/register', function() use ($userController) {
 
 $router->add('POST', '/login', function() use ($userController) {
     $userController->login();
+});
+
+// Logout con revocación de token
+$router->add('POST', '/logout', function() use ($userController, $auth) {
+    $auth->validateToken();
+    $userController->logout();
 });
 
 // Rutas de Clientes (Protegidas: Admin y Cajero)

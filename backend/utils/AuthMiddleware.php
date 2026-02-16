@@ -5,11 +5,18 @@ use Firebase\JWT\Key;
 class AuthMiddleware {
     private $secret_key;
     private $algorithm;
+    private $db;
+    private $blacklist;
 
-    public function __construct() {
-        // En producción, esto debe venir de variables de entorno
-        $this->secret_key = $_ENV['JWT_SECRET'] ?? 'tu_clave_secreta_super_segura_triunfogo'; 
+    public function __construct($db) {
+        $this->secret_key = $_ENV['JWT_SECRET'];
+        if (empty($this->secret_key)) {
+            throw new Exception("JWT_SECRET no está configurado en el entorno.");
+        }
         $this->algorithm = 'HS256';
+        $this->db = $db;
+        include_once __DIR__ . '/../models/JwtBlacklist.php';
+        $this->blacklist = new JwtBlacklist($db);
     }
 
     public function validateToken() {
@@ -39,8 +46,14 @@ class AuthMiddleware {
 
         try {
             $decoded = JWT::decode($jwt, new Key($this->secret_key, $this->algorithm));
-            
-            // Retornar datos del usuario decodificados para usarlos si se necesita
+
+            $jti = property_exists($decoded, 'jti') ? $decoded->jti : null;
+            if ($jti && $this->blacklist->exists($jti)) {
+                http_response_code(401);
+                echo json_encode(["message" => "Token revocado. Inicie sesión nuevamente."]);
+                exit();
+            }
+
             return (array) $decoded->data;
 
         } catch (Exception $e) {

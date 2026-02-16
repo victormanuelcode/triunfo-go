@@ -36,7 +36,19 @@ class BoxController {
     public function open() {
         $data = json_decode(file_get_contents("php://input"));
 
+        if (!is_object($data)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Formato de datos inválido."]);
+            return;
+        }
+
         if (!empty($data->usuario_id) && isset($data->monto_apertura)) {
+            $montoApertura = (float) $data->monto_apertura;
+            if ($montoApertura < 0) {
+                http_response_code(400);
+                echo json_encode(["message" => "El monto de apertura no puede ser negativo."]);
+                return;
+            }
             // Verificar si ya tiene sesión abierta
             $stmt = $this->boxSession->getCurrentSession($data->usuario_id);
             if ($stmt->rowCount() > 0) {
@@ -46,7 +58,7 @@ class BoxController {
             }
 
             $this->boxSession->usuario_id = $data->usuario_id;
-            $this->boxSession->monto_apertura = $data->monto_apertura;
+            $this->boxSession->monto_apertura = $montoApertura;
 
             if ($this->boxSession->open()) {
                 http_response_code(201);
@@ -64,9 +76,22 @@ class BoxController {
     public function close() {
         $data = json_decode(file_get_contents("php://input"));
 
+        if (!is_object($data)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Formato de datos inválido."]);
+            return;
+        }
+
         if (!empty($data->id_sesion) && isset($data->monto_cierre)) {
+            $montoCierre = (float) $data->monto_cierre;
+            if ($montoCierre < 0) {
+                http_response_code(400);
+                echo json_encode(["message" => "El monto de cierre no puede ser negativo."]);
+                return;
+            }
+
             $this->boxSession->id_sesion = $data->id_sesion;
-            $this->boxSession->monto_cierre = $data->monto_cierre;
+            $this->boxSession->monto_cierre = $montoCierre;
 
             if ($this->boxSession->close()) {
                 http_response_code(200);

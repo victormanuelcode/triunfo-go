@@ -14,14 +14,54 @@ class ProductController {
     }
 
     public function getAll() {
-        $stmt = $this->product->read();
+        // Obtener parámetros de paginación
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        
+        // Validar que no sean negativos
+        if ($limit < 1) $limit = 10;
+        if ($page < 1) $page = 1;
+
+        $offset = ($page - 1) * $limit;
+
+        // Obtener productos paginados
+        $stmt = $this->product->read($limit, $offset);
         $products_arr = [];
         
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            array_push($products_arr, $row);
+            $item = [
+                "id_producto" => $row['id_producto'],
+                "nombre" => $row['nombre'],
+                "descripcion" => $row['descripcion'],
+                "categoria_id" => $row['categoria_id'],
+                "unidad_medida_id" => $row['unidad_medida_id'],
+                "precio_compra" => $row['precio_compra'],
+                "precio_venta" => $row['precio_venta'],
+                "stock_actual" => $row['stock_actual'],
+                "stock_minimo" => $row['stock_minimo'],
+                "imagen" => $row['imagen'],
+                "estado" => $row['estado'],
+                "creado_en" => $row['creado_en'],
+                "categoria_nombre" => $row['categoria_nombre'] ?? null,
+                "proveedor_id" => $row['proveedor_id'] ?? null,
+                "proveedor_nombre" => $row['proveedor_nombre'] ?? null
+            ];
+            $products_arr[] = $item;
         }
+
+        // Obtener total para metadata
+        $total_rows = $this->product->count();
+        $total_pages = ceil($total_rows / $limit);
         
-        echo json_encode($products_arr);
+        echo json_encode([
+            "data" => $products_arr,
+            "meta" => [
+                "current_page" => $page,
+                "limit" => $limit,
+                "total_items" => $total_rows,
+                "total_pages" => $total_pages
+            ]
+        ]);
     }
 
     public function getOne($id) {
@@ -52,19 +92,47 @@ class ProductController {
     public function create() {
         $data = $this->processRequestData();
 
-        if (!empty($data['nombre']) && !empty($data['precio_venta'])) {
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Formato de datos inválido."]);
+            return;
+        }
+
+        if (!empty($data['nombre']) && isset($data['precio_venta'])) {
+            $precioVenta = (float) $data['precio_venta'];
+            $precioCompra = isset($data['precio_compra']) ? (float) $data['precio_compra'] : 0;
+            $stockActual = isset($data['stock_actual']) ? (int) $data['stock_actual'] : 0;
+            $stockMinimo = isset($data['stock_minimo']) ? (int) $data['stock_minimo'] : 5;
+
+            if ($precioVenta <= 0) {
+                http_response_code(400);
+                echo json_encode(["message" => "El precio de venta debe ser mayor a cero."]);
+                return;
+            }
+
+            if ($precioCompra < 0) {
+                http_response_code(400);
+                echo json_encode(["message" => "El precio de compra no puede ser negativo."]);
+                return;
+            }
+
+            if ($stockActual < 0 || $stockMinimo < 0) {
+                http_response_code(400);
+                echo json_encode(["message" => "El stock no puede ser negativo."]);
+                return;
+            }
+
             $this->product->nombre = $data['nombre'];
             $this->product->descripcion = $data['descripcion'] ?? null;
             $this->product->categoria_id = $data['categoria_id'] ?? null;
             $this->product->unidad_medida_id = $data['unidad_medida_id'] ?? null;
-            $this->product->proveedor_id = $data['proveedor_id'] ?? null; // Añadir proveedor
-            $this->product->precio_compra = $data['precio_compra'] ?? 0;
-            $this->product->precio_venta = $data['precio_venta'];
-            $this->product->stock_actual = $data['stock_actual'] ?? 0;
-            $this->product->stock_minimo = $data['stock_minimo'] ?? 5;
+            $this->product->proveedor_id = $data['proveedor_id'] ?? null;
+            $this->product->precio_compra = $precioCompra;
+            $this->product->precio_venta = $precioVenta;
+            $this->product->stock_actual = $stockActual;
+            $this->product->stock_minimo = $stockMinimo;
             $this->product->estado = $data['estado'] ?? 'activo';
             
-            // Handle Image Upload
             $this->product->imagen = $this->handleImageUpload() ?? ($data['imagen'] ?? null);
 
             if ($this->product->create()) {
@@ -84,24 +152,39 @@ class ProductController {
         $data = $this->processRequestData();
         $this->product->id_producto = $id;
 
-        // Retrieve existing product to keep old image if no new one is uploaded
         $oldProduct = new Product($this->db);
         $oldProduct->id_producto = $id;
         $oldProduct->readOne();
 
-        if (!empty($data['nombre'])) {
-            $this->product->nombre = $data['nombre'];
-            $this->product->descripcion = $data['descripcion'] ?? null;
-            $this->product->categoria_id = $data['categoria_id'] ?? null;
-            $this->product->unidad_medida_id = $data['unidad_medida_id'] ?? null;
-            $this->product->proveedor_id = $data['proveedor_id'] ?? null; // Añadir proveedor
-            $this->product->precio_compra = $data['precio_compra'] ?? 0;
-            $this->product->precio_venta = $data['precio_venta'] ?? 0;
-            $this->product->stock_actual = $data['stock_actual'] ?? 0;
-            $this->product->stock_minimo = $data['stock_minimo'] ?? 0;
-            $this->product->estado = $data['estado'] ?? 'activo';
+        if (!empty($data['nombre']) || !empty($oldProduct->nombre)) {
+            $precioVenta = isset($data['precio_venta']) ? (float) $data['precio_venta'] : (float) $oldProduct->precio_venta;
+            $precioCompra = isset($data['precio_compra']) ? (float) $data['precio_compra'] : (float) $oldProduct->precio_compra;
+            $stockActual = isset($data['stock_actual']) ? (int) $data['stock_actual'] : (int) $oldProduct->stock_actual;
+            $stockMinimo = isset($data['stock_minimo']) ? (int) $data['stock_minimo'] : (int) $oldProduct->stock_minimo;
 
-            // Handle Image Upload
+            if ($precioVenta < 0 || $precioCompra < 0) {
+                http_response_code(400);
+                echo json_encode(["message" => "Los precios no pueden ser negativos."]);
+                return;
+            }
+
+            if ($stockActual < 0 || $stockMinimo < 0) {
+                http_response_code(400);
+                echo json_encode(["message" => "El stock no puede ser negativo."]);
+                return;
+            }
+
+            $this->product->nombre = $data['nombre'] ?? $oldProduct->nombre;
+            $this->product->descripcion = array_key_exists('descripcion', $data) ? $data['descripcion'] : $oldProduct->descripcion;
+            $this->product->categoria_id = $data['categoria_id'] ?? $oldProduct->categoria_id;
+            $this->product->unidad_medida_id = $data['unidad_medida_id'] ?? $oldProduct->unidad_medida_id;
+            $this->product->proveedor_id = $data['proveedor_id'] ?? $oldProduct->proveedor_id;
+            $this->product->precio_compra = $precioCompra;
+            $this->product->precio_venta = $precioVenta;
+            $this->product->stock_actual = $stockActual;
+            $this->product->stock_minimo = $stockMinimo;
+            $this->product->estado = $data['estado'] ?? $oldProduct->estado ?? 'activo';
+
             $newImage = $this->handleImageUpload();
             $this->product->imagen = $newImage ? $newImage : $oldProduct->imagen;
 
@@ -167,12 +250,21 @@ class ProductController {
             $allowedFileExtensions = ['jpg', 'gif', 'png', 'jpeg', 'webp'];
 
             if (in_array($fileExt, $allowedFileExtensions)) {
-                $newFileName = uniqid() . '.' . $fileExt;
-                $dest_path = $uploadDir . $newFileName;
+                // Validar MIME type real
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mimeType = finfo_file($finfo, $fileTmpPath);
+                finfo_close($finfo);
 
-                if (move_uploaded_file($fileTmpPath, $dest_path)) {
-                    // Return relative path for DB
-                    return 'uploads/products/' . $newFileName;
+                $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+                if (in_array($mimeType, $allowedMimeTypes)) {
+                    $newFileName = uniqid() . '.' . $fileExt;
+                    $dest_path = $uploadDir . $newFileName;
+
+                    if (move_uploaded_file($fileTmpPath, $dest_path)) {
+                        // Return relative path for DB
+                        return 'uploads/products/' . $newFileName;
+                    }
                 }
             }
         }

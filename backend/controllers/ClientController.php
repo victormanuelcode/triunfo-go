@@ -36,7 +36,19 @@ class ClientController {
     public function create() {
         $data = json_decode(file_get_contents("php://input"));
 
+        if (!is_object($data)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Formato de datos inválido."]);
+            return;
+        }
+
         if (!empty($data->nombre)) {
+            if (isset($data->email) && $data->email !== '' && !filter_var($data->email, FILTER_VALIDATE_EMAIL)) {
+                http_response_code(400);
+                echo json_encode(["message" => "Correo electrónico inválido."]);
+                return;
+            }
+
             $this->client->nombre = $data->nombre;
             $this->client->documento = $data->documento ?? '';
             $this->client->telefono = $data->telefono ?? '';
@@ -59,12 +71,33 @@ class ClientController {
     public function update($id) {
         $data = json_decode(file_get_contents("php://input"));
 
+        if (!is_object($data)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Formato de datos inválido."]);
+            return;
+        }
+
+        // Obtener cliente actual
+        $oldClient = new Client($this->db);
+        $oldClient->id_cliente = $id;
+        if (!$oldClient->readOne()) {
+            http_response_code(404);
+            echo json_encode(["message" => "Cliente no encontrado."]);
+            return;
+        }
+
+        if (isset($data->email) && $data->email !== '' && !filter_var($data->email, FILTER_VALIDATE_EMAIL)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Correo electrónico inválido."]);
+            return;
+        }
+
         $this->client->id_cliente = $id;
-        $this->client->nombre = $data->nombre;
-        $this->client->documento = $data->documento ?? '';
-        $this->client->telefono = $data->telefono ?? '';
-        $this->client->direccion = $data->direccion ?? '';
-        $this->client->email = $data->email ?? '';
+        $this->client->nombre = $data->nombre ?? $oldClient->nombre;
+        $this->client->documento = $data->documento ?? $oldClient->documento;
+        $this->client->telefono = $data->telefono ?? $oldClient->telefono;
+        $this->client->direccion = $data->direccion ?? $oldClient->direccion;
+        $this->client->email = isset($data->email) ? $data->email : $oldClient->email;
 
         if ($this->client->update()) {
             echo json_encode(["message" => "Cliente actualizado exitosamente"]);

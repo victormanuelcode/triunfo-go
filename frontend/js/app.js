@@ -284,12 +284,12 @@ function setupModal() {
     }
     */
 
-    // Manejar envío del formulario
     form.onsubmit = async function(e) {
         e.preventDefault();
         
         const id = document.getElementById('productoId').value;
         const nombre = document.getElementById('nombre').value;
+        const descripcion = document.getElementById('descripcion').value;
         const categoria_id = document.getElementById('categoria_id').value;
         const unidad_medida_id = document.getElementById('unidad_medida_id').value;
         const proveedor_id = document.getElementById('proveedor_id').value;
@@ -297,60 +297,75 @@ function setupModal() {
         const stock = document.getElementById('stock_actual').value;
         const imagenInput = document.getElementById('imagen');
 
-        const formData = new FormData();
-        formData.append('nombre', nombre);
-        formData.append('categoria_id', categoria_id);
-        formData.append('unidad_medida_id', unidad_medida_id);
-        formData.append('proveedor_id', proveedor_id);
-        formData.append('precio_venta', precio);
-        formData.append('stock_actual', stock);
-        formData.append('estado', 'activo');
-
-        if (imagenInput.files.length > 0) {
-            formData.append('imagen', imagenInput.files[0]);
-        }
-
-        // Si es PUT, PHP no parsea multipart/form-data automáticamente en $_POST/$_FILES
-        // Un truco común es enviar POST con _method='PUT', o usar POST siempre y manejar la lógica en el backend.
-        // Pero nuestro router backend soporta POST para creación. Para update, usaremos POST con parámetro de query string o manejaremos en backend.
-        // Sin embargo, nuestro router usa REQUEST_METHOD. 
-        // En PHP estándar, PUT no parsea body multipart.
-        // Solución: Usar POST siempre para subida de archivos y enviar ID en la URL para update, 
-        // pero el Router espera PUT.
-        // Vamos a cambiar la estrategia: Usar POST para update también, pero el router necesita coincidir.
-        // O mejor: En el frontend enviamos POST a una ruta específica de update o usamos un header X-HTTP-Method-Override.
-        
-        // Simplemente usaremos POST para todo si hay archivo, pero nuestro backend Router espera PUT para updates.
-        // Vamos a intentar enviar POST a la ruta de update, pero el Router no lo va a matchear.
-        // Modifiquemos el backend Router o usemos X-HTTP-Method-Override si el router lo soporta? No lo soporta.
-        
-        // Simplificación: Para update con archivo, PHP tiene problemas con PUT.
-        // Lo más robusto en PHP puro sin frameworks avanzados es enviar POST y que el backend detecte si es update.
-        // Pero queremos mantener REST.
-        
-        // Alternativa: Enviar POST a /products/{id} y registrar esa ruta en el router como POST también.
-        
+        const hasImage = imagenInput.files.length > 0;
         let url = `${API_URL}/products`;
-        let method = 'POST';
+        let options;
 
-        if (id) {
-            // Update
-            // Si usamos POST para update, necesitamos registrar esa ruta en backend
-            // O podemos intentar enviar PUT y parsear manualmente en backend (muy complejo).
-            // Vamos a usar POST para update en este caso y modificar el router/index.php para aceptar POST en update.
-            url = `${API_URL}/products/${id}`; 
-            // method sigue siendo POST para que PHP parsee el archivo
-            // Pero en el backend, la ruta POST /products/{id} no existe. Debemos crearla.
-            
-            // AGREGAR ESTO AL BACKEND index.php: $router->add('POST', '/products/{id}', ...)
+        if (!id) {
+            if (hasImage) {
+                const formData = new FormData();
+                formData.append('nombre', nombre);
+                formData.append('descripcion', descripcion);
+                formData.append('categoria_id', categoria_id);
+                formData.append('unidad_medida_id', unidad_medida_id);
+                formData.append('proveedor_id', proveedor_id);
+                formData.append('precio_venta', precio);
+                formData.append('stock_actual', stock);
+                formData.append('estado', 'activo');
+                formData.append('imagen', imagenInput.files[0]);
+                options = { method: 'POST', body: formData };
+            } else {
+                const payload = {
+                    nombre,
+                    descripcion,
+                    categoria_id,
+                    unidad_medida_id,
+                    proveedor_id,
+                    precio_venta: precio,
+                    stock_actual: stock,
+                    estado: 'activo'
+                };
+                options = {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                };
+            }
+        } else {
+            url = `${API_URL}/products/${id}`;
+            if (hasImage) {
+                const formData = new FormData();
+                formData.append('nombre', nombre);
+                formData.append('descripcion', descripcion);
+                formData.append('categoria_id', categoria_id);
+                formData.append('unidad_medida_id', unidad_medida_id);
+                formData.append('proveedor_id', proveedor_id);
+                formData.append('precio_venta', precio);
+                formData.append('stock_actual', stock);
+                formData.append('estado', 'activo');
+                formData.append('imagen', imagenInput.files[0]);
+                options = { method: 'POST', body: formData };
+            } else {
+                const payload = {
+                    nombre,
+                    descripcion,
+                    categoria_id,
+                    unidad_medida_id,
+                    proveedor_id,
+                    precio_venta: precio,
+                    stock_actual: stock,
+                    estado: 'activo'
+                };
+                options = {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                };
+            }
         }
 
         try {
-            const response = await fetch(url, {
-                method: method,
-                // headers: { 'Content-Type': 'multipart/form-data' }, // NO poner header, el navegador lo pone con boundary
-                body: formData
-            });
+            const response = await fetch(url, options);
 
             if (response.ok) {
                 closeModal();
@@ -375,6 +390,7 @@ window.editarProducto = async function(id) {
         // Llenar formulario
         document.getElementById('productoId').value = prod.id_producto;
         document.getElementById('nombre').value = prod.nombre;
+        document.getElementById('descripcion').value = prod.descripcion || '';
         document.getElementById('categoria_id').value = prod.categoria_id;
         document.getElementById('unidad_medida_id').value = prod.unidad_medida_id;
         document.getElementById('proveedor_id').value = prod.proveedor_id || '';

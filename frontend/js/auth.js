@@ -82,8 +82,12 @@ function checkRolePermissions() {
 // Función global de Logout
 function logout(confirmar = true) {
     if (!confirmar || confirm('¿Está seguro que desea cerrar sesión?')) {
-        localStorage.clear();
-        sessionStorage.clear();
-        window.location.href = AUTH_LOGIN_URL;
+        const logoutUrl = `${window.location.origin}/proyecto_final/backend/logout`;
+        // Intentar revocar token en backend; ignorar errores
+        originalFetch(logoutUrl, { method: 'POST' }).finally(() => {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = AUTH_LOGIN_URL;
+        });
     }
 }

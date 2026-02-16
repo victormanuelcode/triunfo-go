@@ -78,9 +78,21 @@ class UnitMeasureController {
         
         $this->unit->id_unidad = $id;
 
-        if (!empty($data->nombre) && !empty($data->abreviatura)) {
-            $this->unit->nombre = $data->nombre;
-            $this->unit->abreviatura = $data->abreviatura;
+        // Obtener unidad actual
+        $oldUnit = new UnitMeasure($this->db);
+        $oldUnit->id_unidad = $id;
+        if (!$oldUnit->readOne()) {
+            http_response_code(404);
+            echo json_encode(["message" => "Unidad no encontrada."]);
+            return;
+        }
+
+        $newNombre = !empty($data->nombre) ? $data->nombre : $oldUnit->nombre;
+        $newAbreviatura = !empty($data->abreviatura) ? $data->abreviatura : $oldUnit->abreviatura;
+
+        if (!empty($newNombre) && !empty($newAbreviatura)) {
+            $this->unit->nombre = $newNombre;
+            $this->unit->abreviatura = $newAbreviatura;
 
             if ($this->unit->update()) {
                 http_response_code(200);
@@ -91,7 +103,7 @@ class UnitMeasureController {
             }
         } else {
             http_response_code(400);
-            echo json_encode(["message" => "Datos incompletos."]);
+            echo json_encode(["message" => "Nombre y abreviatura no pueden estar vacíos."]);
         }
     }
 

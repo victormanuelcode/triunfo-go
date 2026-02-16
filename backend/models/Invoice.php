@@ -21,16 +21,28 @@ class Invoice {
         $this->conn = $db;
     }
 
-    // Leer todas las facturas (Historial)
-    public function read() {
+    // Leer todas las facturas (Historial) con paginación
+    public function read($limit = 10, $offset = 0) {
         $query = "SELECT f.id_factura, f.numero_factura, f.fecha, f.total, f.metodo_pago, c.nombre as cliente_nombre 
                   FROM " . $this->table_name . " f 
                   LEFT JOIN clientes c ON f.cliente_id = c.id_cliente 
-                  ORDER BY f.fecha DESC";
+                  ORDER BY f.fecha DESC
+                  LIMIT :limit OFFSET :offset";
         
         $stmt = $this->conn->prepare($query);
+        $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt;
+    }
+
+    // Contar facturas para paginación
+    public function count() {
+        $query = "SELECT COUNT(*) as total FROM " . $this->table_name;
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row['total'];
     }
 
     // Leer una factura con sus detalles

@@ -83,6 +83,7 @@ function renderTopProducts(products) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${p.nombre}</td>
+            <td>${p.descripcion || ''}</td>
             <td>${p.total_vendido}</td>
         `;
         tbody.appendChild(tr);

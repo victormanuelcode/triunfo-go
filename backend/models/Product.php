@@ -22,8 +22,8 @@ class Product {
         $this->conn = $db;
     }
 
-    // Leer productos
-    public function read() {
+    // Leer productos con paginación
+    public function read($limit = 10, $offset = 0) {
         $query = "SELECT p.*, c.nombre as categoria_nombre, pr.nombre as proveedor_nombre, pp.proveedor_id
                   FROM " . $this->table_name . " p
                   LEFT JOIN categorias c ON p.categoria_id = c.id_categoria
@@ -31,10 +31,23 @@ class Product {
                   LEFT JOIN proveedores pr ON pp.proveedor_id = pr.id_proveedor
                   WHERE p.estado = 'activo'
                   GROUP BY p.id_producto
-                  ORDER BY p.creado_en DESC";
+                  ORDER BY p.creado_en DESC
+                  LIMIT :limit OFFSET :offset";
+        
         $stmt = $this->conn->prepare($query);
+        $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt;
+    }
+
+    // Contar total de productos (para paginación)
+    public function count() {
+        $query = "SELECT COUNT(*) as total FROM " . $this->table_name . " WHERE estado = 'activo'";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row['total'];
     }
 
     // Crear producto

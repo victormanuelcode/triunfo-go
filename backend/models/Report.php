@@ -21,7 +21,7 @@ class Report {
 
     // Productos más vendidos
     public function getTopProducts() {
-        $query = "SELECT p.nombre, SUM(d.cantidad) as total_vendido 
+        $query = "SELECT p.nombre, p.descripcion, SUM(d.cantidad) as total_vendido 
                   FROM detalle_factura d 
                   JOIN productos p ON d.producto_id = p.id_producto 
                   GROUP BY d.producto_id 

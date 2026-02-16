@@ -12,6 +12,9 @@ class Router {
     }
 
     public function dispatch($method, $uri) {
+        // Eliminar query string (ej: ?page=1)
+        $uri = parse_url($uri, PHP_URL_PATH);
+
         foreach ($this->routes as $route) {
             if ($route['method'] === $method && preg_match($route['path'], $uri, $matches)) {
                 array_shift($matches); 

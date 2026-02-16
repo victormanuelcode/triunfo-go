@@ -80,9 +80,20 @@ class CategoryController {
         
         $this->category->id_categoria = $id;
 
-        if (!empty($data->nombre)) {
-            $this->category->nombre = $data->nombre;
-            $this->category->descripcion = isset($data->descripcion) ? $data->descripcion : null;
+        // Obtener categoría actual
+        $oldCategory = new Category($this->db);
+        $oldCategory->id_categoria = $id;
+        if (!$oldCategory->readOne()) {
+            http_response_code(404);
+            echo json_encode(["message" => "Categoría no encontrada."]);
+            return;
+        }
+
+        $newName = !empty($data->nombre) ? $data->nombre : $oldCategory->nombre;
+
+        if (!empty($newName)) {
+            $this->category->nombre = $newName;
+            $this->category->descripcion = isset($data->descripcion) ? $data->descripcion : $oldCategory->descripcion;
 
             if ($this->category->update()) {
                 http_response_code(200);
@@ -93,7 +104,7 @@ class CategoryController {
             }
         } else {
             http_response_code(400);
-            echo json_encode(["message" => "Datos incompletos."]);
+            echo json_encode(["message" => "El nombre no puede estar vacío."]);
         }
     }
 

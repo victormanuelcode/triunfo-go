@@ -55,7 +55,19 @@ class SupplierController {
     public function create() {
         $data = json_decode(file_get_contents("php://input"));
 
+        if (!is_object($data)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Formato de datos inválido."]);
+            return;
+        }
+
         if (!empty($data->nombre)) {
+            if (isset($data->email) && $data->email !== '' && !filter_var($data->email, FILTER_VALIDATE_EMAIL)) {
+                http_response_code(400);
+                echo json_encode(["message" => "Correo electrónico inválido."]);
+                return;
+            }
+
             $this->supplier->nombre = $data->nombre;
             $this->supplier->nit = isset($data->nit) ? $data->nit : null;
             $this->supplier->telefono = isset($data->telefono) ? $data->telefono : null;
@@ -78,12 +90,33 @@ class SupplierController {
     public function update($id) {
         $data = json_decode(file_get_contents("php://input"));
 
+        if (!is_object($data)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Formato de datos inválido."]);
+            return;
+        }
+
+        // Obtener proveedor actual
+        $oldSupplier = new Supplier($this->db);
+        $oldSupplier->id_proveedor = $id;
+        if (!$oldSupplier->readOne()) {
+            http_response_code(404);
+            echo json_encode(["message" => "Proveedor no encontrado."]);
+            return;
+        }
+
+        if (isset($data->email) && $data->email !== '' && !filter_var($data->email, FILTER_VALIDATE_EMAIL)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Correo electrónico inválido."]);
+            return;
+        }
+
         $this->supplier->id_proveedor = $id;
-        $this->supplier->nombre = $data->nombre;
-        $this->supplier->nit = isset($data->nit) ? $data->nit : null;
-        $this->supplier->telefono = isset($data->telefono) ? $data->telefono : null;
-        $this->supplier->direccion = isset($data->direccion) ? $data->direccion : null;
-        $this->supplier->email = isset($data->email) ? $data->email : null;
+        $this->supplier->nombre = $data->nombre ?? $oldSupplier->nombre;
+        $this->supplier->nit = $data->nit ?? $oldSupplier->nit;
+        $this->supplier->telefono = $data->telefono ?? $oldSupplier->telefono;
+        $this->supplier->direccion = $data->direccion ?? $oldSupplier->direccion;
+        $this->supplier->email = isset($data->email) ? $data->email : $oldSupplier->email;
 
         if ($this->supplier->update()) {
             http_response_code(200);
