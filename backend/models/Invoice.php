@@ -7,6 +7,7 @@ class Invoice {
     public $numero_factura;
     public $cliente_id;
     public $usuario_id; // Nuevo campo trazabilidad
+    public $sesion_id; // Nuevo campo para control de caja
     public $cliente_nombre; // Propiedad agregada para evitar errores de propiedad dinámica
     public $usuario_nombre; // Nuevo campo trazabilidad
     public $total;
@@ -50,8 +51,9 @@ class Invoice {
         if ($row) {
             $this->numero_factura = $row['numero_factura'];
             $this->fecha = $row['fecha'];
-            $this->cliente_id = $row['cliente_id']; // o el nombre si prefieres
+            $this->cliente_id = $row['cliente_id'];
             $this->usuario_id = $row['usuario_id'];
+            $this->sesion_id = $row['sesion_id'] ?? null; // Manejo de nulo si la columna no existe o es nula
             $this->total = $row['total'];
             $this->metodo_pago = $row['metodo_pago'];
             $this->observaciones = $row['observaciones'];
@@ -97,7 +99,12 @@ class Invoice {
             $stmt = $this->conn->prepare($query);
             
             // Sanitizar
-            $this->observaciones = htmlspecialchars(strip_tags($this->observaciones));
+            $this->observaciones = htmlspecialchars(strip_tags($this->observaciones ?? ''));
+            
+            // Asegurar que cliente_id sea NULL si está vacío
+            if (empty($this->cliente_id)) {
+                $this->cliente_id = null;
+            }
             
             // Bind
             $stmt->bindParam(":numero_factura", $this->numero_factura);
@@ -138,36 +145,64 @@ class Invoice {
             $stmt_mov = $this->conn->prepare($query_mov);
 
             // 4. Procesar Items
-            foreach ($this->items as $item) {
-                // a. Insertar Detalle
-                $subtotal = $item['cantidad'] * $item['precio_unitario'];
-                
-                $stmt_detail->bindParam(":factura_id", $this->id_factura);
-                $stmt_detail->bindParam(":producto_id", $item['producto_id']);
-                $stmt_detail->bindParam(":cantidad", $item['cantidad']);
-                $stmt_detail->bindParam(":precio_unitario", $item['precio_unitario']);
-                $stmt_detail->bindParam(":subtotal", $subtotal);
+            // Variables para binding
+            $d_factura_id = $this->id_factura;
+            $d_producto_id = 0;
+            $d_cantidad = 0;
+            $d_precio = 0;
+            $d_subtotal = 0;
+            
+            // Bind Detalle
+            $stmt_detail->bindParam(":factura_id", $d_factura_id);
+            $stmt_detail->bindParam(":producto_id", $d_producto_id);
+            $stmt_detail->bindParam(":cantidad", $d_cantidad);
+            $stmt_detail->bindParam(":precio_unitario", $d_precio);
+            $stmt_detail->bindParam(":subtotal", $d_subtotal);
 
+            // Bind Stock
+            $s_cantidad = 0;
+            $s_producto_id = 0;
+            $stmt_stock->bindParam(":cantidad", $s_cantidad);
+            $stmt_stock->bindParam(":producto_id", $s_producto_id);
+
+            // Bind Movimiento
+            $m_producto_id = 0;
+            $m_cantidad = 0;
+            $m_descripcion = "Venta Factura " . $this->numero_factura;
+            $m_referencia = $this->numero_factura;
+
+            $stmt_mov->bindParam(":producto_id", $m_producto_id);
+            $stmt_mov->bindParam(":cantidad", $m_cantidad);
+            $stmt_mov->bindParam(":descripcion", $m_descripcion);
+            $stmt_mov->bindParam(":referencia", $m_referencia);
+
+            foreach ($this->items as $item) {
+                // Asignar valores a las variables vinculadas
+                $d_producto_id = $item['producto_id'];
+                $d_cantidad = $item['cantidad'];
+                $d_precio = $item['precio_unitario'];
+                $d_subtotal = $item['cantidad'] * $item['precio_unitario'];
+                
+                // Stock vars
+                $s_cantidad = $item['cantidad'];
+                $s_producto_id = $item['producto_id'];
+
+                // Movimiento vars
+                $m_producto_id = $item['producto_id'];
+                $m_cantidad = $item['cantidad'];
+                // m_descripcion y m_referencia son constantes por factura
+
+                // a. Insertar Detalle
                 if (!$stmt_detail->execute()) {
                     throw new Exception("Error al insertar detalle del producto ID: " . $item['producto_id']);
                 }
 
                 // b. Descontar Stock
-                $stmt_stock->bindParam(":cantidad", $item['cantidad']);
-                $stmt_stock->bindParam(":producto_id", $item['producto_id']);
-
                 if (!$stmt_stock->execute()) {
                     throw new Exception("Error al actualizar stock del producto ID: " . $item['producto_id']);
                 }
 
                 // c. Registrar Movimiento de Salida
-                $descripcion = "Venta Factura " . $this->numero_factura;
-                
-                $stmt_mov->bindParam(":producto_id", $item['producto_id']);
-                $stmt_mov->bindParam(":cantidad", $item['cantidad']);
-                $stmt_mov->bindParam(":descripcion", $descripcion);
-                $stmt_mov->bindParam(":referencia", $this->numero_factura);
-
                 if (!$stmt_mov->execute()) {
                     throw new Exception("Error al registrar movimiento de inventario.");
                 }

@@ -131,14 +131,39 @@ class UserController {
         if ($num > 0) {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if (password_verify($data->contrasena, $row['contrasena'])) {
-                // Aquí se debería generar un JWT (JSON Web Token)
+                
+                // Generar JWT
+                $secret_key = $_ENV['JWT_SECRET'] ?? 'tu_clave_secreta_super_segura_triunfogo';
+                $issuer_claim = "http://localhost/proyecto_final";
+                $audience_claim = "http://localhost/proyecto_final";
+                $issuedat_claim = time(); // Issued at
+                $expire_claim = $issuedat_claim + 28800; // Expira en 8 horas (jornada laboral)
+
+                $token = array(
+                    "iss" => $issuer_claim,
+                    "aud" => $audience_claim,
+                    "iat" => $issuedat_claim,
+                    "nbf" => $issuedat_claim,
+                    "exp" => $expire_claim,
+                    "data" => array(
+                        "id_usuario" => $row['id_usuario'],
+                        "nombre" => $row['nombre'],
+                        "email" => $row['email'],
+                        "rol_id" => $row['rol_id']
+                    )
+                );
+
+                $jwt = \Firebase\JWT\JWT::encode($token, $secret_key, 'HS256');
+
                 http_response_code(200);
                 echo json_encode([
                     "message" => "Login exitoso.",
+                    "token" => $jwt,
                     "user_id" => $row['id_usuario'],
                     "nombre" => $row['nombre'],
                     "email" => $row['email'],
-                    "rol_id" => $row['rol_id']
+                    "rol_id" => $row['rol_id'],
+                    "expires_in" => $expire_claim
                 ]);
             } else {
                 http_response_code(401);
