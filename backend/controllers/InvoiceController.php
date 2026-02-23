@@ -100,6 +100,14 @@ class InvoiceController {
             $this->invoice->sesion_id = isset($data['sesion_id']) ? $data['sesion_id'] : null;
             $this->invoice->total = $total;
             $this->invoice->metodo_pago = isset($data['metodo_pago']) ? $data['metodo_pago'] : 'efectivo';
+
+            // Validar metodo de pago
+            $metodosValidos = ['efectivo', 'tarjeta', 'transferencia', 'otros'];
+            if (!in_array($this->invoice->metodo_pago, $metodosValidos)) {
+                http_response_code(400);
+                echo json_encode(["message" => "Método de pago inválido. Permitidos: " . implode(', ', $metodosValidos)]);
+                return;
+            }
             $this->invoice->observaciones = isset($data['observaciones']) ? $data['observaciones'] : '';
             $this->invoice->items = $data['items'];
 

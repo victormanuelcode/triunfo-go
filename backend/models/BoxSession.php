@@ -7,6 +7,11 @@ class BoxSession {
     public $usuario_id;
     public $monto_apertura;
     public $monto_cierre;
+    public $total_efectivo;
+    public $total_tarjeta;
+    public $total_transferencia;
+    public $total_otros;
+    public $diferencia;
     public $fecha_apertura;
     public $fecha_cierre;
     public $estado;
@@ -40,16 +45,24 @@ class BoxSession {
     public function close() {
         $query = "UPDATE " . $this->table_name . "
                   SET monto_cierre = :monto_cierre,
+                      total_efectivo = :total_efectivo,
+                      total_tarjeta = :total_tarjeta,
+                      total_transferencia = :total_transferencia,
+                      total_otros = :total_otros,
+                      diferencia = :diferencia,
                       fecha_cierre = NOW(),
                       estado = 'cerrada'
                   WHERE id_sesion = :id_sesion";
 
         $stmt = $this->conn->prepare($query);
 
-        $this->monto_cierre = htmlspecialchars(strip_tags($this->monto_cierre));
-        $this->id_sesion = htmlspecialchars(strip_tags($this->id_sesion));
-
+        // Bind params
         $stmt->bindParam(":monto_cierre", $this->monto_cierre);
+        $stmt->bindParam(":total_efectivo", $this->total_efectivo);
+        $stmt->bindParam(":total_tarjeta", $this->total_tarjeta);
+        $stmt->bindParam(":total_transferencia", $this->total_transferencia);
+        $stmt->bindParam(":total_otros", $this->total_otros);
+        $stmt->bindParam(":diferencia", $this->diferencia);
         $stmt->bindParam(":id_sesion", $this->id_sesion);
 
         if ($stmt->execute()) {
@@ -72,7 +85,12 @@ class BoxSession {
 
     public function getSummary($sesion_id) {
         // Obtener total vendido en esta sesión
-        $query = "SELECT SUM(total) as total_ventas 
+        $query = "SELECT 
+                    SUM(total) as total_ventas,
+                    SUM(CASE WHEN metodo_pago = 'efectivo' THEN total ELSE 0 END) as total_efectivo,
+                    SUM(CASE WHEN metodo_pago = 'tarjeta' THEN total ELSE 0 END) as total_tarjeta,
+                    SUM(CASE WHEN metodo_pago = 'transferencia' THEN total ELSE 0 END) as total_transferencia,
+                    SUM(CASE WHEN metodo_pago = 'otros' THEN total ELSE 0 END) as total_otros
                   FROM facturas 
                   WHERE sesion_id = :sesion_id";
         

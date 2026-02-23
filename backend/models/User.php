@@ -169,7 +169,6 @@ class User {
     }
 
     public function login() {
-        // Consulta corregida con JOIN para obtener el rol real
         $query = "SELECT 
                     u.id_usuario, 
                     u.nombre, 
