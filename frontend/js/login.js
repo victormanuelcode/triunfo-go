@@ -92,8 +92,8 @@ function redirigirUsuario(rolId) {
         // Rol 1: Administrador -> Va al Dashboard o Historial
         window.location.href = '../admin/historial.html';
     } else if (rol === 2) {
-        // Rol 2: Cajero/Vendedor -> Va a Ventas
-        window.location.href = '../cashier/ventas.html'; 
+        // Rol 2: Cajero/Vendedor -> Va al nuevo Dashboard
+        window.location.href = '../cashier/dashboard.html'; 
     } else {
         // Otros roles por defecto a login
         alert('Rol no reconocido. Contacte al administrador.');

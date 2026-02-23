@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost/proyecto_final/backend';
+const API_URL = '/proyecto_final/backend';
 let carrito = [];
 let productosGlobal = [];
 
@@ -195,7 +195,10 @@ async function cargarCatalogo() {
     const container = document.getElementById('productos-catalogo');
     try {
         const response = await fetch(`${API_URL}/products`);
-        productosGlobal = await response.json();
+        const json = await response.json();
+
+        // Adaptar a la respuesta paginada del backend { data: [...], meta: {...} }
+        productosGlobal = Array.isArray(json) ? json : (json.data || []);
         
         renderizarCatalogo(productosGlobal);
     } catch (error) {
@@ -341,12 +344,13 @@ async function procesarVenta() {
 
     const totalVenta = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
     const clienteId = document.getElementById('cliente-select').value;
+    const metodoPago = document.getElementById('metodo-pago-select').value; // Nuevo selector
     const usuarioId = localStorage.getItem('usuario_id'); // Obtener ID del usuario actual
 
     const data = {
         items: itemsVenta,
         total: totalVenta,
-        metodo_pago: 'efectivo', // Por defecto
+        metodo_pago: metodoPago,
         cliente_id: clienteId || null, // Si es vacío envía null
         usuario_id: usuarioId, // Enviar usuario responsable
         sesion_id: sesionCajaId

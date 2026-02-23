@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost/proyecto_final/backend';
+const API_URL = window.location.origin + '/proyecto_final/backend';
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('App iniciada');
@@ -79,7 +79,10 @@ async function cargarProductos() {
     
     try {
         const response = await fetch(`${API_URL}/products`);
-        const productos = await response.json();
+        const json = await response.json();
+
+        // Adaptar a posible respuesta paginada { data: [...], meta: {...} }
+        const productos = Array.isArray(json) ? json : (json.data || []);
 
         container.innerHTML = '';
 

@@ -33,12 +33,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-const API_URL = 'http://localhost/proyecto_final/backend';
+const API_URL = window.location.origin + '/proyecto_final/backend';
 
 async function loadHistory() {
     try {
         const response = await fetch(`${API_URL}/invoices`);
-        const invoices = await response.json();
+        const json = await response.json();
+
+        // Adaptar a la respuesta paginada del backend { data: [...], meta: {...} }
+        const invoices = Array.isArray(json) ? json : (json.data || []);
         
         const tbody = document.querySelector('#historyTable tbody');
         tbody.innerHTML = '';

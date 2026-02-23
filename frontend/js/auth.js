@@ -9,7 +9,8 @@ const ROLE_CASHIER = '2';
 const originalFetch = window.fetch;
 window.fetch = async function(url, options = {}) {
     // Si la URL es hacia nuestra API backend
-    if (url.includes('/backend/') && !url.includes('/login')) {
+    // Ajuste para permitir que funcione tanto con rutas relativas como absolutas
+    if (url.includes('proyecto_final/backend') && !url.includes('/login')) {
         const token = localStorage.getItem('token');
         
         if (token) {

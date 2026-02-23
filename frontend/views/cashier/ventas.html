@@ -40,11 +40,23 @@
             <div class="cart-header">
                 <h3>Nueva Venta</h3>
                 <div style="margin: 10px 0;">
+                    <label style="display:block; margin-bottom:5px;">Cliente:</label>
                     <select id="cliente-select" style="width: 100%; padding: 8px; margin-bottom: 5px;">
                         <option value="">Cargando clientes...</option>
                     </select>
                     <small><a href="../admin/clientes.html" target="_blank">Gestionar Clientes</a></small>
                 </div>
+                
+                <div style="margin: 10px 0;">
+                    <label style="display:block; margin-bottom:5px;">Método de Pago:</label>
+                    <select id="metodo-pago-select" style="width: 100%; padding: 8px;">
+                        <option value="efectivo" selected>Efectivo</option>
+                        <option value="tarjeta">Tarjeta</option>
+                        <option value="transferencia">Transferencia</option>
+                        <option value="otros">Otros</option>
+                    </select>
+                </div>
+
                 <span id="fecha-actual"></span>
             </div>
             
