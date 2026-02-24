@@ -1,15 +1,29 @@
 <?php
 include_once __DIR__ . '/../models/Supplier.php';
 
+/**
+ * Controlador para la gestión de proveedores.
+ * Maneja las operaciones CRUD básicas para la entidad proveedores.
+ */
 class SupplierController {
     private $db;
     private $supplier;
 
+    /**
+     * Constructor de la clase.
+     * 
+     * @param PDO $db Conexión a la base de datos
+     */
     public function __construct($db) {
         $this->db = $db;
         $this->supplier = new Supplier($db);
     }
 
+    /**
+     * Obtiene la lista de todos los proveedores.
+     * 
+     * @return void
+     */
     public function getAll() {
         $stmt = $this->supplier->read();
         $num = $stmt->rowCount();
@@ -33,6 +47,12 @@ class SupplierController {
         echo json_encode($suppliers_arr);
     }
 
+    /**
+     * Obtiene los detalles de un proveedor específico.
+     * 
+     * @param int $id ID del proveedor
+     * @return void
+     */
     public function getOne($id) {
         $this->supplier->id_proveedor = $id;
         if ($this->supplier->readOne()) {
@@ -52,6 +72,12 @@ class SupplierController {
         }
     }
 
+    /**
+     * Crea un nuevo proveedor.
+     * Valida los datos requeridos (nombre) y el formato del email.
+     * 
+     * @return void
+     */
     public function create() {
         $data = json_decode(file_get_contents("php://input"));
 
@@ -87,6 +113,13 @@ class SupplierController {
         }
     }
 
+    /**
+     * Actualiza un proveedor existente.
+     * Mantiene los datos anteriores si no se proporcionan nuevos.
+     * 
+     * @param int $id ID del proveedor a actualizar
+     * @return void
+     */
     public function update($id) {
         $data = json_decode(file_get_contents("php://input"));
 
@@ -127,6 +160,12 @@ class SupplierController {
         }
     }
 
+    /**
+     * Elimina un proveedor.
+     * 
+     * @param int $id ID del proveedor a eliminar
+     * @return void
+     */
     public function delete($id) {
         $this->supplier->id_proveedor = $id;
 

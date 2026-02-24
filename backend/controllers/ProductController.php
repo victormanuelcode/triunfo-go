@@ -2,17 +2,33 @@
 include_once __DIR__ . '/../models/Product.php';
 include_once __DIR__ . '/../models/InventoryMovement.php';
 
+/**
+ * Controlador para la gestión de productos.
+ * Maneja las operaciones CRUD, subida de imágenes y control de stock.
+ */
 class ProductController {
     private $db;
     private $product;
     private $movement;
 
+    /**
+     * Constructor de la clase.
+     * 
+     * @param PDO $db Conexión a la base de datos
+     */
     public function __construct($db) {
         $this->db = $db;
         $this->product = new Product($db);
         $this->movement = new InventoryMovement($db);
     }
 
+    /**
+     * Obtiene una lista paginada de productos.
+     * Soporta parámetros GET para paginación (page, limit).
+     * Retorna un JSON con los datos y metadatos de paginación.
+     * 
+     * @return void
+     */
     public function getAll() {
         // Obtener parámetros de paginación
         $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
@@ -89,6 +105,12 @@ class ProductController {
         }
     }
 
+    /**
+     * Crea un nuevo producto.
+     * Procesa los datos del formulario o JSON y la imagen subida.
+     * 
+     * @return void
+     */
     public function create() {
         $data = $this->processRequestData();
 
@@ -226,6 +248,12 @@ class ProductController {
         }
     }
 
+    /**
+     * Procesa los datos de la solicitud entrante.
+     * Maneja tanto solicitudes JSON como form-data.
+     * 
+     * @return array Datos de la solicitud procesados
+     */
     private function processRequestData() {
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
         if (strpos($contentType, 'application/json') !== false) {
@@ -234,6 +262,12 @@ class ProductController {
         return $_POST;
     }
 
+    /**
+     * Maneja la subida de imágenes del producto.
+     * Valida el tipo de archivo y lo guarda en el servidor.
+     * 
+     * @return string|null Ruta relativa de la imagen guardada o null si no se subió o hubo error
+     */
     private function handleImageUpload() {
         if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
             $uploadDir = __DIR__ . '/../uploads/products/';

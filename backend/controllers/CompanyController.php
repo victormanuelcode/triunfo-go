@@ -1,15 +1,32 @@
 <?php
 include_once __DIR__ . '/../models/Company.php';
 
+/**
+ * Clase CompanyController
+ * 
+ * Controlador para gestionar la configuración de la empresa.
+ * Permite obtener y guardar los datos generales como nombre, NIT, logo, etc.
+ */
 class CompanyController {
     private $db;
     private $company;
 
+    /**
+     * Constructor de la clase.
+     * 
+     * @param PDO $db Conexión a la base de datos.
+     */
     public function __construct($db) {
         $this->db = $db;
         $this->company = new Company($db);
     }
 
+    /**
+     * Obtiene la configuración actual de la empresa.
+     * Si no existe configuración, devuelve un objeto con campos vacíos.
+     * 
+     * @return void Retorna JSON con los datos de la empresa.
+     */
     public function get() {
         $stmt = $this->company->get();
         $num = $stmt->rowCount();
@@ -32,6 +49,12 @@ class CompanyController {
         }
     }
 
+    /**
+     * Guarda o actualiza la configuración de la empresa.
+     * Maneja la subida del logo si se proporciona en la petición.
+     * 
+     * @return void Retorna JSON con el resultado de la operación.
+     */
     public function save() {
         // Manejo de FormData (con archivo)
         // Para PUT/POST con archivos, mejor usar POST siempre en este caso y manejar lógica interna

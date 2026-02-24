@@ -1,15 +1,31 @@
 <?php
 include_once __DIR__ . '/../models/BoxSession.php';
 
+/**
+ * Clase BoxController
+ * 
+ * Controlador para gestionar las operaciones de caja (apertura, cierre y consulta de estado).
+ * Interactúa con el modelo BoxSession.
+ */
 class BoxController {
     private $db;
     private $boxSession;
 
+    /**
+     * Constructor de la clase.
+     * 
+     * @param PDO $db Conexión a la base de datos.
+     */
     public function __construct($db) {
         $this->db = $db;
         $this->boxSession = new BoxSession($db);
     }
 
+    /**
+     * Obtiene el estado actual de la caja para un usuario específico.
+     * 
+     * @return void Retorna JSON con el estado de la sesión o null si no hay sesión abierta.
+     */
     public function getStatus() {
         if (!isset($_GET['usuario_id'])) {
             http_response_code(400);
@@ -33,6 +49,12 @@ class BoxController {
         }
     }
 
+    /**
+     * Abre una nueva sesión de caja.
+     * Recibe los datos mediante JSON en el cuerpo de la petición.
+     * 
+     * @return void Retorna JSON con el resultado de la operación.
+     */
     public function open() {
         $data = json_decode(file_get_contents("php://input"));
 
@@ -73,6 +95,12 @@ class BoxController {
         }
     }
 
+    /**
+     * Cierra la sesión de caja actual.
+     * Calcula diferencias entre el monto esperado y el reportado por el cajero.
+     * 
+     * @return void Retorna JSON con el resumen del cierre.
+     */
     public function close() {
         $data = json_decode(file_get_contents("php://input"));
 

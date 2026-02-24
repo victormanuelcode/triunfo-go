@@ -1,15 +1,32 @@
 <?php
 include_once __DIR__ . '/../models/Invoice.php';
 
+/**
+ * Clase InvoiceController
+ * 
+ * Controlador para gestionar las facturas de venta.
+ * Permite listar, consultar detalles y crear nuevas ventas.
+ */
 class InvoiceController {
     private $db;
     private $invoice;
 
+    /**
+     * Constructor de la clase.
+     * 
+     * @param PDO $db Conexión a la base de datos.
+     */
     public function __construct($db) {
         $this->db = $db;
         $this->invoice = new Invoice($db);
     }
 
+    /**
+     * Obtiene el historial de facturas con paginación.
+     * Acepta parámetros GET 'limit' y 'page'.
+     * 
+     * @return void Retorna JSON con los datos paginados y metadatos.
+     */
     public function getAll() {
         // Paginación
         $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
@@ -42,6 +59,13 @@ class InvoiceController {
         ]);
     }
 
+    /**
+     * Obtiene los detalles de una factura específica.
+     * Incluye información del cliente, usuario y productos vendidos.
+     * 
+     * @param int $id ID de la factura a consultar.
+     * @return void Retorna JSON con los detalles de la factura.
+     */
     public function getOne($id) {
         $this->invoice->id_factura = $id;
         if ($this->invoice->readOne()) {
@@ -63,6 +87,12 @@ class InvoiceController {
         }
     }
 
+    /**
+     * Crea una nueva factura de venta.
+     * Valida los datos de entrada, stock y método de pago antes de procesar.
+     * 
+     * @return void Retorna JSON con el resultado de la venta.
+     */
     public function create() {
         $data = json_decode(file_get_contents("php://input"), true);
 

@@ -1,16 +1,31 @@
 <?php
 include_once __DIR__ . '/../models/Category.php';
 
+/**
+ * Clase CategoryController
+ * 
+ * Controlador para gestionar las categorías de productos.
+ * Permite listar, crear, obtener, actualizar y eliminar categorías.
+ */
 class CategoryController {
     private $db;
     private $category;
 
+    /**
+     * Constructor de la clase.
+     * 
+     * @param PDO $db Conexión a la base de datos.
+     */
     public function __construct($db) {
         $this->db = $db;
         $this->category = new Category($db);
     }
 
-    // Obtener todas las categorías
+    /**
+     * Obtiene todas las categorías registradas.
+     * 
+     * @return void Retorna JSON con la lista de categorías.
+     */
     public function getAll() {
         $stmt = $this->category->read();
         $num = $stmt->rowCount();
@@ -35,7 +50,11 @@ class CategoryController {
         }
     }
 
-    // Crear una categoría
+    /**
+     * Crea una nueva categoría.
+     * 
+     * @return void Retorna JSON con el resultado de la creación.
+     */
     public function create() {
         $data = json_decode(file_get_contents("php://input"));
 
@@ -56,7 +75,12 @@ class CategoryController {
         }
     }
 
-    // Obtener una categoría por ID
+    /**
+     * Obtiene una categoría específica por su ID.
+     * 
+     * @param int $id ID de la categoría.
+     * @return void Retorna JSON con los datos de la categoría.
+     */
     public function getOne($id) {
         $this->category->id_categoria = $id;
         if ($this->category->readOne()) {
@@ -74,7 +98,12 @@ class CategoryController {
         }
     }
 
-    // Actualizar una categoría
+    /**
+     * Actualiza una categoría existente.
+     * 
+     * @param int $id ID de la categoría a actualizar.
+     * @return void Retorna JSON con el resultado de la actualización.
+     */
     public function update($id) {
         $data = json_decode(file_get_contents("php://input"));
         
@@ -108,7 +137,12 @@ class CategoryController {
         }
     }
 
-    // Eliminar una categoría
+    /**
+     * Elimina una categoría.
+     * 
+     * @param int $id ID de la categoría a eliminar.
+     * @return void Retorna JSON con el resultado de la eliminación.
+     */
     public function delete($id) {
         $this->category->id_categoria = $id;
 

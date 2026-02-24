@@ -1,15 +1,29 @@
 <?php
 include_once __DIR__ . '/../models/User.php';
 
+/**
+ * Controlador para la gestión de usuarios y autenticación.
+ * Maneja operaciones CRUD de usuarios, login, logout y perfil.
+ */
 class UserController {
     private $db;
     private $user;
 
+    /**
+     * Constructor de la clase.
+     * 
+     * @param PDO $db Conexión a la base de datos
+     */
     public function __construct($db) {
         $this->db = $db;
         $this->user = new User($db);
     }
 
+    /**
+     * Obtiene todos los usuarios.
+     * 
+     * @return void
+     */
     public function getAll() {
         $stmt = $this->user->getAll();
         $num = $stmt->rowCount();
@@ -36,6 +50,12 @@ class UserController {
         }
     }
 
+    /**
+     * Obtiene los detalles de un usuario específico.
+     * 
+     * @param int $id ID del usuario
+     * @return void
+     */
     public function getOne($id) {
         $this->user->id_usuario = $id;
         $stmt = $this->user->getOne();
@@ -69,6 +89,13 @@ class UserController {
         }
     }
 
+    /**
+     * Actualiza el perfil del usuario autenticado.
+     * Permite cambiar nombre, usuario, email y contraseña.
+     * 
+     * @param array $tokenData Datos extraídos del token JWT
+     * @return void
+     */
     public function updateProfile($tokenData) {
         $id = $tokenData['id_usuario'];
         $data = json_decode(file_get_contents("php://input"));
@@ -213,6 +240,12 @@ class UserController {
         }
     }
 
+    /**
+     * Registra un nuevo usuario en el sistema.
+     * Valida datos requeridos, duplicidad de usuario y rol válido.
+     * 
+     * @return void
+     */
     public function register() {
         $data = json_decode(file_get_contents("php://input"));
 
@@ -273,6 +306,12 @@ class UserController {
         }
     }
 
+    /**
+     * Inicia sesión de usuario.
+     * Verifica credenciales y genera token JWT si son correctas.
+     * 
+     * @return void
+     */
     public function login() {
         $data = json_decode(file_get_contents("php://input"));
 
@@ -346,6 +385,12 @@ class UserController {
         }
     }
 
+    /**
+     * Cierra la sesión del usuario.
+     * Invalida el token JWT añadiéndolo a la lista negra.
+     * 
+     * @return void
+     */
     public function logout() {
         $headers = function_exists('apache_request_headers') ? apache_request_headers() : [];
         $authHeader = $headers['Authorization'] ?? ($headers['authorization'] ?? null);

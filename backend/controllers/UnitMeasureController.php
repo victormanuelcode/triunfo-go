@@ -1,16 +1,29 @@
 <?php
 include_once __DIR__ . '/../models/UnitMeasure.php';
 
+/**
+ * Controlador para la gestión de unidades de medida.
+ * Maneja las operaciones CRUD básicas.
+ */
 class UnitMeasureController {
     private $db;
     private $unit;
 
+    /**
+     * Constructor de la clase.
+     * 
+     * @param PDO $db Conexión a la base de datos
+     */
     public function __construct($db) {
         $this->db = $db;
         $this->unit = new UnitMeasure($db);
     }
 
-    // Obtener todas las unidades
+    /**
+     * Obtiene todas las unidades de medida.
+     * 
+     * @return void
+     */
     public function getAll() {
         $stmt = $this->unit->read();
         $num = $stmt->rowCount();
@@ -34,7 +47,12 @@ class UnitMeasureController {
         }
     }
 
-    // Crear una unidad
+    /**
+     * Crea una nueva unidad de medida.
+     * Requiere nombre y abreviatura.
+     * 
+     * @return void
+     */
     public function create() {
         $data = json_decode(file_get_contents("php://input"));
 
@@ -107,7 +125,13 @@ class UnitMeasureController {
         }
     }
 
-    // Eliminar una unidad
+    /**
+     * Elimina una unidad de medida.
+     * Puede fallar si la unidad está siendo utilizada por productos.
+     * 
+     * @param int $id ID de la unidad a eliminar
+     * @return void
+     */
     public function delete($id) {
         $this->unit->id_unidad = $id;
 

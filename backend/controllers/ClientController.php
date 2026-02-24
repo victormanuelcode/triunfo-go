@@ -16,6 +16,12 @@ class ClientController {
         echo json_encode($clients);
     }
 
+    /**
+     * Obtiene los detalles de un cliente específico.
+     * 
+     * @param int $id ID del cliente a consultar.
+     * @return void Retorna JSON con los datos del cliente.
+     */
     public function getOne($id) {
         $this->client->id_cliente = $id;
         if ($this->client->readOne()) {
@@ -33,6 +39,12 @@ class ClientController {
         }
     }
 
+    /**
+     * Crea un nuevo cliente.
+     * Valida que el nombre sea obligatorio y el email tenga formato correcto.
+     * 
+     * @return void Retorna JSON con el resultado de la operación.
+     */
     public function create() {
         $data = json_decode(file_get_contents("php://input"));
 
@@ -107,6 +119,12 @@ class ClientController {
         }
     }
 
+    /**
+     * Elimina un cliente.
+     * 
+     * @param int $id ID del cliente a eliminar.
+     * @return void Retorna JSON con el resultado de la eliminación.
+     */
     public function delete($id) {
         $this->client->id_cliente = $id;
         if ($this->client->delete()) {
