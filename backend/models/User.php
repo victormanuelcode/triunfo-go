@@ -1,4 +1,10 @@
 <?php
+/**
+ * Clase User
+ * 
+ * Gestiona las operaciones relacionadas con los usuarios del sistema,
+ * incluyendo autenticación (login), creación y administración de roles.
+ */
 class User {
     private $conn;
     private $table_name = "usuarios";
@@ -14,7 +20,11 @@ class User {
         $this->conn = $db;
     }
 
-    // Método para obtener todos los usuarios con sus roles
+    /**
+     * Obtiene todos los usuarios registrados junto con su rol.
+     * 
+     * @return PDOStatement Resultado de la consulta.
+     */
     public function getAll() {
         $query = "SELECT 
                     u.id_usuario, 
@@ -33,7 +43,11 @@ class User {
         return $stmt;
     }
 
-    // Método para obtener un usuario por ID
+    /**
+     * Obtiene los datos de un usuario específico por su ID.
+     * 
+     * @return PDOStatement Resultado de la consulta (un solo registro).
+     */
     public function getOne() {
         $query = "SELECT 
                     u.id_usuario, 
@@ -52,6 +66,11 @@ class User {
         return $stmt;
     }
 
+    /**
+     * Crea un nuevo usuario en la base de datos y le asigna un rol.
+     * 
+     * @return boolean True si el usuario fue creado exitosamente.
+     */
     public function create() {
         // 1. Insertar usuario
         $query = "INSERT INTO " . $this->table_name . " SET nombre=:nombre, usuario=:usuario, contrasena=:contrasena, email=:email";
@@ -88,7 +107,12 @@ class User {
         return false;
     }
 
-    // Método para actualizar usuario
+    /**
+     * Actualiza la información de un usuario existente.
+     * Si se proporciona contraseña, se actualiza y encripta; de lo contrario se mantiene la anterior.
+     * 
+     * @return boolean True si la actualización fue exitosa.
+     */
     public function update() {
         // Si hay contraseña, actualizar todo. Si no, solo datos básicos.
         if(!empty($this->contrasena)){
@@ -186,6 +210,11 @@ class User {
         return $stmt;
     }
     
+    /**
+     * Comprueba si un nombre de usuario ya existe en la base de datos.
+     * 
+     * @return boolean True si el usuario ya existe, False si está disponible.
+     */
     public function userExists() {
         $query = "SELECT id_usuario FROM " . $this->table_name . " WHERE usuario = ? LIMIT 0,1";
         $stmt = $this->conn->prepare($query);

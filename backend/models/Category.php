@@ -1,4 +1,10 @@
 <?php
+/**
+ * Clase Category
+ * 
+ * Gestiona las categorías de productos, permitiendo organizar el inventario
+ * de manera lógica.
+ */
 class Category {
     private $conn;
     private $table_name = "categorias";
@@ -12,7 +18,11 @@ class Category {
         $this->conn = $db;
     }
 
-    // Leer todas las categorías
+    /**
+     * Obtiene todas las categorías ordenadas alfabéticamente.
+     * 
+     * @return PDOStatement Resultado de la consulta.
+     */
     public function read() {
         $query = "SELECT id_categoria, nombre, descripcion, creado_en FROM " . $this->table_name . " ORDER BY nombre ASC";
         $stmt = $this->conn->prepare($query);
@@ -20,7 +30,11 @@ class Category {
         return $stmt;
     }
 
-    // Crear categoría
+    /**
+     * Crea una nueva categoría.
+     * 
+     * @return boolean True si la creación fue exitosa.
+     */
     public function create() {
         $query = "INSERT INTO " . $this->table_name . " SET nombre=:nombre, descripcion=:descripcion";
         $stmt = $this->conn->prepare($query);
@@ -55,7 +69,11 @@ class Category {
         return false;
     }
 
-    // Actualizar categoría
+    /**
+     * Actualiza la información de una categoría existente.
+     * 
+     * @return boolean True si la actualización fue exitosa.
+     */
     public function update() {
         $query = "UPDATE " . $this->table_name . " SET nombre=:nombre, descripcion=:descripcion WHERE id_categoria=:id_categoria";
         $stmt = $this->conn->prepare($query);

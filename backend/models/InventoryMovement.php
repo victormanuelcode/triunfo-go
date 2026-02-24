@@ -1,4 +1,10 @@
 <?php
+/**
+ * Clase InventoryMovement
+ * 
+ * Gestiona el registro y consulta de los movimientos de inventario (entradas y salidas),
+ * permitiendo la trazabilidad de los cambios en el stock de productos.
+ */
 class InventoryMovement {
     private $conn;
     private $table_name = "movimientos_inventario";
@@ -15,7 +21,11 @@ class InventoryMovement {
         $this->conn = $db;
     }
 
-    // Registrar un movimiento
+    /**
+     * Registra un nuevo movimiento de inventario.
+     * 
+     * @return boolean True si el registro fue exitoso, False en caso contrario.
+     */
     public function create() {
         $query = "INSERT INTO " . $this->table_name . "
                   SET tipo = :tipo,
@@ -26,11 +36,11 @@ class InventoryMovement {
 
         $stmt = $this->conn->prepare($query);
 
-        // Sanitize
+        // Saneamiento de datos
         $this->descripcion = htmlspecialchars(strip_tags($this->descripcion));
         $this->referencia = htmlspecialchars(strip_tags($this->referencia));
 
-        // Bind
+        // Vincular parámetros
         $stmt->bindParam(":tipo", $this->tipo);
         $stmt->bindParam(":producto_id", $this->producto_id);
         $stmt->bindParam(":cantidad", $this->cantidad);
@@ -43,7 +53,11 @@ class InventoryMovement {
         return false;
     }
 
-    // Obtener historial completo
+    /**
+     * Obtiene el historial completo de movimientos de inventario.
+     * 
+     * @return PDOStatement Resultado de la consulta con todos los movimientos ordenados por fecha.
+     */
     public function getAll() {
         $query = "SELECT m.*, p.nombre as producto_nombre 
                   FROM " . $this->table_name . " m
@@ -55,7 +69,12 @@ class InventoryMovement {
         return $stmt;
     }
 
-    // Obtener historial por producto
+    /**
+     * Obtiene el historial de movimientos de un producto específico.
+     * 
+     * @param int $product_id ID del producto.
+     * @return PDOStatement Resultado de la consulta filtrada por producto.
+     */
     public function getByProduct($product_id) {
         $query = "SELECT m.*, p.nombre as producto_nombre 
                   FROM " . $this->table_name . " m

@@ -1,4 +1,10 @@
 <?php
+/**
+ * Clase UnitMeasure
+ * 
+ * Gestiona las unidades de medida utilizadas para cuantificar los productos
+ * (ej. Kilogramo, Litro, Unidad, Caja).
+ */
 class UnitMeasure {
     private $conn;
     private $table_name = "unidades_medida";
@@ -11,7 +17,11 @@ class UnitMeasure {
         $this->conn = $db;
     }
 
-    // Leer todas las unidades
+    /**
+     * Obtiene todas las unidades de medida ordenadas alfabéticamente.
+     * 
+     * @return PDOStatement Resultado de la consulta.
+     */
     public function read() {
         $query = "SELECT id_unidad, nombre, abreviatura FROM " . $this->table_name . " ORDER BY nombre ASC";
         $stmt = $this->conn->prepare($query);
@@ -19,7 +29,11 @@ class UnitMeasure {
         return $stmt;
     }
 
-    // Crear unidad
+    /**
+     * Crea una nueva unidad de medida.
+     * 
+     * @return boolean True si la creación fue exitosa.
+     */
     public function create() {
         $query = "INSERT INTO " . $this->table_name . " SET nombre=:nombre, abreviatura=:abreviatura";
         $stmt = $this->conn->prepare($query);
@@ -36,7 +50,11 @@ class UnitMeasure {
         return false;
     }
 
-    // Leer una unidad individual
+    /**
+     * Obtiene los datos de una unidad de medida específica por su ID.
+     * 
+     * @return boolean True si la unidad existe.
+     */
     public function readOne() {
         $query = "SELECT id_unidad, nombre, abreviatura FROM " . $this->table_name . " WHERE id_unidad = ? LIMIT 0,1";
         $stmt = $this->conn->prepare($query);
@@ -72,7 +90,11 @@ class UnitMeasure {
         return false;
     }
 
-    // Eliminar unidad
+    /**
+     * Elimina una unidad de medida.
+     * 
+     * @return boolean True si la eliminación fue exitosa, False si falla (ej. restricción de FK).
+     */
     public function delete() {
         try {
             $query = "DELETE FROM " . $this->table_name . " WHERE id_unidad = ?";

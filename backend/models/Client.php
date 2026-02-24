@@ -54,7 +54,7 @@ class Client {
         $this->direccion = htmlspecialchars(strip_tags($this->direccion));
         $this->email = htmlspecialchars(strip_tags($this->email));
 
-        // Bind
+        // Vincular parámetros
         $stmt->bindParam(":nombre", $this->nombre);
         $stmt->bindParam(":documento", $this->documento);
         $stmt->bindParam(":telefono", $this->telefono);

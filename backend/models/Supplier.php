@@ -15,6 +15,11 @@ class Supplier {
         $this->conn = $db;
     }
 
+    /**
+     * Obtiene todos los proveedores ordenados alfabéticamente.
+     * 
+     * @return PDOStatement Resultado de la consulta.
+     */
     public function read() {
         $query = "SELECT * FROM " . $this->table_name . " ORDER BY nombre ASC";
         $stmt = $this->conn->prepare($query);
@@ -22,6 +27,11 @@ class Supplier {
         return $stmt;
     }
 
+    /**
+     * Obtiene los datos de un proveedor específico por su ID.
+     * 
+     * @return boolean True si el proveedor existe.
+     */
     public function readOne() {
         $query = "SELECT * FROM " . $this->table_name . " WHERE id_proveedor = ? LIMIT 0,1";
         $stmt = $this->conn->prepare($query);
@@ -42,20 +52,25 @@ class Supplier {
         return false;
     }
 
+    /**
+     * Crea un nuevo proveedor.
+     * 
+     * @return boolean True si la creación fue exitosa.
+     */
     public function create() {
         $query = "INSERT INTO " . $this->table_name . " 
                   SET nombre=:nombre, nit=:nit, telefono=:telefono, direccion=:direccion, email=:email";
 
         $stmt = $this->conn->prepare($query);
 
-        // Sanitize
+        // Saneamiento de datos
         $this->nombre = htmlspecialchars(strip_tags($this->nombre));
         $this->nit = htmlspecialchars(strip_tags($this->nit));
         $this->telefono = htmlspecialchars(strip_tags($this->telefono));
         $this->direccion = htmlspecialchars(strip_tags($this->direccion));
         $this->email = htmlspecialchars(strip_tags($this->email));
 
-        // Bind
+        // Vincular parámetros
         $stmt->bindParam(":nombre", $this->nombre);
         $stmt->bindParam(":nit", $this->nit);
         $stmt->bindParam(":telefono", $this->telefono);
@@ -68,6 +83,11 @@ class Supplier {
         return false;
     }
 
+    /**
+     * Actualiza la información de un proveedor existente.
+     * 
+     * @return boolean True si la actualización fue exitosa.
+     */
     public function update() {
         $query = "UPDATE " . $this->table_name . "
                   SET nombre = :nombre,
@@ -87,7 +107,7 @@ class Supplier {
         $this->email = htmlspecialchars(strip_tags($this->email));
         $this->id_proveedor = htmlspecialchars(strip_tags($this->id_proveedor));
 
-        // Bind
+        // Vincular parámetros
         $stmt->bindParam(":nombre", $this->nombre);
         $stmt->bindParam(":nit", $this->nit);
         $stmt->bindParam(":telefono", $this->telefono);
@@ -101,6 +121,11 @@ class Supplier {
         return false;
     }
 
+    /**
+     * Elimina un proveedor.
+     * 
+     * @return boolean True si la eliminación fue exitosa.
+     */
     public function delete() {
         $query = "DELETE FROM " . $this->table_name . " WHERE id_proveedor = ?";
         $stmt = $this->conn->prepare($query);

@@ -1,4 +1,10 @@
 <?php
+/**
+ * Clase BoxSession
+ * 
+ * Gestiona las sesiones de caja (apertura y cierre), permitiendo el control
+ * de flujo de efectivo por usuario.
+ */
 class BoxSession {
     private $conn;
     private $table_name = "caja_sesiones";
@@ -20,6 +26,11 @@ class BoxSession {
         $this->conn = $db;
     }
 
+    /**
+     * Abre una nueva sesión de caja para un usuario.
+     * 
+     * @return boolean True si se abrió correctamente, False en caso contrario.
+     */
     public function open() {
         $query = "INSERT INTO " . $this->table_name . "
                   SET usuario_id = :usuario_id,
@@ -29,9 +40,11 @@ class BoxSession {
 
         $stmt = $this->conn->prepare($query);
 
+        // Saneamiento de datos
         $this->usuario_id = htmlspecialchars(strip_tags($this->usuario_id));
         $this->monto_apertura = htmlspecialchars(strip_tags($this->monto_apertura));
 
+        // Vincular parámetros
         $stmt->bindParam(":usuario_id", $this->usuario_id);
         $stmt->bindParam(":monto_apertura", $this->monto_apertura);
 
@@ -42,6 +55,11 @@ class BoxSession {
         return false;
     }
 
+    /**
+     * Cierra una sesión de caja existente, registrando los totales y diferencias.
+     * 
+     * @return boolean True si se cerró correctamente, False en caso contrario.
+     */
     public function close() {
         $query = "UPDATE " . $this->table_name . "
                   SET monto_cierre = :monto_cierre,
@@ -56,7 +74,7 @@ class BoxSession {
 
         $stmt = $this->conn->prepare($query);
 
-        // Bind params
+        // Vincular parámetros
         $stmt->bindParam(":monto_cierre", $this->monto_cierre);
         $stmt->bindParam(":total_efectivo", $this->total_efectivo);
         $stmt->bindParam(":total_tarjeta", $this->total_tarjeta);
@@ -71,6 +89,12 @@ class BoxSession {
         return false;
     }
 
+    /**
+     * Obtiene la sesión actual abierta para un usuario específico.
+     * 
+     * @param int $usuario_id ID del usuario.
+     * @return PDOStatement Resultado de la consulta.
+     */
     public function getCurrentSession($usuario_id) {
         $query = "SELECT * FROM " . $this->table_name . "
                   WHERE usuario_id = :usuario_id AND estado = 'abierta'
@@ -83,6 +107,12 @@ class BoxSession {
         return $stmt;
     }
 
+    /**
+     * Obtiene un resumen de ventas asociado a una sesión de caja.
+     * 
+     * @param int $sesion_id ID de la sesión.
+     * @return array Array asociativo con los totales por método de pago.
+     */
     public function getSummary($sesion_id) {
         // Obtener total vendido en esta sesión
         $query = "SELECT 

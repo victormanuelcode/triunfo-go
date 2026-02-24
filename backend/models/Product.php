@@ -1,4 +1,10 @@
 <?php
+/**
+ * Clase Product
+ * 
+ * Gestiona el catálogo de productos, incluyendo inventario, precios,
+ * relaciones con categorías, proveedores y movimientos automáticos de stock.
+ */
 class Product {
     private $conn;
     private $table_name = "productos";
@@ -22,7 +28,14 @@ class Product {
         $this->conn = $db;
     }
 
-    // Leer productos con paginación
+    /**
+     * Obtiene una lista paginada de productos activos.
+     * Incluye información de categorías y proveedores.
+     * 
+     * @param int $limit Límite de resultados por página.
+     * @param int $offset Desplazamiento para paginación.
+     * @return PDOStatement Resultado de la consulta.
+     */
     public function read($limit = 10, $offset = 0) {
         $query = "SELECT p.*, c.nombre as categoria_nombre, pr.nombre as proveedor_nombre, pp.proveedor_id
                   FROM " . $this->table_name . " p
@@ -41,7 +54,11 @@ class Product {
         return $stmt;
     }
 
-    // Contar total de productos (para paginación)
+    /**
+     * Cuenta el total de productos activos en el sistema.
+     * 
+     * @return int Número total de productos.
+     */
     public function count() {
         $query = "SELECT COUNT(*) as total FROM " . $this->table_name . " WHERE estado = 'activo'";
         $stmt = $this->conn->prepare($query);
@@ -50,7 +67,12 @@ class Product {
         return $row['total'];
     }
 
-    // Crear producto
+    /**
+     * Crea un nuevo producto y registra su stock inicial si es mayor a cero.
+     * También asocia el producto a un proveedor si se especifica.
+     * 
+     * @return boolean True si el producto se creó correctamente.
+     */
     public function create() {
         $query = "INSERT INTO " . $this->table_name . " 
                   SET nombre=:nombre, descripcion=:descripcion, categoria_id=:categoria_id, 
@@ -189,7 +211,12 @@ class Product {
         return false;
     }
 
-    // Eliminar producto (Soft Delete)
+    /**
+     * Realiza un borrado lógico (soft delete) del producto cambiando su estado a inactivo.
+     * Si hay stock remanente, registra una salida por baja.
+     * 
+     * @return boolean True si la operación fue exitosa.
+     */
     public function delete() {
         // En lugar de borrar, cambiamos el estado a 'inactivo'
         $query = "UPDATE " . $this->table_name . " SET estado = 'inactivo' WHERE id_producto = ?";

@@ -6,7 +6,11 @@ class Report {
         $this->conn = $db;
     }
 
-    // Ventas de los últimos 7 días
+    /**
+     * Obtiene el total de ventas diarias de los últimos 7 días.
+     * 
+     * @return PDOStatement Resultado de la consulta con fecha y total.
+     */
     public function getSalesLastDays() {
         $query = "SELECT DATE(fecha) as fecha, SUM(total) as total 
                   FROM facturas 
@@ -19,7 +23,11 @@ class Report {
         return $stmt;
     }
 
-    // Productos más vendidos
+    /**
+     * Obtiene los 5 productos más vendidos.
+     * 
+     * @return PDOStatement Resultado de la consulta con nombre, descripción y cantidad vendida.
+     */
     public function getTopProducts() {
         $query = "SELECT p.nombre, p.descripcion, SUM(d.cantidad) as total_vendido 
                   FROM detalle_factura d 
@@ -33,7 +41,11 @@ class Report {
         return $stmt;
     }
 
-    // Productos con stock bajo
+    /**
+     * Obtiene la lista de productos cuyo stock actual es menor o igual al mínimo.
+     * 
+     * @return PDOStatement Resultado de la consulta.
+     */
     public function getLowStock() {
         $query = "SELECT nombre, stock_actual, stock_minimo 
                   FROM productos 
@@ -44,7 +56,12 @@ class Report {
         return $stmt;
     }
 
-    // Totales generales (KPIs)
+    /**
+     * Calcula los indicadores clave de rendimiento (KPIs) generales.
+     * Incluye ventas de hoy, ventas del mes y conteo de productos con bajo stock.
+     * 
+     * @return array Array asociativo con los KPIs.
+     */
     public function getKPIs() {
         // Total ventas hoy
         $queryToday = "SELECT SUM(total) as total_hoy FROM facturas WHERE DATE(fecha) = CURDATE()";

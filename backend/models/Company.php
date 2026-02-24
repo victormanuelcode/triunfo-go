@@ -71,14 +71,14 @@ class Company {
 
         $stmt = $this->conn->prepare($query);
 
-        // Sanitize
+        // Saneamiento de datos
         $this->nombre = htmlspecialchars(strip_tags($this->nombre));
         $this->nit = htmlspecialchars(strip_tags($this->nit));
         $this->direccion = htmlspecialchars(strip_tags($this->direccion));
         $this->telefono = htmlspecialchars(strip_tags($this->telefono));
         $this->lema = htmlspecialchars(strip_tags($this->lema));
 
-        // Bind
+        // Vincular parámetros
         $stmt->bindParam(":nombre", $this->nombre);
         $stmt->bindParam(":nit", $this->nit);
         $stmt->bindParam(":direccion", $this->direccion);

@@ -1,4 +1,12 @@
 <?php
+/**
+ * Clase Invoice
+ * 
+ * Gestiona el ciclo de vida de las facturas de venta.
+ * Incluye la creación de cabeceras y detalles, actualización de inventario,
+ * registro de movimientos y consultas de historial.
+ * Utiliza transacciones para garantizar la integridad de los datos.
+ */
 class Invoice {
     private $conn;
     private $table_name = "facturas";
@@ -21,7 +29,14 @@ class Invoice {
         $this->conn = $db;
     }
 
-    // Leer todas las facturas (Historial) con paginación
+    /**
+     * Obtiene el historial de facturas con paginación.
+     * Incluye el nombre del cliente asociado.
+     * 
+     * @param int $limit Cantidad de registros por página.
+     * @param int $offset Desplazamiento de registros.
+     * @return PDOStatement Resultado de la consulta.
+     */
     public function read($limit = 10, $offset = 0) {
         $query = "SELECT f.id_factura, f.numero_factura, f.fecha, f.total, f.metodo_pago, c.nombre as cliente_nombre 
                   FROM " . $this->table_name . " f 
@@ -36,7 +51,11 @@ class Invoice {
         return $stmt;
     }
 
-    // Contar facturas para paginación
+    /**
+     * Cuenta el total de facturas registradas en el sistema.
+     * 
+     * @return int Número total de facturas.
+     */
     public function count() {
         $query = "SELECT COUNT(*) as total FROM " . $this->table_name;
         $stmt = $this->conn->prepare($query);
@@ -45,7 +64,12 @@ class Invoice {
         return $row['total'];
     }
 
-    // Leer una factura con sus detalles
+    /**
+     * Obtiene una factura completa incluyendo sus detalles (productos).
+     * Carga tanto la cabecera como los ítems asociados.
+     * 
+     * @return boolean True si la factura existe y se cargó correctamente.
+     */
     public function readOne() {
         // 1. Obtener cabecera
         $query = "SELECT f.*, c.nombre as cliente_nombre, u.nombre as usuario_nombre
@@ -90,6 +114,17 @@ class Invoice {
         return false;
     }
 
+    /**
+     * Crea una nueva factura de venta.
+     * Realiza múltiples operaciones en una transacción:
+     * 1. Inserta la cabecera de la factura.
+     * 2. Inserta los detalles (productos vendidos).
+     * 3. Descuenta el stock de los productos.
+     * 4. Registra los movimientos de inventario (salida).
+     * 
+     * @return boolean True si la transacción se completó exitosamente.
+     * @throws Exception Si ocurre algún error durante el proceso (capturado internamente).
+     */
     public function create() {
         try {
             // Iniciar transacción
@@ -110,7 +145,7 @@ class Invoice {
             
             $stmt = $this->conn->prepare($query);
             
-            // Sanitizar
+            // Saneamiento de datos
             $this->observaciones = htmlspecialchars(strip_tags($this->observaciones ?? ''));
             
             // Asegurar que cliente_id sea NULL si está vacío
@@ -118,7 +153,7 @@ class Invoice {
                 $this->cliente_id = null;
             }
             
-            // Bind
+            // Vincular parámetros
             $stmt->bindParam(":numero_factura", $this->numero_factura);
             $stmt->bindParam(":cliente_id", $this->cliente_id);
             $stmt->bindParam(":usuario_id", $this->usuario_id);
@@ -157,27 +192,27 @@ class Invoice {
             $stmt_mov = $this->conn->prepare($query_mov);
 
             // 4. Procesar Items
-            // Variables para binding
+            // Variables para vinculación
             $d_factura_id = $this->id_factura;
             $d_producto_id = 0;
             $d_cantidad = 0;
             $d_precio = 0;
             $d_subtotal = 0;
             
-            // Bind Detalle
+            // Vincular Detalle
             $stmt_detail->bindParam(":factura_id", $d_factura_id);
             $stmt_detail->bindParam(":producto_id", $d_producto_id);
             $stmt_detail->bindParam(":cantidad", $d_cantidad);
             $stmt_detail->bindParam(":precio_unitario", $d_precio);
             $stmt_detail->bindParam(":subtotal", $d_subtotal);
 
-            // Bind Stock
+            // Vincular Stock
             $s_cantidad = 0;
             $s_producto_id = 0;
             $stmt_stock->bindParam(":cantidad", $s_cantidad);
             $stmt_stock->bindParam(":producto_id", $s_producto_id);
 
-            // Bind Movimiento
+            // Vincular Movimiento
             $m_producto_id = 0;
             $m_cantidad = 0;
             $m_descripcion = "Venta Factura " . $this->numero_factura;
@@ -199,7 +234,7 @@ class Invoice {
                 $s_cantidad = $item['cantidad'];
                 $s_producto_id = $item['producto_id'];
 
-                // Movimiento vars
+                // Variables de Movimiento
                 $m_producto_id = $item['producto_id'];
                 $m_cantidad = $item['cantidad'];
                 // m_descripcion y m_referencia son constantes por factura
@@ -227,7 +262,7 @@ class Invoice {
         } catch (Exception $e) {
             // Revertir cambios si algo falla
             $this->conn->rollBack();
-            error_log($e->getMessage()); // Loggear error
+            error_log($e->getMessage()); // Registrar error
             return false;
         }
     }
