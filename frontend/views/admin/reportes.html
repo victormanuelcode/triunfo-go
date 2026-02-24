@@ -4,140 +4,150 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reportes - TRIUNFO GO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../css/styles.css">
-    <style>
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            padding: 20px;
-        }
-        .kpi-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        .kpi-value {
-            font-size: 2em;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        .kpi-label {
-            color: #7f8c8d;
-            margin-top: 5px;
-        }
-        .chart-container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            grid-column: span 2; /* Ocupa 2 columnas en pantallas grandes */
-        }
-        @media (max-width: 768px) {
-            .chart-container {
-                grid-column: span 1;
-            }
-        }
-        .table-container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
-        th { background-color: #f8f9fa; }
-    </style>
+    <link rel="stylesheet" href="../../css/reportes.css">
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <script src="../../js/auth.js"></script>
-    <header class="main-header">
-        <div class="header-content">
-            <div class="logo">TRIUNFO GO</div>
-            <nav class="main-nav">
-                <a href="productos.html">Inventario</a>
-                <a href="clientes.html">Clientes</a>
-                <a href="proveedores.html">Proveedores</a>
-                <a href="categorias.html">Categorías</a>
-                <a href="../cashier/ventas.html">Ventas</a>
-                <a href="historial.html">Historial</a>
-                <a href="reportes.html" class="active">Reportes</a>
-                <a href="usuarios.html">Usuarios</a>
-                <a href="#" id="logoutBtn">Salir</a>
-            </nav>
+    <script src="../../js/layout_admin.js"></script>
+
+    <div class="layout-root">
+        <aside class="sidebar"></aside>
+
+        <div class="content-area">
+            <header class="topbar"></header>
+
+            <main class="content-inner">
+                <div class="page-title">
+                    <div>
+                        <h1>Reportes</h1>
+                        <p class="page-subtitle">Resumen visual de ventas, inventario y productos más vendidos</p>
+                    </div>
+                </div>
+
+                <section class="card-admin">
+                    <div class="reports-filters">
+                        <div class="filters-left">
+                            <div class="filter-group">
+                                <label for="reportTypeFilter">Tipo de reporte</label>
+                                <select id="reportTypeFilter">
+                                    <option value="general">General</option>
+                                    <option value="ventas">Ventas</option>
+                                    <option value="productos">Productos</option>
+                                    <option value="inventario">Inventario</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="dateFromFilter">Desde</label>
+                                <input type="date" id="dateFromFilter">
+                            </div>
+                            <div class="filter-group">
+                                <label for="dateToFilter">Hasta</label>
+                                <input type="date" id="dateToFilter">
+                            </div>
+                        </div>
+                        <div class="filters-actions">
+                            <button class="btn-filter" onclick="aplicarFiltrosReportes()">Aplicar filtros</button>
+                            <button class="btn-filter-secondary" onclick="limpiarFiltrosReportes()">Limpiar</button>
+                        </div>
+                        <div class="reports-exports">
+                            <button onclick="exportarReportes('pdf')">
+                                <span>📄</span>PDF
+                            </button>
+                            <button onclick="exportarReportes('excel')">
+                                <span>📊</span>Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-value" id="kpiSalesToday">$0</div>
+                            <div class="kpi-label">Ventas hoy</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value" id="kpiSalesMonth">$0</div>
+                            <div class="kpi-label">Ventas mes actual</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value" id="kpiLowStock">0</div>
+                            <div class="kpi-label">Productos con stock bajo</div>
+                        </div>
+                    </div>
+
+                    <div class="charts-grid">
+                        <div class="chart-card" id="chartVentasCard">
+                            <h3>Ventas por día</h3>
+                            <canvas id="salesChart"></canvas>
+                        </div>
+                        <div class="chart-card" id="chartTopProductosCard">
+                            <h3>Productos más vendidos</h3>
+                            <canvas id="topProductsChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="tables-grid">
+                        <div class="table-container" id="tablaTopProductosCard">
+                            <h3>Top 5 productos más vendidos</h3>
+                            <table id="topProductsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Descripción</th>
+                                        <th>Cantidad vendida</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+
+                        <div class="table-container">
+                            <h3>Alertas de stock bajo</h3>
+                            <table id="lowStockTable">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Stock actual</th>
+                                        <th>Stock mínimo</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </main>
         </div>
-    </header>
-
-    <main class="main-content">
-        <h1>Dashboard de Reportes</h1>
-
-        <div class="dashboard-grid">
-            <!-- KPIs -->
-            <div class="kpi-card">
-                <div class="kpi-value" id="kpiSalesToday">$0</div>
-                <div class="kpi-label">Ventas Hoy</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-value" id="kpiSalesMonth">$0</div>
-                <div class="kpi-label">Ventas Mes Actual</div>
-            </div>
-            <div class="kpi-card">
-                <div class="kpi-value" id="kpiLowStock">0</div>
-                <div class="kpi-label">Productos Bajo Stock</div>
-            </div>
-
-            <!-- Gráfica de Ventas -->
-            <div class="chart-container">
-                <h3>Ventas Últimos 7 Días</h3>
-                <canvas id="salesChart"></canvas>
-            </div>
-
-            <!-- Top Productos -->
-            <div class="table-container">
-                <h3>Top 5 Productos Más Vendidos</h3>
-                <table id="topProductsTable">
-                    <thead>
-                        <tr>
-                            <th>Producto</th>
-                            <th>Descripción</th>
-                            <th>Cantidad Vendida</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-
-            <!-- Alerta Stock Bajo -->
-            <div class="table-container">
-                <h3>Alerta: Stock Bajo</h3>
-                <table id="lowStockTable">
-                    <thead>
-                        <tr>
-                            <th>Producto</th>
-                            <th>Actual</th>
-                            <th>Mínimo</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-    </main>
+    </div>
 
     <script src="../../js/reportes.js"></script>
     <script>
-        function logout() {
-            localStorage.clear();
-            window.location.href = '../auth/login.html';
-        }
-        
-        if (!localStorage.getItem('sesion_activa')) {
-            window.location.href = '../auth/login.html';
-        }
+        (function () {
+            if (!localStorage.getItem('sesion_activa')) {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+
+            var nombre = localStorage.getItem('usuario_nombre') || 'Administrador';
+            var email = localStorage.getItem('usuario_email') || 'admin@triunfo.go';
+            var inicial = nombre.trim().charAt(0).toUpperCase();
+
+            var avatar = document.getElementById('adminAvatar');
+            var avatarTop = document.getElementById('adminAvatarTop');
+            var nombreEl = document.getElementById('adminName');
+            var emailEl = document.getElementById('adminEmail');
+
+            if (avatar) avatar.textContent = inicial;
+            if (avatarTop) avatarTop.textContent = inicial;
+            if (nombreEl) nombreEl.textContent = nombre;
+            if (emailEl) emailEl.textContent = email;
+        })();
     </script>
 </body>
 </html>

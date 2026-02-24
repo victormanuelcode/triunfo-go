@@ -4,44 +4,50 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Categorías - TRIUNFO GO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../css/styles.css">
 </head>
 <body>
     <script src="../../js/auth.js"></script>
+    <script src="../../js/layout_admin.js"></script>
     <script>
         if (!localStorage.getItem('sesion_activa')) {
             window.location.href = '../auth/login.html';
         }
     </script>
 
-    <header class="main-header">
-        <div class="header-content">
-            <div class="logo">TRIUNFO GO</div>
-            <nav class="main-nav">
-                <a href="productos.html">Inventario</a>
-                <a href="clientes.html">Clientes</a>
-                <a href="proveedores.html">Proveedores</a>
-                <a href="categorias.html" class="active">Categorías</a>
-                <a href="../cashier/ventas.html">Ventas</a>
-                <a href="historial.html">Historial</a>
-                <a href="reportes.html">Reportes</a>
-                <a href="usuarios.html">Usuarios</a>
-                <a href="#" id="logoutBtn">Salir</a>
-            </nav>
-        </div>
-    </header>
+    <div class="layout-root">
+        <aside class="sidebar"></aside>
 
-    <main class="container">
-        <div class="page-header">
-            <h2>Gestión de Categorías</h2>
-            <button class="btn-primary" id="btnNuevaCategoria">+ Nueva Categoría</button>
-        </div>
+        <div class="content-area">
+            <header class="topbar"></header>
 
-        <div class="products-grid" id="categorias-container">
-            <!-- Las categorías se cargarán aquí -->
-            <div class="loading-spinner">Cargando categorías...</div>
+            <main class="content-inner">
+                <div class="page-title">
+                    <div>
+                        <h1>Categorías</h1>
+                        <p class="page-subtitle">Organiza los productos por familias y tipos</p>
+                    </div>
+                </div>
+
+                <section class="card-admin">
+                    <div class="card-admin-header">
+                        <div>
+                            <div class="card-admin-title">Gestión de Categorías</div>
+                            <div class="card-admin-subtitle">Crea y administra categorías para los productos</div>
+                        </div>
+                        <button class="btn-primary" id="btnNuevaCategoria">+ Nueva Categoría</button>
+                    </div>
+
+                    <div class="products-grid" id="categorias-container">
+                        <div class="loading-spinner">Cargando categorías...</div>
+                    </div>
+                </section>
+            </main>
         </div>
-    </main>
+    </div>
 
     <!-- Modal Categoría -->
     <div id="categoriaModal" class="modal">
@@ -72,10 +78,21 @@
 
     <script src="../../js/categorias.js"></script>
     <script>
-        function logout() {
-            localStorage.clear();
-            window.location.href = '../auth/login.html';
-        }
+        (function () {
+            var nombre = localStorage.getItem('usuario_nombre') || 'Administrador';
+            var email = localStorage.getItem('usuario_email') || 'admin@triunfo.go';
+            var inicial = nombre.trim().charAt(0).toUpperCase();
+
+            var avatar = document.getElementById('adminAvatar');
+            var avatarTop = document.getElementById('adminAvatarTop');
+            var nombreEl = document.getElementById('adminName');
+            var emailEl = document.getElementById('adminEmail');
+
+            if (avatar) avatar.textContent = inicial;
+            if (avatarTop) avatarTop.textContent = inicial;
+            if (nombreEl) nombreEl.textContent = nombre;
+            if (emailEl) emailEl.textContent = email;
+        })();
     </script>
 </body>
 </html>

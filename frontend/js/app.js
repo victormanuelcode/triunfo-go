@@ -74,6 +74,8 @@ async function cargarProveedoresSelect() {
     }
 }
 
+let productosInventarioGlobal = [];
+
 async function cargarProductos() {
     const container = document.getElementById('productos-container');
     
@@ -81,49 +83,106 @@ async function cargarProductos() {
         const response = await fetch(`${API_URL}/products`);
         const json = await response.json();
 
-        // Adaptar a posible respuesta paginada { data: [...], meta: {...} }
-        const productos = Array.isArray(json) ? json : (json.data || []);
+        productosInventarioGlobal = Array.isArray(json) ? json : (json.data || []);
 
-        container.innerHTML = '';
-
-        if (productos.length === 0) {
-            container.innerHTML = '<div class="loading-spinner">No hay productos registrados.</div>';
-            return;
-        }
-
-        productos.forEach(prod => {
-            // El backend guarda 'uploads/products/xxx.jpg'. 
-            // API_URL es '.../backend'.
-            // La imagen está en '.../backend/uploads/products/xxx.jpg'.
-            // Entonces: API_URL + '/' + prod.imagen debería ser correcto si prod.imagen no tiene slash inicial.
-            const imgSrc = prod.imagen ? `${API_URL}/${prod.imagen}` : 'https://via.placeholder.com/150?text=Sin+Imagen';
-            
-            const card = `
-                <div class="card-producto">
-                    <div class="card-img-wrapper" style="height: 150px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f0f0f0;">
-                        <img src="${imgSrc}" alt="${prod.nombre}" style="max-width: 100%; max-height: 100%; object-fit: cover;">
-                    </div>
-                    <span class="stock-badge ${prod.stock_actual <= prod.stock_minimo ? 'stock-low' : ''}">
-                        Stock: ${prod.stock_actual}
-                    </span>
-                    <div class="card-body">
-                        <h3 class="card-title">${prod.nombre}</h3>
-                        <p class="card-desc">${prod.descripcion || 'Sin descripción'}</p>
-                        <p class="price-tag">$${parseFloat(prod.precio_venta).toLocaleString()}</p>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn-edit" onclick="editarProducto(${prod.id_producto})">Editar</button>
-                        <button class="btn-danger" onclick="eliminarProducto(${prod.id_producto})">Eliminar</button>
-                    </div>
-                </div>
-            `;
-            container.innerHTML += card;
-        });
-
+        renderizarProductosInventario(productosInventarioGlobal);
+        poblarFiltrosInventario(productosInventarioGlobal);
     } catch (error) {
         console.error('Error cargando productos:', error);
-        container.innerHTML = '<div class="loading-spinner" style="color:red">Error al conectar con el servidor.</div>';
+        if (container) {
+            container.innerHTML = '<div class="loading-spinner" style="color:red">Error al conectar con el servidor.</div>';
+        }
     }
+}
+
+function renderizarProductosInventario(lista) {
+    const container = document.getElementById('productos-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (!lista || lista.length === 0) {
+        container.innerHTML = '<div class="loading-spinner">No hay productos registrados.</div>';
+        return;
+    }
+
+    lista.forEach(prod => {
+        const imgSrc = prod.imagen ? `${API_URL}/${prod.imagen}` : 'https://via.placeholder.com/150?text=Sin+Imagen';
+        const esStockBajo = prod.stock_actual <= prod.stock_minimo;
+
+        const card = `
+            <div class="card-producto">
+                <div class="card-img-wrapper">
+                    <img src="${imgSrc}" alt="${prod.nombre}">
+                </div>
+                <span class="stock-badge ${esStockBajo ? 'stock-low' : ''}">
+                    Stock: ${prod.stock_actual}
+                </span>
+                <div class="card-body">
+                    <h3 class="card-title">${prod.nombre}</h3>
+                    <p class="card-desc">${prod.descripcion || 'Sin descripción'}</p>
+                    <p class="price-tag">$${parseFloat(prod.precio_venta).toLocaleString()}</p>
+                    <div class="card-meta">
+                        <span>${prod.nombre_categoria || ''}</span>
+                        <span>${prod.nombre_unidad || ''}</span>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn-edit" onclick="editarProducto(${prod.id_producto})">Editar</button>
+                    <button class="btn-danger" onclick="eliminarProducto(${prod.id_producto})">Eliminar</button>
+                </div>
+            </div>
+        `;
+        container.innerHTML += card;
+    });
+}
+
+function poblarFiltrosInventario(lista) {
+    const selectCategoria = document.getElementById('filtroCategoria');
+    if (!selectCategoria) return;
+
+    const categorias = new Set();
+    lista.forEach(p => {
+        if (p.nombre_categoria) {
+            categorias.add(p.nombre_categoria);
+        }
+    });
+
+    selectCategoria.innerHTML = '<option value="">Todas</option>';
+    categorias.forEach(nombre => {
+        const opt = document.createElement('option');
+        opt.value = nombre;
+        opt.textContent = nombre;
+        selectCategoria.appendChild(opt);
+    });
+}
+
+function filtrarProductosInventario() {
+    const texto = (document.getElementById('buscador')?.value || '').toLowerCase();
+    const categoria = document.getElementById('filtroCategoria')?.value || '';
+    const stockEstado = document.getElementById('filtroStock')?.value || '';
+
+    let filtrados = productosInventarioGlobal.slice();
+
+    if (texto) {
+        filtrados = filtrados.filter(p => {
+            const nombre = (p.nombre || '').toLowerCase();
+            const desc = (p.descripcion || '').toLowerCase();
+            return nombre.includes(texto) || desc.includes(texto);
+        });
+    }
+
+    if (categoria) {
+        filtrados = filtrados.filter(p => p.nombre_categoria === categoria);
+    }
+
+    if (stockEstado === 'low') {
+        filtrados = filtrados.filter(p => p.stock_actual <= p.stock_minimo);
+    } else if (stockEstado === 'ok') {
+        filtrados = filtrados.filter(p => p.stock_actual > p.stock_minimo);
+    }
+
+    renderizarProductosInventario(filtrados);
 }
 
 // Lógica del Modal de Gestión de Unidades

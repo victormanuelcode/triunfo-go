@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clientes - TRIUNFO GO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../css/styles.css">
     <style>
         .header-actions {
@@ -46,49 +49,53 @@
 </head>
 <body>
     <script src="../../js/auth.js"></script>
-    <header class="main-header">
-        <div class="header-content">
-            <div class="logo">TRIUNFO GO</div>
-            <nav class="main-nav">
-                <a href="productos.html">Inventario</a>
-                <a href="clientes.html" class="active">Clientes</a>
-                <a href="proveedores.html">Proveedores</a>
-                <a href="categorias.html">Categorías</a>
-                <a href="../cashier/ventas.html">Ventas</a>
-                <a href="historial.html">Historial</a>
-                <a href="reportes.html">Reportes</a>
-                <a href="usuarios.html">Usuarios</a>
-                <a href="#" id="logoutBtn">Salir</a>
-            </nav>
-        </div>
-    </header>
+    <script src="../../js/layout_admin.js"></script>
 
-    <main class="main-content">
-        <div class="header-actions">
-            <h1>Gestión de Clientes</h1>
-            <div>
-                <input type="text" id="buscador" placeholder="Buscar por nombre o documento..." class="search-box" onkeyup="filtrarClientes()">
-                <button class="btn-add" id="btnNuevoCliente">Nuevo Cliente</button>
-            </div>
-        </div>
+    <div class="layout-root">
+        <aside class="sidebar"></aside>
 
-        <div class="table-container">
-            <table id="tablaClientes">
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Documento</th>
-                        <th>Teléfono</th>
-                        <th>Email</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- JS llenará esto -->
-                </tbody>
-            </table>
+        <div class="content-area">
+            <header class="topbar"></header>
+
+            <main class="content-inner">
+                <div class="page-title">
+                    <div>
+                        <h1>Clientes</h1>
+                        <p class="page-subtitle">Gestión de clientes y datos de contacto</p>
+                    </div>
+                </div>
+
+                <section class="card-admin">
+                    <div class="card-admin-header">
+                        <div>
+                            <div class="card-admin-title">Listado de Clientes</div>
+                            <div class="card-admin-subtitle">Administra la información de los clientes registrados</div>
+                        </div>
+                        <div>
+                            <input type="text" id="buscador" placeholder="Buscar por nombre o documento..." class="search-box" onkeyup="filtrarClientes()">
+                            <button class="btn-add" id="btnNuevoCliente" style="margin-left: 10px;">Nuevo Cliente</button>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="tablaClientes">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Documento</th>
+                                    <th>Teléfono</th>
+                                    <th>Email</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
         </div>
-    </main>
+    </div>
 
     <!-- Modal Cliente -->
     <div id="modalCliente" class="modal">
@@ -127,14 +134,26 @@
 
     <script src="../../js/clientes.js"></script>
     <script>
-        function logout() {
-            localStorage.clear();
-            window.location.href = '../auth/login.html';
-        }
-        
-        if (!localStorage.getItem('sesion_activa')) {
-            window.location.href = '../auth/login.html';
-        }
+        (function () {
+            if (!localStorage.getItem('sesion_activa')) {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+
+            var nombre = localStorage.getItem('usuario_nombre') || 'Administrador';
+            var email = localStorage.getItem('usuario_email') || 'admin@triunfo.go';
+            var inicial = nombre.trim().charAt(0).toUpperCase();
+
+            var avatar = document.getElementById('adminAvatar');
+            var avatarTop = document.getElementById('adminAvatarTop');
+            var nombreEl = document.getElementById('adminName');
+            var emailEl = document.getElementById('adminEmail');
+
+            if (avatar) avatar.textContent = inicial;
+            if (avatarTop) avatarTop.textContent = inicial;
+            if (nombreEl) nombreEl.textContent = nombre;
+            if (emailEl) emailEl.textContent = email;
+        })();
     </script>
 </body>
 </html>

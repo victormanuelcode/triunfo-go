@@ -4,58 +4,104 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Usuarios - TRIUNFO GO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../css/styles.css">
 </head>
 <body>
     <script src="../../js/auth.js"></script>
+    <script src="../../js/layout_admin.js"></script>
     <script>
         if (!localStorage.getItem('sesion_activa')) {
             window.location.href = '../auth/login.html';
         }
     </script>
 
-    <header class="main-header">
-        <div class="header-content">
-            <div class="logo">TRIUNFO GO</div>
-            <nav class="main-nav">
-                <a href="productos.html">Inventario</a>
-                <a href="clientes.html">Clientes</a>
-                <a href="movimientos.html">movimientos</a>
-                <a href="proveedores.html">Proveedores</a>
-                <a href="categorias.html">Categorías</a>
-                <a href="../cashier/ventas.html">Ventas</a>
-                <a href="historial.html">Historial</a>
-                <a href="reportes.html">Reportes</a>
-                <a href="usuarios.html" class="active">Usuarios</a>
-                <a href="#" id="logoutBtn">Salir</a>
-            </nav>
-        </div>
-    </header>
+    <div class="layout-root">
+        <aside class="sidebar"></aside>
 
-    <main class="container">
-        <div class="page-header">
-            <h2>Gestión de Usuarios</h2>
-            <button class="btn-primary" id="btnNuevoUsuario">+ Nuevo Usuario</button>
-        </div>
+        <div class="content-area">
+            <header class="topbar"></header>
 
-        <div class="table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre</th>
-                        <th>Usuario</th>
-                        <th>Email</th>
-                        <th>Rol</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="usuariosTableBody">
-                    <!-- Datos dinámicos -->
-                </tbody>
-            </table>
+            <main class="content-inner">
+                <div class="page-title">
+                    <div>
+                        <h1>Usuarios</h1>
+                        <p class="page-subtitle">Gestión de cuentas y roles del sistema</p>
+                    </div>
+                </div>
+
+                <section class="card-admin">
+                    <div class="card-admin-header">
+                        <div>
+                            <div class="card-admin-title">Gestión de Usuarios</div>
+                            <div class="card-admin-subtitle">Administra los usuarios que pueden ingresar al sistema</div>
+                        </div>
+                        <div class="inventory-actions">
+                            <div class="inventory-filters" style="margin: 0;">
+                                <div class="filter-group">
+                                    <span>Filtrar por rol</span>
+                                    <select id="filtroRol" onchange="renderUsuariosFiltrados()">
+                                        <option value="todos">Todos los roles</option>
+                                        <option value="1">Administrador</option>
+                                        <option value="2">Cajero</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <span>Filtrar por estado</span>
+                                    <select id="filtroEstado" onchange="renderUsuariosFiltrados()">
+                                        <option value="todos">Todos los estados</option>
+                                        <option value="activo">Activo</option>
+                                        <option value="inactivo">Inactivo</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="btn-primary" id="btnNuevoUsuario">+ Agregar Usuario</button>
+                        </div>
+                    </div>
+
+                    <div class="metrics-grid" style="margin-top:16px;">
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-title">Usuarios totales</span>
+                            </div>
+                            <div class="metric-value" id="kpiUsuariosTotal">0</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-title">Administradores</span>
+                            </div>
+                            <div class="metric-value" id="kpiUsuariosAdmin">0</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-header">
+                                <span class="metric-title">Cajeros</span>
+                            </div>
+                            <div class="metric-value" id="kpiUsuariosCajero">0</div>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                    <th>Rol</th>
+                                    <th>Estado</th>
+                                    <th>Último acceso</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usuariosTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
         </div>
-    </main>
+    </div>
 
     <!-- Modal Usuario -->
     <div id="usuarioModal" class="modal">
@@ -100,5 +146,22 @@
     </div>
 
     <script src="../../js/usuarios.js"></script>
+    <script>
+        (function () {
+            var nombre = localStorage.getItem('usuario_nombre') || 'Administrador';
+            var email = localStorage.getItem('usuario_email') || 'admin@triunfo.go';
+            var inicial = nombre.trim().charAt(0).toUpperCase();
+
+            var avatar = document.getElementById('adminAvatar');
+            var avatarTop = document.getElementById('adminAvatarTop');
+            var nombreEl = document.getElementById('adminName');
+            var emailEl = document.getElementById('adminEmail');
+
+            if (avatar) avatar.textContent = inicial;
+            if (avatarTop) avatarTop.textContent = inicial;
+            if (nombreEl) nombreEl.textContent = nombre;
+            if (emailEl) emailEl.textContent = email;
+        })();
+    </script>
 </body>
 </html>

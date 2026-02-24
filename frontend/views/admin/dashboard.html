@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Administrador - TRIUNFO GO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../css/styles.css">
+</head>
+<body>
+    <script src="../../js/auth.js"></script>
+    <script src="../../js/layout_admin.js"></script>
+    <div class="layout-root">
+        <aside class="sidebar"></aside>
+
+        <div class="content-area">
+            <header class="topbar"></header>
+
+            <main class="content-inner">
+                <div class="page-title">
+                    <div>
+                        <h1>Dashboard general</h1>
+                        <p class="page-subtitle">Resumen de ventas, inventario y actividad reciente</p>
+                    </div>
+                </div>
+
+                <section class="metrics-grid">
+                    <article class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Ventas de hoy</span>
+                            <div class="metric-icon">💰</div>
+                        </div>
+                        <div class="metric-value">$0</div>
+                        <div class="metric-footer">
+                            <span>Comparado con ayer</span>
+                            <span class="badge-positive">
+                                <span class="badge-dot green"></span>
+                                +0%
+                            </span>
+                        </div>
+                    </article>
+
+                    <article class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Facturas del día</span>
+                            <div class="metric-icon">🧾</div>
+                        </div>
+                        <div class="metric-value">0</div>
+                        <div class="metric-footer">
+                            <span>Tickets emitidos</span>
+                            <span class="badge-positive">
+                                <span class="badge-dot green"></span>
+                                +0%
+                            </span>
+                        </div>
+                    </article>
+
+                    <article class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Productos con stock bajo</span>
+                            <div class="metric-icon">📦</div>
+                        </div>
+                        <div class="metric-value">0</div>
+                        <div class="metric-footer">
+                            <span>Revisar inventario</span>
+                            <span class="badge-negative">
+                                <span class="badge-dot red"></span>
+                                0 alertas
+                            </span>
+                        </div>
+                    </article>
+
+                    <article class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Usuarios activos</span>
+                            <div class="metric-icon">👥</div>
+                        </div>
+                        <div class="metric-value">0</div>
+                        <div class="metric-footer">
+                            <span>Sesiones hoy</span>
+                            <span class="badge-positive">
+                                <span class="badge-dot green"></span>
+                                +0%
+                            </span>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="content-grid">
+                    <article class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Actividad reciente</div>
+                                <div class="card-subtitle">Movimientos de ventas e inventario</div>
+                            </div>
+                        </div>
+                        <div class="timeline">
+                            <div class="timeline-item">
+                                <div class="timeline-marker">
+                                    <div class="timeline-dot"></div>
+                                    <div class="timeline-line"></div>
+                                </div>
+                                <div class="timeline-content">
+                                    <div class="timeline-title">No hay actividad reciente</div>
+                                    <div class="timeline-meta">Cuando se registren ventas y movimientos aparecerán aquí</div>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Acciones rápidas</div>
+                                <div class="card-subtitle">Accesos directos a operaciones frecuentes</div>
+                            </div>
+                        </div>
+                        <div class="quick-actions">
+                            <a href="nueva_factura.html" class="quick-action-btn Ale">
+                                <div class="quick-action-icon">💳</div>
+                                <span>Nueva venta</span>
+                            </a>
+                            <a href="productos.html" class="quick-action-btn">
+                                <div class="quick-action-icon">➕</div>
+                                <span>Agregar producto</span>
+                            </a>
+                            <a href="historial.html" class="quick-action-btn">
+                                <div class="quick-action-icon">📜</div>
+                                <span>Ver historial</span>
+                            </a>
+                            <a href="reportes.html" class="quick-action-btn">
+                                <div class="quick-action-icon">📊</div>
+                                <span>Ver reportes</span>
+                            </a>
+                        </div>
+                    </article>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script src="../../js/admin_dashboard.js"></script>
+    <script>
+        (function () {
+            var nombre = localStorage.getItem('usuario_nombre') || 'Administrador';
+            var email = localStorage.getItem('usuario_email') || 'admin@triunfo.go';
+            var inicial = nombre.trim().charAt(0).toUpperCase();
+
+            var avatar = document.getElementById('adminAvatar');
+            var avatarTop = document.getElementById('adminAvatarTop');
+            var nombreEl = document.getElementById('adminName');
+            var emailEl = document.getElementById('adminEmail');
+
+            if (avatar) avatar.textContent = inicial;
+            if (avatarTop) avatarTop.textContent = inicial;
+            if (nombreEl) nombreEl.textContent = nombre;
+            if (emailEl) emailEl.textContent = email;
+        })();
+    </script>
+</body>
+</html>

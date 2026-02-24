@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historial de Ventas - TRIUNFO GO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../css/styles.css">
     <style>
         /* Estilos específicos para tabla historial */
@@ -104,49 +107,107 @@
             border-radius: 4px;
         }
     </style>
-</head>
+    </head>
 <body>
-    <!-- Auth Guard -->
     <script src="../../js/auth.js"></script>
+    <script src="../../js/layout_admin.js"></script>
 
-    <!-- Navbar -->
-    <header class="main-header">
-        <div class="header-content">
-            <div class="logo">TRIUNFO GO</div>
-            <nav class="main-nav">
-                <a href="productos.html">Inventario</a>
-                <a href="clientes.html">Clientes</a>
-                <a href="proveedores.html">Proveedores</a>
-                <a href="categorias.html">Categorías</a>
-                <a href="../cashier/ventas.html">Ventas</a>
-                <a href="historial.html" class="active">Historial</a>
-                <a href="reportes.html">Reportes</a>
-                <a href="usuarios.html">Usuarios</a>
-                <a href="configuracion.html">Configuración</a>
-                <a href="#" id="logoutBtn" onclick="logout()">Salir</a>
-            </nav>
-        </div>
-    </header>
+    <div class="layout-root">
+        <aside class="sidebar"></aside>
 
-    <div class="history-container">
-        <h2>Historial de Ventas</h2>
-        <div class="table-wrapper">
-            <table id="historyTable">
-                <thead>
-                    <tr>
-                        <th># Factura</th>
-                        <th>Fecha</th>
-                        <th>Cliente</th>
-                        <th>Vendedor</th>
-                        <th>Método Pago</th>
-                        <th>Total</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Filas dinámicas -->
-                </tbody>
-            </table>
+        <div class="content-area">
+            <header class="topbar"></header>
+
+            <main class="content-inner">
+                <div class="page-title">
+                    <div>
+                        <h1>Facturación</h1>
+                        <p class="page-subtitle">Consulta del historial de ventas y detalle de facturas</p>
+                    </div>
+                </div>
+
+                <section class="card-admin">
+                    <div class="card-admin-header">
+                        <div>
+                            <div class="card-admin-title">Resumen de Facturación</div>
+                            <div class="card-admin-subtitle">Estadísticas y listado de facturas</div>
+                        </div>
+                        <div class="inventory-actions">
+                            <button class="btn-primary" onclick="window.location.href='nueva_factura.html'">+ Nueva Factura</button>
+                        </div>
+                    </div>
+
+                    <div class="metrics-grid" style="margin-top: 8px;">
+                        <div class="metric-card">
+                            <div class="metric-label">Facturas hoy</div>
+                            <div class="metric-value" id="kpiFacturasHoy">0</div>
+                            <div class="metric-trend" id="kpiFacturasHoyDetalle">Facturas emitidas en el día</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Total facturado hoy</div>
+                            <div class="metric-value" id="kpiTotalHoy">$0</div>
+                            <div class="metric-trend" id="kpiTotalHoyDetalle">Valor total de ventas del día</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Pendientes de pago</div>
+                            <div class="metric-value" id="kpiPendientes">0</div>
+                            <div class="metric-trend" id="kpiPendientesDetalle">Facturas con saldo pendiente</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Vencidas</div>
+                            <div class="metric-value" id="kpiVencidas">0</div>
+                            <div class="metric-trend" id="kpiVencidasDetalle">Facturas vencidas sin pago</div>
+                        </div>
+                    </div>
+
+                    <div class="inventory-filters" style="margin-top: 18px;">
+                        <div class="filter-group">
+                            <label for="buscadorFacturas">Buscar</label>
+                            <div class="filter-input-wrapper">
+                                <span class="search-icon">🔍</span>
+                                <input type="text" id="buscadorFacturas" placeholder="Buscar por número o cliente..." onkeyup="filtrarFacturas()">
+                            </div>
+                        </div>
+                        <div class="filter-group">
+                            <label for="filtroEstadoFactura">Estado</label>
+                            <select id="filtroEstadoFactura" onchange="filtrarFacturas()">
+                                <option value="">Todos</option>
+                                <option value="pagada">Pagada</option>
+                                <option value="pendiente">Pendiente</option>
+                                <option value="vencida">Vencida</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="filtroFechaDesde">Desde</label>
+                            <input type="date" id="filtroFechaDesde" onchange="filtrarFacturas()">
+                        </div>
+                        <div class="filter-group">
+                            <label for="filtroFechaHasta">Hasta</label>
+                            <input type="date" id="filtroFechaHasta" onchange="filtrarFacturas()">
+                        </div>
+                    </div>
+
+                    <div class="history-container" style="max-width: 100%; margin: 0; box-shadow: none; padding: 0; margin-top: 10px;">
+                        <div class="table-wrapper">
+                            <table id="historyTable">
+                                <thead>
+                                    <tr>
+                                        <th>Número</th>
+                                        <th>Cliente</th>
+                                        <th>Fecha</th>
+                                        <th>Total</th>
+                                        <th>Estado</th>
+                                        <th>Ítems</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </main>
         </div>
     </div>
 
@@ -177,5 +238,22 @@
     </div>
 
     <script src="../../js/historial.js"></script>
+    <script>
+        (function () {
+            var nombre = localStorage.getItem('usuario_nombre') || 'Administrador';
+            var email = localStorage.getItem('usuario_email') || 'admin@triunfo.go';
+            var inicial = nombre.trim().charAt(0).toUpperCase();
+
+            var avatar = document.getElementById('adminAvatar');
+            var avatarTop = document.getElementById('adminAvatarTop');
+            var nombreEl = document.getElementById('adminName');
+            var emailEl = document.getElementById('adminEmail');
+
+            if (avatar) avatar.textContent = inicial;
+            if (avatarTop) avatarTop.textContent = inicial;
+            if (nombreEl) nombreEl.textContent = nombre;
+            if (emailEl) emailEl.textContent = email;
+        })();
+    </script>
 </body>
 </html>
