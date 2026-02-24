@@ -89,8 +89,7 @@ function redirigirUsuario(rolId) {
 
     // Lógica de redirección
     if (rol === 1) {
-        // Rol 1: Administrador -> Va al Dashboard o Historial
-        window.location.href = '../admin/historial.html';
+        window.location.href = '../admin/dashboard.html';
     } else if (rol === 2) {
         // Rol 2: Cajero/Vendedor -> Va al nuevo Dashboard
         window.location.href = '../cashier/dashboard.html'; 
