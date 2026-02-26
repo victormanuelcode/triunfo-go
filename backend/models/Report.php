@@ -57,17 +57,56 @@ class Report {
     }
 
     /**
+     * Obtiene las últimas 5 ventas (facturas) registradas.
+     * 
+     * @return PDOStatement Resultado con id, fecha, total y nombre del cliente.
+     */
+    public function getRecentSales() {
+        $query = "SELECT f.id_factura, f.fecha, f.total, c.nombre as cliente 
+                  FROM facturas f 
+                  LEFT JOIN clientes c ON f.cliente_id = c.id_cliente 
+                  ORDER BY f.fecha DESC 
+                  LIMIT 5";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    /**
+     * Obtiene los últimos 5 productos registrados.
+     * 
+     * @return PDOStatement Resultado con nombre, precio y stock.
+     */
+    public function getRecentProducts() {
+        $query = "SELECT nombre, precio_venta, stock_actual 
+                  FROM productos 
+                  ORDER BY id_producto DESC 
+                  LIMIT 5";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    /**
      * Calcula los indicadores clave de rendimiento (KPIs) generales.
      * Incluye ventas de hoy, ventas del mes y conteo de productos con bajo stock.
      * 
      * @return array Array asociativo con los KPIs.
      */
     public function getKPIs() {
-        // Total ventas hoy
+        // Total ventas hoy (dinero)
         $queryToday = "SELECT SUM(total) as total_hoy FROM facturas WHERE DATE(fecha) = CURDATE()";
         $stmtToday = $this->conn->prepare($queryToday);
         $stmtToday->execute();
         $totalToday = $stmtToday->fetch(PDO::FETCH_ASSOC)['total_hoy'] ?? 0;
+
+        // Cantidad facturas hoy
+        $queryCountToday = "SELECT COUNT(*) as count_hoy FROM facturas WHERE DATE(fecha) = CURDATE()";
+        $stmtCountToday = $this->conn->prepare($queryCountToday);
+        $stmtCountToday->execute();
+        $countToday = $stmtCountToday->fetch(PDO::FETCH_ASSOC)['count_hoy'] ?? 0;
 
         // Total ventas mes
         $queryMonth = "SELECT SUM(total) as total_mes FROM facturas WHERE MONTH(fecha) = MONTH(CURDATE()) AND YEAR(fecha) = YEAR(CURDATE())";
@@ -81,10 +120,18 @@ class Report {
         $stmtLow->execute();
         $lowStockCount = $stmtLow->fetch(PDO::FETCH_ASSOC)['low_stock_count'] ?? 0;
 
+        // Usuarios activos (total usuarios habilitados)
+        $queryUsers = "SELECT COUNT(*) as user_count FROM usuarios WHERE estado = 'activo'";
+        $stmtUsers = $this->conn->prepare($queryUsers);
+        $stmtUsers->execute();
+        $userCount = $stmtUsers->fetch(PDO::FETCH_ASSOC)['user_count'] ?? 0;
+
         return [
             "ventas_hoy" => $totalToday,
+            "facturas_hoy" => $countToday,
             "ventas_mes" => $totalMonth,
-            "productos_bajo_stock" => $lowStockCount
+            "productos_bajo_stock" => $lowStockCount,
+            "usuarios_activos" => $userCount
         ];
     }
 }

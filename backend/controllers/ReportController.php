@@ -38,6 +38,14 @@ class ReportController {
         $stmtLow = $this->report->getLowStock();
         $lowStock = $stmtLow->fetchAll(PDO::FETCH_ASSOC);
 
+        // Últimas ventas (Historial)
+        $stmtRecentSales = $this->report->getRecentSales();
+        $recentSales = $stmtRecentSales->fetchAll(PDO::FETCH_ASSOC);
+
+        // Últimos productos (Nuevos)
+        $stmtRecentProducts = $this->report->getRecentProducts();
+        $recentProducts = $stmtRecentProducts->fetchAll(PDO::FETCH_ASSOC);
+
         // KPIs
         $kpis = $this->report->getKPIs();
 
@@ -45,6 +53,8 @@ class ReportController {
             "sales_last_days" => array_reverse($salesData), // Revertir para mostrar cronológicamente en gráfica
             "top_products" => $topProducts,
             "low_stock" => $lowStock,
+            "recent_sales" => $recentSales,
+            "recent_products" => $recentProducts,
             "kpis" => $kpis
         ]);
     }
