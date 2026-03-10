@@ -185,6 +185,42 @@ a {
     cursor: pointer;
 }
 
+.close {
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #aaa;
+    align-self: flex-end;
+}
+
+.close:hover,
+.close:focus {
+    color: #111827;
+}
+
+.history-container {
+    max-width: 1000px;
+    margin: 20px auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.detail-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 15px;
+    background: #f9f9f9;
+    padding: 10px;
+    border-radius: 4px;
+}
+
 .form-group {
     margin-bottom: 15px;
 }

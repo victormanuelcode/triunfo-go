@@ -65,6 +65,9 @@ function renderTablaFacturas(lista) {
         } else if (estado === 'vencida') {
             badgeClass = 'badge-status badge-danger';
             badgeText = 'Vencida';
+        } else if (estado === 'anulada') {
+            badgeClass = 'badge-status badge-secondary'; // Gris para anulada
+            badgeText = 'Anulada';
         } else {
             badgeClass = 'badge-status';
             badgeText = estado || 'N/A';
@@ -83,6 +86,7 @@ function renderTablaFacturas(lista) {
                     <div class="dropdown">
                         <button class="btn-icon dropdown-toggle">⋮</button>
                         <div class="dropdown-menu">
+                            ${estado !== 'anulada' ? `<button onclick="anularFactura(${inv.id_factura})">Anular</button>` : ''}
                             <button onclick="accionFactura('pdf', ${inv.id_factura})">Descargar PDF</button>
                             <button onclick="accionFactura('excel', ${inv.id_factura})">Descargar Excel</button>
                             <button onclick="accionFactura('print', ${inv.id_factura})">Imprimir</button>
@@ -94,6 +98,28 @@ function renderTablaFacturas(lista) {
         `;
         tbody.appendChild(tr);
     });
+}
+
+async function anularFactura(id) {
+    if (!confirm('¿Está seguro de anular esta factura? Esta acción revertirá el stock de los productos.')) return;
+
+    try {
+        const response = await fetch(`${API_URL}/invoices/${id}/annul`, {
+            method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert('Factura anulada correctamente.');
+            loadHistory(); // Recargar tabla
+        } else {
+            alert('Error: ' + (result.message || 'Error desconocido'));
+        }
+    } catch (error) {
+        console.error(error);
+        alert('Error al conectar con el servidor.');
+    }
 }
 
 function actualizarKPIs(lista) {
@@ -210,12 +236,12 @@ async function viewDetail(id) {
 }
 
 function accionFactura(tipo, id) {
-    if (tipo === 'print') {
-        window.open(`${API_URL}/invoices/${id}/print`, '_blank');
-    } else if (tipo === 'pdf') {
-        window.open(`${API_URL}/invoices/${id}/pdf`, '_blank');
+    if (tipo === 'print' || tipo === 'pdf') {
+        // Abrir la vista de factura imprimible
+        // Como estamos en /views/admin/, la ruta relativa es directa
+        window.open(`factura.html?id=${id}`, '_blank');
     } else if (tipo === 'excel') {
-        window.open(`${API_URL}/invoices/${id}/excel`, '_blank');
+        alert('Función de Excel pendiente de implementación.');
     } else if (tipo === 'whatsapp') {
         alert('Función de WhatsApp pendiente de implementación.');
     }
