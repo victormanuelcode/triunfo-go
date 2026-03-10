@@ -58,5 +58,10 @@
     document.addEventListener('DOMContentLoaded', () => {
         injectSidebar();
         injectTopbar();
+        
+        // Cargar script de caja dinámicamente
+        const scriptCaja = document.createElement('script');
+        scriptCaja.src = '../../js/caja.js';
+        document.body.appendChild(scriptCaja);
     });
 })();

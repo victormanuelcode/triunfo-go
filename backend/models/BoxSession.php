@@ -108,6 +108,20 @@ class BoxSession {
     }
 
     /**
+     * Obtiene una sesión por su ID.
+     * 
+     * @param int $id ID de la sesión.
+     * @return array|false Datos de la sesión o false si no existe.
+     */
+    public function getById($id) {
+        $query = "SELECT * FROM " . $this->table_name . " WHERE id_sesion = :id LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":id", $id);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Obtiene un resumen de ventas asociado a una sesión de caja.
      * 
      * @param int $sesion_id ID de la sesión.
