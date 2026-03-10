@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factura - TRIUNFO GO</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../css/factura.css">
+</head>
+<body>
+
+    <!-- Botones de Acción (No se imprimen) -->
+    <div class="no-print">
+        <button class="btn btn-secondary" onclick="cerrarFactura()">
+            <i class="fas fa-times"></i> Cerrar
+        </button>
+        <button class="btn btn-secondary" onclick="exportarPDF()">
+            <i class="fas fa-file-pdf"></i> PDF
+        </button>
+        <button class="btn btn-primary" onclick="window.print()">
+            <i class="fas fa-print"></i> Imprimir Factura
+        </button>
+    </div>
+
+    <div class="invoice-container" id="invoice-content">
+        <!-- Encabezado Superior -->
+        <header class="invoice-header">
+            <div class="left-header">
+                <div class="logo-section">
+                    <div class="logo-icon">
+                        <i class="fas fa-leaf"></i>
+                    </div>
+                    <span class="logo-text">TRIUNFOGO</span>
+                </div>
+                <div class="company-details">
+                    <span class="subtitle">Gestión Agrícola</span>
+                    <p id="comp-dir">Calle Principal #123, Ciudad</p>
+                    <p id="comp-tel">Teléfono: +57 300 123 4567</p>
+                    <p id="comp-email">Email: contacto@triunfogo.com</p>
+                    <p id="comp-nit">NIT: 900.123.456-7</p>
+                </div>
+            </div>
+
+            <div class="invoice-box">
+                <h2>FACTURA DE VENTA</h2>
+                <span class="invoice-number" id="lbl-numero-factura">FAC-000000</span>
+                <div class="meta">
+                    <p>Fecha: <strong id="lbl-fecha">-- de -- de ----</strong></p>
+                    <p>Hora: <strong id="lbl-hora">00:00 AM</strong></p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sección de Datos del Cliente -->
+        <section class="client-section">
+            <h3 class="section-title">DATOS DEL CLIENTE</h3>
+            <div class="client-grid">
+                <div class="client-data">
+                    <p><strong>Cliente:</strong> <span id="lbl-cliente-nombre">---</span></p>
+                    <p><strong>Cédula/NIT:</strong> <span id="lbl-cliente-doc">---</span></p>
+                </div>
+                <div class="client-data">
+                    <p><strong>Dirección:</strong> <span id="lbl-cliente-dir">---</span></p>
+                    <p><strong>Teléfono:</strong> <span id="lbl-cliente-tel">---</span></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tabla de Productos -->
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th style="width: 8%;">Imagen</th>
+                    <th style="width: 42%;">Producto</th>
+                    <th class="col-right" style="width: 15%;">Precio Unit.</th>
+                    <th class="col-center" style="width: 15%;">Cantidad</th>
+                    <th class="col-right" style="width: 20%;">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-items">
+                <!-- Se inyecta con JS -->
+            </tbody>
+        </table>
+
+        <!-- Sección Inferior: Totales y Pago -->
+        <div class="summary-section">
+            <div class="payment-box">
+                <h3 class="section-title">Información de Pago</h3>
+                <p><strong>Método de Pago:</strong> <span id="lbl-metodo-pago">---</span></p>
+                <div id="pago-efectivo-detalles" style="display: none;">
+                    <p><strong>Monto Recibido:</strong> <span id="lbl-monto-recibido">---</span></p>
+                    <p><strong>Cambio:</strong> <span id="lbl-cambio">---</span></p>
+                </div>
+                <p style="margin-top: 15px; font-size: 10px; color: var(--gris-medio);">
+                    Atendido por: <span id="lbl-cajero">---</span>
+                </p>
+            </div>
+
+            <div class="totals-box">
+                <div class="total-row">
+                    <span>Subtotal:</span>
+                    <span id="lbl-subtotal">$0</span>
+                </div>
+                <div class="total-row">
+                    <span>IVA (19%):</span>
+                    <span id="lbl-iva">$0</span>
+                </div>
+                <div class="total-row final">
+                    <span>TOTAL:</span>
+                    <span id="lbl-total">$0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pie de Factura -->
+        <footer class="invoice-footer">
+            <p class="thanks">¡Gracias por su compra!</p>
+            <p>Esta factura fue generada por el sistema TRIUNFOGO</p>
+            <p id="lbl-legal">Factura válida como soporte tributario según la normativa vigente.</p>
+        </footer>
+    </div>
+
+    <!-- html2pdf library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <script src="../../js/factura.js"></script>
+</body>
+</html>

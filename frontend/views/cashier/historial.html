@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Ventas - Cajero</title>
+    <link rel="stylesheet" href="../../css/styles.css">
+    <link rel="stylesheet" href="../../css/cashier_history.css">
+</head>
+<body>
+    <script src="../../js/auth.js"></script>
+
+    <header class="main-header">
+        <div class="header-content">
+            <div class="logo">TRIUNFO GO - Historial</div>
+            <nav class="main-nav">
+                <a href="ventas.html" class="btn-back">← Volver a Ventas</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="history-container">
+        <div class="header-actions">
+            <h2>Mis Ventas Recientes</h2>
+            <div class="search-box">
+                <input type="text" id="buscador" placeholder="Buscar por número o cliente..." style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 300px;">
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table id="tabla-ventas">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Cliente</th>
+                        <th>Total</th>
+                        <th>Método</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="6" style="text-align:center">Cargando ventas...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="pagination" id="pagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
+            <!-- Paginación dinámica -->
+        </div>
+    </div>
+
+    <script src="../../js/cashier_history.js"></script>
+</body>
+</html>

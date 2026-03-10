@@ -1,0 +1,60 @@
+body {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    width: 300px; /* Ancho típico de impresora térmica */
+    margin: 0 auto;
+    padding: 10px;
+    color: #000;
+}
+.header {
+    text-align: center;
+    margin-bottom: 10px;
+    border-bottom: 1px dashed #000;
+    padding-bottom: 10px;
+}
+.header h2 { margin: 0; font-size: 16px; font-weight: bold; }
+.header p { margin: 2px 0; }
+.info {
+    margin-bottom: 10px;
+}
+.info div { display: flex; justify-content: space-between; }
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+}
+.items-table th { text-align: left; border-bottom: 1px solid #000; }
+.items-table td { padding: 2px 0; vertical-align: top; }
+.col-cant { width: 30px; text-align: center; }
+.col-desc { text-align: left; }
+.col-price { text-align: right; width: 60px; }
+.totals {
+    border-top: 1px dashed #000;
+    padding-top: 5px;
+    text-align: right;
+}
+.totals div { margin-bottom: 2px; }
+.total-final { font-size: 14px; font-weight: bold; margin-top: 5px; }
+.footer {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 10px;
+}
+.no-print {
+    margin-top: 20px;
+    text-align: center;
+    border-top: 1px solid #ccc;
+    padding-top: 10px;
+}
+button {
+    padding: 8px 16px;
+    cursor: pointer;
+    background: #2E7D32;
+    color: white;
+    border: none;
+    border-radius: 4px;
+}
+@media print {
+    .no-print { display: none; }
+    body { margin: 0; padding: 0; width: auto; }
+}

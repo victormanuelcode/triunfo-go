@@ -1,0 +1,302 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    --verde-primario: #2E7D32;
+    --verde-oscuro: #1B5E20;
+    --verde-muy-claro: #E8F5E9;
+    --gris-oscuro: #4B5563;
+    --gris-medio: #9CA3AF;
+    --gris-claro: #E0E0E0;
+    --gris-muy-claro: #F9FAFB;
+    --blanco: #FFFFFF;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f3f4f6;
+    color: var(--gris-oscuro);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+/* Contenedor principal tamaño Carta */
+.invoice-container {
+    width: 216mm;
+    min-height: 279mm;
+    margin: 20px auto;
+    background: var(--blanco);
+    padding: 15mm;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header Superior */
+.invoice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+}
+
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.logo-icon {
+    width: 45px;
+    height: 45px;
+    background-color: var(--verde-primario);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+}
+
+.logo-text {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--verde-oscuro);
+    letter-spacing: -0.5px;
+}
+
+.company-details {
+    margin-top: 5px;
+}
+
+.company-details .subtitle {
+    font-size: 11px;
+    color: var(--gris-medio);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.company-details p {
+    margin: 2px 0;
+    font-size: 12px;
+    color: var(--gris-oscuro);
+}
+
+/* Recuadro de Factura (Derecha) */
+.invoice-box {
+    border: 2px solid var(--verde-primario);
+    background-color: var(--verde-muy-claro);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    min-width: 240px;
+}
+
+.invoice-box h2 {
+    margin: 0;
+    color: var(--verde-oscuro);
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.invoice-number {
+    display: block;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--verde-primario);
+    margin: 10px 0;
+}
+
+.invoice-box .meta {
+    font-size: 12px;
+    color: var(--gris-oscuro);
+}
+
+/* Datos del Cliente */
+.client-section {
+    background-color: var(--gris-muy-claro);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gris-medio);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+}
+
+.client-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 40px;
+}
+
+.client-data {
+    font-size: 13px;
+}
+
+.client-data strong {
+    color: var(--gris-oscuro);
+    font-weight: 600;
+}
+
+/* Tabla de Productos */
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+}
+
+.items-table th {
+    background-color: var(--verde-primario);
+    color: white;
+    font-weight: 600;
+    text-align: left;
+    padding: 12px 15px;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.items-table th:first-child { border-top-left-radius: 8px; }
+.items-table th:last-child { border-top-right-radius: 8px; }
+
+.items-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--gris-claro);
+    vertical-align: middle;
+}
+
+.items-table tr:nth-child(even) {
+    background-color: var(--gris-muy-claro);
+}
+
+.product-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.product-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    object-fit: cover;
+    background-color: #eee;
+    display: block; /* Asegurar que sea bloque para evitar saltos de línea */
+}
+
+.product-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    background-color: var(--gris-muy-claro);
+    border: 1px solid var(--gris-claro);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gris-medio);
+    font-size: 18px;
+}
+
+.col-right { text-align: right; }
+.col-center { text-align: center; }
+
+/* Totales y Pago */
+.summary-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-top: auto;
+}
+
+.payment-box {
+    width: 45%;
+    font-size: 12px;
+}
+
+.payment-box p { margin: 5px 0; }
+
+.totals-box {
+    width: 35%;
+    border: 1px solid var(--gris-claro);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 15px;
+    font-size: 13px;
+}
+
+.total-row.final {
+    background-color: var(--verde-primario);
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 12px 15px;
+}
+
+/* Footer */
+.invoice-footer {
+    margin-top: 40px;
+    text-align: center;
+    border-top: 1px solid var(--gris-claro);
+    padding-top: 20px;
+}
+
+.invoice-footer p {
+    margin: 4px 0;
+    color: var(--gris-medio);
+    font-size: 11px;
+}
+
+.invoice-footer .thanks {
+    font-size: 14px;
+    color: var(--gris-oscuro);
+    font-weight: 500;
+    margin-bottom: 10px;
+}
+
+/* No imprimir */
+.no-print {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.btn-primary { background: var(--verde-primario); color: white; }
+.btn-secondary { background: white; color: var(--gris-oscuro); border: 1px solid var(--gris-claro); }
+
+@media print {
+    body { background: white; }
+    .invoice-container { margin: 0; box-shadow: none; width: 100%; padding: 10mm; }
+    .no-print { display: none; }
+    @page { size: letter; margin: 0; }
+}
