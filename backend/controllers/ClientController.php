@@ -11,7 +11,14 @@ class ClientController {
     }
 
     public function getAll() {
-        $stmt = $this->client->read();
+        // Verificar si hay parámetro de búsqueda
+        if (isset($_GET['search'])) {
+            $term = $_GET['search'];
+            $stmt = $this->client->search($term);
+        } else {
+            $stmt = $this->client->read();
+        }
+        
         $clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($clients);
     }

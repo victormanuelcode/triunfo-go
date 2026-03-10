@@ -21,6 +21,26 @@ class Client {
         return $stmt;
     }
 
+    /**
+     * Busca clientes por nombre o documento.
+     * Utilizado para el autocompletado en facturación.
+     * 
+     * @param string $term Término de búsqueda
+     * @return PDOStatement
+     */
+    public function search($term) {
+        $query = "SELECT * FROM " . $this->table_name . " 
+                  WHERE nombre LIKE :term OR documento LIKE :term 
+                  ORDER BY nombre ASC LIMIT 10";
+        
+        $stmt = $this->conn->prepare($query);
+        $searchTerm = "%{$term}%";
+        $stmt->bindParam(":term", $searchTerm);
+        $stmt->execute();
+        
+        return $stmt;
+    }
+
     public function readOne() {
         $query = "SELECT * FROM " . $this->table_name . " WHERE id_cliente = ? LIMIT 0,1";
         $stmt = $this->conn->prepare($query);

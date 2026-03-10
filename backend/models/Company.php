@@ -10,6 +10,7 @@ class Company {
     public $telefono;
     public $logo;
     public $lema;
+    public $email;
     public $usuario_id;
 
     public function __construct($db) {
@@ -41,6 +42,7 @@ class Company {
                           nit = :nit,
                           direccion = :direccion,
                           telefono = :telefono,
+                          email = :email,
                           lema = :lema
                       WHERE id_empresa = :id_empresa";
             
@@ -51,6 +53,7 @@ class Company {
                               nit = :nit,
                               direccion = :direccion,
                               telefono = :telefono,
+                              email = :email,
                               lema = :lema,
                               logo = :logo
                           WHERE id_empresa = :id_empresa";
@@ -62,6 +65,7 @@ class Company {
                           nit = :nit,
                           direccion = :direccion,
                           telefono = :telefono,
+                          email = :email,
                           lema = :lema";
             
             if (!empty($this->logo)) {
@@ -76,6 +80,7 @@ class Company {
         $this->nit = htmlspecialchars(strip_tags($this->nit));
         $this->direccion = htmlspecialchars(strip_tags($this->direccion));
         $this->telefono = htmlspecialchars(strip_tags($this->telefono));
+        $this->email = htmlspecialchars(strip_tags($this->email));
         $this->lema = htmlspecialchars(strip_tags($this->lema));
 
         // Vincular parámetros
@@ -83,6 +88,7 @@ class Company {
         $stmt->bindParam(":nit", $this->nit);
         $stmt->bindParam(":direccion", $this->direccion);
         $stmt->bindParam(":telefono", $this->telefono);
+        $stmt->bindParam(":email", $this->email);
         $stmt->bindParam(":lema", $this->lema);
 
         if ($stmtCheck->rowCount() > 0) {

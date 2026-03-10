@@ -43,6 +43,7 @@ class CompanyController {
                 "nit" => "",
                 "direccion" => "",
                 "telefono" => "",
+                "email" => "",
                 "lema" => "",
                 "logo" => ""
             ]);
@@ -64,6 +65,7 @@ class CompanyController {
             $this->company->nit = isset($_POST['nit']) ? $_POST['nit'] : '';
             $this->company->direccion = isset($_POST['direccion']) ? $_POST['direccion'] : '';
             $this->company->telefono = isset($_POST['telefono']) ? $_POST['telefono'] : '';
+            $this->company->email = isset($_POST['email']) ? $_POST['email'] : '';
             $this->company->lema = isset($_POST['lema']) ? $_POST['lema'] : '';
 
             // Manejo de imagen (Logo)
