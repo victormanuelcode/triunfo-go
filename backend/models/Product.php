@@ -166,8 +166,7 @@ class Product {
         $query = "UPDATE " . $this->table_name . " 
                   SET nombre=:nombre, descripcion=:descripcion, categoria_id=:categoria_id, 
                       unidad_medida_id=:unidad_medida_id, precio_compra=:precio_compra, 
-                      precio_venta=:precio_venta, stock_actual=:stock_actual, 
-                      stock_minimo=:stock_minimo, imagen=:imagen, estado=:estado
+                      precio_venta=:precio_venta, stock_minimo=:stock_minimo, imagen=:imagen, estado=:estado
                   WHERE id_producto=:id_producto";
         
         $stmt = $this->conn->prepare($query);
@@ -183,7 +182,7 @@ class Product {
         $stmt->bindParam(":unidad_medida_id", $this->unidad_medida_id);
         $stmt->bindParam(":precio_compra", $this->precio_compra);
         $stmt->bindParam(":precio_venta", $this->precio_venta);
-        $stmt->bindParam(":stock_actual", $this->stock_actual);
+        // $stmt->bindParam(":stock_actual", $this->stock_actual); // Eliminado para evitar sobreescritura accidental
         $stmt->bindParam(":stock_minimo", $this->stock_minimo);
         $stmt->bindParam(":imagen", $this->imagen);
         $stmt->bindParam(":estado", $this->estado);
@@ -218,40 +217,44 @@ class Product {
      * @return boolean True si la operación fue exitosa.
      */
     public function delete() {
-        // En lugar de borrar, cambiamos el estado a 'inactivo'
-        $query = "UPDATE " . $this->table_name . " SET estado = 'inactivo' WHERE id_producto = ?";
+        $query = "UPDATE " . $this->table_name . " SET estado = 'inactivo' WHERE id_producto = :id";
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $this->id_producto);
+        $this->id_producto = htmlspecialchars(strip_tags($this->id_producto));
+        $stmt->bindParam(":id", $this->id_producto);
 
         if ($stmt->execute()) {
-            // Registrar movimiento de salida por baja
-            // Primero obtenemos el stock actual para registrar qué se perdió
-            $check = "SELECT stock_actual FROM " . $this->table_name . " WHERE id_producto = ?";
-            $stmtCheck = $this->conn->prepare($check);
-            $stmtCheck->bindParam(1, $this->id_producto);
-            $stmtCheck->execute();
-            $currentStock = $stmtCheck->fetchColumn();
-
-            if ($currentStock > 0) {
-                $query_mov = "INSERT INTO movimientos_inventario 
-                              SET tipo='salida', producto_id=:producto_id, 
-                                  cantidad=:cantidad, descripcion='Baja de Producto (Eliminado)', 
-                                  referencia='BAJA'";
-                $stmt_mov = $this->conn->prepare($query_mov);
-                $stmt_mov->bindParam(":producto_id", $this->id_producto);
-                $stmt_mov->bindParam(":cantidad", $currentStock);
-                $stmt_mov->execute();
-                
-                // Opcional: poner stock a 0
-                $zero = 0;
-                $updateStock = $this->conn->prepare("UPDATE " . $this->table_name . " SET stock_actual = 0 WHERE id_producto = ?");
-                $updateStock->bindParam(1, $this->id_producto);
-                $updateStock->execute();
-            }
-
             return true;
         }
         return false;
     }
+
+    /**
+     * Actualiza el stock de un producto de manera atómica.
+     * 
+     * @param int $cantidad Cantidad a ajustar (positiva).
+     * @param string $tipo 'entrada' (suma) o 'salida' (resta).
+     * @return boolean True si se actualizó correctamente.
+     */
+    public function updateStock($cantidad, $tipo) {
+        if ($tipo === 'entrada') {
+            $query = "UPDATE " . $this->table_name . " SET stock_actual = stock_actual + :cantidad WHERE id_producto = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":cantidad", $cantidad);
+            $stmt->bindParam(":id", $this->id_producto);
+        } elseif ($tipo === 'salida') {
+            // Usamos nombres distintos para evitar error de parámetros duplicados en algunos drivers PDO
+            $query = "UPDATE " . $this->table_name . " SET stock_actual = stock_actual - :cantidad WHERE id_producto = :id AND stock_actual >= :cantidad_check";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":cantidad", $cantidad);
+            $stmt->bindParam(":cantidad_check", $cantidad);
+            $stmt->bindParam(":id", $this->id_producto);
+        } else {
+            return false;
+        }
+
+        if ($stmt->execute()) {
+            return $stmt->rowCount() > 0; // Verificar que realmente se actualizó
+        }
+        return false;
+    }
 }
-?>

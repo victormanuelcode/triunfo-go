@@ -166,6 +166,46 @@
         </div>
     </div>
 
+    <!-- Modal Ajuste de Stock -->
+    <div id="ajusteStockModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Ajustar Stock Manual</h3>
+                <span class="close-modal" id="closeAjusteModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="ajusteStockForm">
+                    <input type="hidden" id="ajusteProductoId">
+                    <div class="form-group">
+                        <label>Producto: <span id="ajusteProductoNombre" style="font-weight: bold;"></span></label>
+                    </div>
+                    <div class="form-group">
+                        <label>Stock Actual: <span id="ajusteStockActual" style="font-weight: bold;"></span></label>
+                    </div>
+                    <div class="form-group">
+                        <label for="ajusteTipo">Tipo de Movimiento</label>
+                        <select id="ajusteTipo" required>
+                            <option value="entrada">Entrada (Aumentar Stock)</option>
+                            <option value="salida">Salida (Disminuir Stock)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="ajusteCantidad">Cantidad</label>
+                        <input type="number" id="ajusteCantidad" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ajusteRazon">Razón / Descripción</label>
+                        <textarea id="ajusteRazon" rows="3" required placeholder="Ej. Ajuste por inventario físico, pérdida, daño..."></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="cancelAjusteBtn">Cancelar</button>
+                        <button type="submit" class="btn-primary">Guardar Ajuste</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="../../js/app.js"></script>
     <script>
         (function () {

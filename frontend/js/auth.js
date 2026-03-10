@@ -80,7 +80,7 @@ function checkRolePermissions() {
     // Si es Admin (1) y trata de entrar a vistas de cajero, redirigir a POS de Admin
     if (userRole === ROLE_ADMIN && path.includes('/cashier/')) {
         alert('Acceso de Admin redirigido a su Punto de Venta.');
-        window.location.href = '/proyecto_final/frontend/views/admin/nueva_factura.html';
+        window.location.href = '/proyecto_final/frontend/views/admin/ventas.html';
     }
 }
 
