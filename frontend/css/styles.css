@@ -114,6 +114,31 @@ a {
     cursor: pointer;
 }
 
+/* Loading Spinner */
+.loading-spinner {
+    font-size: 14px;
+    color: #6B7280;
+    text-align: center;
+    padding: 20px;
+    font-weight: 500;
+}
+
+/* Badges */
+.badge-entrada {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+.badge-salida {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
 /* Modal */
 .modal {
     display: none;
@@ -236,6 +261,30 @@ a {
 .sidebar-text-sub {
     font-size: 11px;
     color: #6B7280;
+}
+
+/* Layout Content Inner & Page Titles (Restored) */
+.content-inner {
+    padding: 24px;
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.page-title {
+    margin-bottom: 24px;
+}
+
+.page-title h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 4px;
+}
+
+.page-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
 }
 
 .sidebar-toggle {
@@ -786,4 +835,103 @@ a {
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
     gap: 24px;
     margin-top: 24px;
+}
+
+/* Estilos Compactos para Acciones Rápidas en Dashboard */
+.card.compact-card {
+    padding: 12px 24px !important;
+    min-height: auto;
+    height: 15%;
+}
+
+.card.compact-card .card-header {
+    margin-bottom: 10px;
+    padding-bottom: 0;
+}
+
+.card.compact-card .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #6B7280;
+    letter-spacing: 0.05em;
+    margin: 0;
+}
+
+.card.compact-card .card-subtitle {
+    display: none;
+}
+
+.quick-actions.compact {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.quick-actions.compact .quick-action-btn {
+    padding: 16px; /* Restaurado tamaño original */
+    background-color: #F3F4F6;
+    height: auto;
+    flex-direction: column; /* Restaurado orientación vertical */
+    gap: 8px;
+}
+
+.quick-actions.compact .quick-action-icon {
+    font-size: 24px; /* Restaurado tamaño original */
+    margin-bottom: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+/* Colores Específicos para Acciones Rápidas */
+.quick-action-btn.action-sale .quick-action-icon {
+    color: #059669; /* Verde - Ventas */
+    background-color: #D1FAE5;
+}
+.quick-action-btn.action-sale:hover .quick-action-icon {
+    background-color: #059669;
+    color: #ffffff;
+}
+
+.quick-action-btn.action-product .quick-action-icon {
+    color: #2563EB; /* Azul - Productos */
+    background-color: #DBEAFE;
+}
+.quick-action-btn.action-product:hover .quick-action-icon {
+    background-color: #2563EB;
+    color: #ffffff;
+}
+
+.quick-action-btn.action-history .quick-action-icon {
+    color: #D97706; /* Naranja - Historial */
+    background-color: #FEF3C7;
+}
+.quick-action-btn.action-history:hover .quick-action-icon {
+    background-color: #D97706;
+    color: #ffffff;
+}
+
+.quick-action-btn.action-report .quick-action-icon {
+    color: #7C3AED; /* Violeta - Reportes */
+    background-color: #EDE9FE;
+}
+.quick-action-btn.action-report:hover .quick-action-icon {
+    background-color: #7C3AED;
+    color: #ffffff;
+}
+
+.quick-actions.compact .quick-action-icon svg {
+    width: 24px; /* Restaurado tamaño original */
+    height: 24px; /* Restaurado tamaño original */
+}
+
+@media (max-width: 768px) {
+    .quick-actions.compact {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }

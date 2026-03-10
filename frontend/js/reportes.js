@@ -14,7 +14,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function cargarDashboardReportes() {
     try {
-        const response = await fetch(`${API_URL}/reports/dashboard`);
+        // Obtener filtros de la URL o del DOM
+        const desdeVal = document.getElementById('dateFromFilter')?.value;
+        const hastaVal = document.getElementById('dateToFilter')?.value;
+        
+        let url = `${API_URL}/reports/dashboard`;
+        const params = [];
+        if (desdeVal) params.push(`fecha_inicio=${desdeVal}`);
+        if (hastaVal) params.push(`fecha_fin=${hastaVal}`);
+        
+        if (params.length > 0) {
+            url += '?' + params.join('&');
+        }
+
+        const response = await fetch(url);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
@@ -41,7 +54,17 @@ function renderKPIs(kpis) {
     const lowStockEl = document.getElementById('kpiLowStock');
 
     if (ventasHoyEl) ventasHoyEl.textContent = formatCurrency(kpis.ventas_hoy);
-    if (ventasMesEl) ventasMesEl.textContent = formatCurrency(kpis.ventas_mes);
+    if (ventasMesEl) {
+        // Si hay filtro activo, cambiar etiqueta para indicar que es del periodo
+        const desdeVal = document.getElementById('dateFromFilter')?.value;
+        const labelMes = ventasMesEl.parentElement.querySelector('.kpi-label');
+        if (desdeVal && labelMes) {
+            labelMes.textContent = 'Ventas del periodo';
+        } else if (labelMes) {
+            labelMes.textContent = 'Ventas mes actual';
+        }
+        ventasMesEl.textContent = formatCurrency(kpis.ventas_mes);
+    }
     if (lowStockEl) {
         const count = kpis.productos_bajo_stock || 0;
         lowStockEl.textContent = count;
@@ -58,48 +81,46 @@ function parseFechaIso(fechaStr) {
 }
 
 function aplicarFiltrosReportes() {
-    if (!datosReportes) return;
+    // Recargar todo el dashboard con los nuevos filtros desde el servidor
+    cargarDashboardReportes();
 
+    // Mostrar/ocultar secciones según tipo
     const tipo = document.getElementById('reportTypeFilter')?.value || 'general';
-    const desdeVal = document.getElementById('dateFromFilter')?.value;
-    const hastaVal = document.getElementById('dateToFilter')?.value;
+    const chartVentas = document.getElementById('chartVentasCard');
+    const chartTop = document.getElementById('chartTopProductosCard');
+    const tableTop = document.getElementById('tablaTopProductosCard');
+    const tableLow = document.getElementById('tablaLowStockCard'); // Si existiera ID
 
-    let sales = datosReportes.sales_last_days || [];
-    let topProducts = datosReportes.top_products || [];
-    const lowStock = datosReportes.low_stock || [];
-
-    if (desdeVal || hastaVal) {
-        const desde = desdeVal ? new Date(desdeVal) : null;
-        const hasta = hastaVal ? new Date(hastaVal) : null;
-        sales = sales.filter(item => {
-            const d = parseFechaIso(item.fecha);
-            if (desde && d < desde) return false;
-            if (hasta) {
-                const end = new Date(hasta);
-                end.setHours(23, 59, 59, 999);
-                if (d > end) return false;
-            }
-            return true;
-        });
+    if (tipo === 'general') {
+        if(chartVentas) chartVentas.style.display = '';
+        if(chartTop) chartTop.style.display = '';
+        if(tableTop) tableTop.style.display = '';
+    } else if (tipo === 'ventas') {
+        if(chartVentas) chartVentas.style.display = '';
+        if(chartTop) chartTop.style.display = 'none';
+        if(tableTop) tableTop.style.display = 'none';
+    } else if (tipo === 'productos') {
+        if(chartVentas) chartVentas.style.display = 'none';
+        if(chartTop) chartTop.style.display = '';
+        if(tableTop) tableTop.style.display = '';
     }
+}
 
-    const ventasTotalFiltrado = sales.reduce((sum, i) => sum + Number(i.total || 0), 0);
-    const ventasHoy = datosReportes.kpis?.ventas_hoy || 0;
-    const ventasMes = datosReportes.kpis?.ventas_mes || 0;
-    const kpisFiltrados = {
-        ventas_hoy: ventasHoy,
-        ventas_mes: ventasTotalFiltrado || ventasMes,
-        productos_bajo_stock: datosReportes.kpis?.productos_bajo_stock || 0
-    };
+function limpiarFiltrosReportes() {
+    document.getElementById('reportTypeFilter').value = 'general';
+    document.getElementById('dateFromFilter').value = '';
+    document.getElementById('dateToFilter').value = '';
+    
+    // Restaurar visualización
+    const chartVentas = document.getElementById('chartVentasCard');
+    const chartTop = document.getElementById('chartTopProductosCard');
+    const tableTop = document.getElementById('tablaTopProductosCard');
+    if(chartVentas) chartVentas.style.display = '';
+    if(chartTop) chartTop.style.display = '';
+    if(tableTop) tableTop.style.display = '';
 
-    renderKPIs(kpisFiltrados);
-
-    if (tipo === 'ventas' || tipo === 'general') {
-        renderSalesChart(sales);
-        document.getElementById('chartVentasCard').style.display = '';
-    } else {
-        document.getElementById('chartVentasCard').style.display = 'none';
-    }
+    cargarDashboardReportes();
+}
 
     if (tipo === 'productos' || tipo === 'general') {
         renderTopProductsChart(topProducts);
@@ -116,7 +137,7 @@ function aplicarFiltrosReportes() {
         const tbodyLow = document.querySelector('#lowStockTable tbody');
         if (tbodyLow) tbodyLow.innerHTML = '';
     }
-}
+
 
 function limpiarFiltrosReportes() {
     const tipoEl = document.getElementById('reportTypeFilter');
@@ -267,9 +288,47 @@ function renderLowStock(products) {
 }
 
 function exportarReportes(tipo) {
-    if (tipo === 'pdf') {
-        alert('Exportar a PDF estará disponible en una siguiente versión.');
-    } else if (tipo === 'excel') {
-        alert('Exportar a Excel estará disponible en una siguiente versión.');
+    if (!datosReportes) {
+        alert('No hay datos para exportar.');
+        return;
     }
+
+    if (tipo === 'pdf') {
+        window.print();
+    } else if (tipo === 'excel') {
+        exportarExcel(datosReportes);
+    }
+}
+
+function exportarExcel(data) {
+    // Exportar ventas diarias
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Reporte de Ventas - TRIUNFO GO\n\n";
+    
+    // KPIs
+    csvContent += "Resumen General\n";
+    csvContent += `Ventas Hoy,${data.kpis.ventas_hoy}\n`;
+    csvContent += `Ventas Mes,${data.kpis.ventas_mes}\n`;
+    csvContent += `Bajo Stock,${data.kpis.productos_bajo_stock}\n\n`;
+
+    // Ventas Diarias
+    csvContent += "Ventas Diarias (Últimos días)\n";
+    csvContent += "Fecha,Total Venta\n";
+    data.sales_last_days.forEach(row => {
+        csvContent += `${row.fecha},${row.total}\n`;
+    });
+
+    csvContent += "\nTop Productos\n";
+    csvContent += "Producto,Cantidad Vendida\n";
+    data.top_products.forEach(row => {
+        csvContent += `${row.nombre},${row.total_vendido}\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "reporte_triunfo_go.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
