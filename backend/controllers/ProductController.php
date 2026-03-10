@@ -285,9 +285,8 @@ class ProductController {
 
             if (in_array($fileExt, $allowedFileExtensions)) {
                 // Validar MIME type real
-                $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                $mimeType = finfo_file($finfo, $fileTmpPath);
-                finfo_close($finfo);
+                $finfo = new finfo(FILEINFO_MIME_TYPE);
+                $mimeType = $finfo->file($fileTmpPath);
 
                 $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
