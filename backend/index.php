@@ -252,6 +252,11 @@ $router->add('POST', '/invoices', function() use ($invoiceController, $auth) {
     $invoiceController->create();
 });
 
+$router->add('POST', '/invoices/{id}/annul', function($id) use ($invoiceController, $auth) {
+    $auth->requireRole([1]); // Solo Admin puede anular
+    $invoiceController->annul($id);
+});
+
 // Rutas de Reportes
 $router->add('GET', '/reports/dashboard', function() use ($reportController, $auth) {
     $auth->requireRole([1]); // Solo Admin ve dashboard completo
@@ -272,6 +277,14 @@ $router->add('POST', '/company', function() use ($companyController, $auth) {
 $router->add('GET', '/inventory/movements', function() use ($inventoryController, $auth) {
     $auth->validateToken();
     $inventoryController->getAll();
+});
+$router->add('GET', '/inventory/summary', function() use ($inventoryController, $auth) {
+    $auth->validateToken();
+    $inventoryController->getSummary();
+});
+$router->add('POST', '/inventory/adjust', function() use ($inventoryController, $auth) {
+    $auth->requireRole([1]); // Solo Admin puede ajustar inventario manualmente
+    $inventoryController->adjust();
 });
 
 // Rutas de Caja (Apertura/Cierre)

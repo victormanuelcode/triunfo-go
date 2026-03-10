@@ -23,11 +23,17 @@ class InventoryController {
 
     /**
      * Obtiene todos los movimientos de inventario registrados.
+     * Soporta filtros por GET: from, to, type, search
      * 
      * @return void Retorna JSON con la lista de movimientos.
      */
     public function getAll() {
-        $stmt = $this->movement->getAll();
+        $from = isset($_GET['from']) ? $_GET['from'] : null;
+        $to = isset($_GET['to']) ? $_GET['to'] : null;
+        $type = isset($_GET['type']) ? $_GET['type'] : null;
+        $search = isset($_GET['search']) ? $_GET['search'] : null;
+
+        $stmt = $this->movement->getAll($from, $to, $type, $search);
         $num = $stmt->rowCount();
 
         if ($num > 0) {
@@ -42,5 +48,82 @@ class InventoryController {
             echo json_encode([]);
         }
     }
+
+    /**
+     * Obtiene estadísticas de movimientos (KPIs).
+     */
+    public function getSummary() {
+        $stats = $this->movement->getSummaryStats();
+        http_response_code(200);
+        echo json_encode($stats);
+    }
+
+    /**
+     * Realiza un ajuste manual de stock (entrada o salida).
+     * 
+     * @return void
+     */
+    public function adjust() {
+        // Obtener datos del body
+        $data = json_decode(file_get_contents("php://input"));
+
+        if (!isset($data->producto_id) || !isset($data->cantidad) || !isset($data->tipo) || !isset($data->razon)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Datos incompletos. Se requiere producto_id, cantidad, tipo y razon."]);
+            return;
+        }
+
+        $producto_id = $data->producto_id;
+        $cantidad = (int)$data->cantidad;
+        $tipo = $data->tipo; // 'entrada' o 'salida'
+        $razon = $data->razon;
+
+        if ($cantidad <= 0) {
+            http_response_code(400);
+            echo json_encode(["message" => "La cantidad debe ser mayor a 0."]);
+            return;
+        }
+
+        if ($tipo !== 'entrada' && $tipo !== 'salida') {
+            http_response_code(400);
+            echo json_encode(["message" => "Tipo de movimiento inválido."]);
+            return;
+        }
+
+        // Iniciar transacción
+        try {
+            $this->db->beginTransaction();
+
+            // 1. Actualizar stock del producto
+            // Necesitamos instanciar Product (aunque idealmente debería inyectarse)
+            include_once __DIR__ . '/../models/Product.php';
+            $product = new Product($this->db);
+            $product->id_producto = $producto_id;
+            
+            if (!$product->updateStock($cantidad, $tipo)) {
+                throw new Exception("No se pudo actualizar el stock. Verifique si hay suficiente stock para la salida.");
+            }
+
+            // 2. Registrar movimiento
+            $this->movement->producto_id = $producto_id;
+            $this->movement->tipo = $tipo;
+            $this->movement->cantidad = $cantidad;
+            $this->movement->descripcion = "Ajuste Manual: " . $razon;
+            $this->movement->referencia = "AJUSTE";
+            
+            if (!$this->movement->create()) {
+                throw new Exception("Error al registrar el movimiento.");
+            }
+
+            $this->db->commit();
+            
+            http_response_code(200);
+            echo json_encode(["message" => "Ajuste de inventario realizado con éxito."]);
+
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            http_response_code(503);
+            echo json_encode(["message" => $e->getMessage()]);
+        }
+    }
 }
-?>

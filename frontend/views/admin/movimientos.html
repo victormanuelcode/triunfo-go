@@ -1,39 +1,22 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Movimientos de Inventario - TRIUNFO GO</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom Styles -->
     <link rel="stylesheet" href="../../css/styles.css">
-    <style>
-        .badge-entrada {
-            background-color: #d4edda;
-            color: #155724;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        .badge-salida {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-    </style>
+    <link rel="stylesheet" href="../../css/movimientos.css">
 </head>
 <body>
     <script src="../../js/auth.js"></script>
     <script src="../../js/layout_admin.js"></script>
-    <script>
-        if (!localStorage.getItem('sesion_activa')) {
-            window.location.href = '../auth/login.html';
-        }
-    </script>
-
+    
     <div class="layout-root">
         <aside class="sidebar"></aside>
 
@@ -41,56 +24,194 @@
             <header class="topbar"></header>
 
             <main class="content-inner">
-                <div class="page-title">
+                <!-- Encabezado de la Página -->
+                <div class="page-header">
                     <div>
                         <h1>Movimientos de Inventario</h1>
-                        <p class="page-subtitle">Historial de entradas y salidas de productos</p>
+                        <p class="subtitle">Historial de entradas, salidas y ajustes de stock</p>
+                    </div>
+                    <button class="btn btn-success d-flex align-items-center gap-2" onclick="abrirModalMovimiento()">
+                        <i class="fas fa-plus"></i> Registrar Movimiento
+                    </button>
+                </div>
+
+                <!-- Tarjetas de Resumen -->
+                <div class="summary-cards mb-4">
+                    <div class="summary-card">
+                        <div class="card-icon bg-blue-soft text-blue">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <div class="card-info">
+                            <span class="card-label">Total Movimientos</span>
+                            <h3 class="card-value" id="kpi-total">0</h3>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-icon bg-green-soft text-green">
+                            <i class="fas fa-arrow-down"></i>
+                        </div>
+                        <div class="card-info">
+                            <span class="card-label">Entradas del Mes</span>
+                            <h3 class="card-value" id="kpi-entradas">0</h3>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-icon bg-red-soft text-red">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div class="card-info">
+                            <span class="card-label">Salidas del Mes</span>
+                            <h3 class="card-value" id="kpi-salidas">0</h3>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-icon bg-yellow-soft text-yellow">
+                            <i class="fas fa-sliders-h"></i>
+                        </div>
+                        <div class="card-info">
+                            <span class="card-label">Ajustes del Mes</span>
+                            <h3 class="card-value" id="kpi-ajustes">0</h3>
+                        </div>
                     </div>
                 </div>
 
+                <!-- Sección de Filtros (Adaptado al CSS del usuario) -->
+                <div class="filters-container">
+                    <div class="filter-group" style="flex: 2;">
+                        <label>Buscar</label>
+                        <div class="filter-input-wrapper">
+                            <i class="fas fa-search text-muted ms-2 position-absolute" style="left: 10px; color: #9ca3af;"></i>
+                            <input type="text" id="filtro-busqueda" placeholder="Producto, referencia..." style="padding-left: 32px; width: 100%;">
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label>Tipo</label>
+                        <div class="filter-input-wrapper">
+                            <select id="filtro-tipo">
+                                <option value="todos">Todos</option>
+                                <option value="entrada">Entrada</option>
+                                <option value="salida">Salida</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label>Desde</label>
+                        <div class="filter-input-wrapper">
+                            <input type="date" id="filtro-fecha-desde">
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label>Hasta</label>
+                        <div class="filter-input-wrapper">
+                            <input type="date" id="filtro-fecha-hasta">
+                        </div>
+                    </div>
+                    <button class="btn-filter" onclick="aplicarFiltros()">
+                        <i class="fas fa-filter me-2"></i> Filtrar
+                    </button>
+                </div>
+
+                <!-- Tabla de Movimientos -->
                 <section class="card-admin">
-                    <div class="table-container">
-                        <table class="data-table">
+                    <div class="table-responsive">
+                        <table class="movements-table">
                             <thead>
                                 <tr>
                                     <th>ID</th>
-                                    <th>Fecha</th>
+                                    <th>Fecha y Hora</th>
                                     <th>Producto</th>
                                     <th>Tipo</th>
-                                    <th>Cantidad</th>
+                                    <th>Cant.</th>
+                                    <th>Stock Resultante</th>
                                     <th>Referencia</th>
-                                    <th>Descripción</th>
+                                    <th>Usuario</th>
+                                    <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="tabla-movimientos">
-                                <tr>
-                                    <td colspan="7" style="text-align: center;">Cargando movimientos...</td>
-                                </tr>
+                                <!-- Los datos se cargarán dinámicamente -->
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Estado Vacío (Oculto por defecto) -->
+                    <div id="empty-state" class="empty-state d-none">
+                        <div class="empty-icon" style="font-size: 48px; color: #d1d5db; margin-bottom: 16px;">
+                            <i class="fas fa-box-open"></i>
+                        </div>
+                        <h4 style="margin: 0; color: #374151;">No hay movimientos registrados</h4>
+                        <p style="color: #6b7280;">Intenta ajustar los filtros o registra un nuevo movimiento.</p>
+                        <button class="btn btn-primary btn-sm mt-3" onclick="abrirModalMovimiento()" style="background-color: #2E7D32; border-color: #2E7D32; color: white; margin-top: 16px;">
+                            Registrar Primer Movimiento
+                        </button>
+                    </div>
+
+                    <!-- Paginación -->
+                    <div class="pagination-container">
+                        <div class="pagination-info">
+                            Mostrando <span id="info-inicio">0</span>-<span id="info-fin">0</span> de <span id="info-total">0</span> movimientos
+                        </div>
+                        <div class="pagination-controls">
+                            <select id="items-per-page" class="form-select form-select-sm" style="width: 70px;">
+                                <option value="10">10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                            </select>
+                            <button class="btn-page" id="btn-prev" disabled>
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="btn-page" id="btn-next" disabled>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
                     </div>
                 </section>
             </main>
         </div>
     </div>
 
+    <!-- Modal Registrar Movimiento -->
+    <div class="modal" id="modalMovimiento" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Registrar Movimiento Manual</h5>
+                    <button type="button" class="btn-close" onclick="cerrarModalMovimiento()"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="form-movimiento">
+                        <div class="mb-3">
+                            <label class="form-label">Producto</label>
+                            <select class="form-select" id="movimiento-producto" required>
+                                <option value="">Seleccione un producto...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tipo de Movimiento</label>
+                            <select class="form-select" id="movimiento-tipo" required>
+                                <option value="entrada">Entrada (Compra/Devolución)</option>
+                                <option value="salida">Salida (Ajuste/Pérdida)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Cantidad</label>
+                            <input type="number" class="form-control" id="movimiento-cantidad" min="1" placeholder="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción / Motivo</label>
+                            <textarea class="form-control" id="movimiento-descripcion" rows="3" placeholder="Detalle del movimiento..." required></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalMovimiento()">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarMovimiento()">Guardar Movimiento</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script de Movimientos -->
     <script src="../../js/movimientos.js"></script>
-    <script>
-        (function () {
-            var nombre = localStorage.getItem('usuario_nombre') || 'Administrador';
-            var email = localStorage.getItem('usuario_email') || 'admin@triunfo.go';
-            var inicial = nombre.trim().charAt(0).toUpperCase();
-
-            var avatar = document.getElementById('adminAvatar');
-            var avatarTop = document.getElementById('adminAvatarTop');
-            var nombreEl = document.getElementById('adminName');
-            var emailEl = document.getElementById('adminEmail');
-
-            if (avatar) avatar.textContent = inicial;
-            if (avatarTop) avatarTop.textContent = inicial;
-            if (nombreEl) nombreEl.textContent = nombre;
-            if (emailEl) emailEl.textContent = email;
-        })();
-    </script>
 </body>
 </html>
