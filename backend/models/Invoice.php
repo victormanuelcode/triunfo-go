@@ -16,9 +16,15 @@ class Invoice {
     public $cliente_id;
     public $usuario_id; // Nuevo campo trazabilidad
     public $sesion_id; // Nuevo campo para control de caja
-    public $cliente_nombre; // Propiedad agregada para evitar errores de propiedad dinámica
-    public $usuario_nombre; // Nuevo campo trazabilidad
+    public $cliente_nombre;
+    public $cliente_documento;
+    public $cliente_direccion;
+    public $cliente_telefono;
+    public $cliente_email;
+    public $usuario_nombre;
+    public $estado; // Nuevo campo estado (pagada, anulada)
     public $total;
+    public $monto_recibido;
     public $metodo_pago;
     public $observaciones;
     public $fecha;
@@ -37,14 +43,23 @@ class Invoice {
      * @param int $offset Desplazamiento de registros.
      * @return PDOStatement Resultado de la consulta.
      */
-    public function read($limit = 10, $offset = 0) {
-        $query = "SELECT f.id_factura, f.numero_factura, f.fecha, f.total, f.metodo_pago, c.nombre as cliente_nombre 
+    public function read($limit = 10, $offset = 0, $usuario_id = null) {
+        $query = "SELECT f.id_factura, f.numero_factura, f.fecha, f.total, f.metodo_pago, f.estado, c.nombre as cliente_nombre 
                   FROM " . $this->table_name . " f 
-                  LEFT JOIN clientes c ON f.cliente_id = c.id_cliente 
+                  LEFT JOIN clientes c ON f.cliente_id = c.id_cliente";
+
+        if (!empty($usuario_id)) {
+            $query .= " WHERE f.usuario_id = :usuario_id";
+        }
+
+        $query .= " 
                   ORDER BY f.fecha DESC
                   LIMIT :limit OFFSET :offset";
         
         $stmt = $this->conn->prepare($query);
+        if (!empty($usuario_id)) {
+            $stmt->bindValue(':usuario_id', (int)$usuario_id, PDO::PARAM_INT);
+        }
         $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
         $stmt->execute();
@@ -56,9 +71,15 @@ class Invoice {
      * 
      * @return int Número total de facturas.
      */
-    public function count() {
-        $query = "SELECT COUNT(*) as total FROM " . $this->table_name;
+    public function count($usuario_id = null) {
+        $query = "SELECT COUNT(*) as total FROM " . $this->table_name . " f";
+        if (!empty($usuario_id)) {
+            $query .= " WHERE f.usuario_id = :usuario_id";
+        }
         $stmt = $this->conn->prepare($query);
+        if (!empty($usuario_id)) {
+            $stmt->bindValue(':usuario_id', (int)$usuario_id, PDO::PARAM_INT);
+        }
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row['total'];
@@ -72,7 +93,13 @@ class Invoice {
      */
     public function readOne() {
         // 1. Obtener cabecera
-        $query = "SELECT f.*, c.nombre as cliente_nombre, u.nombre as usuario_nombre
+        $query = "SELECT f.*, 
+                         c.nombre as cliente_nombre, 
+                         c.documento as cliente_documento,
+                         c.direccion as cliente_direccion,
+                         c.telefono as cliente_telefono,
+                         c.email as cliente_email,
+                         u.nombre as usuario_nombre
                   FROM " . $this->table_name . " f
                   LEFT JOIN clientes c ON f.cliente_id = c.id_cliente
                   LEFT JOIN usuarios u ON f.usuario_id = u.id_usuario
@@ -89,12 +116,17 @@ class Invoice {
             $this->fecha = $row['fecha'];
             $this->cliente_id = $row['cliente_id'];
             $this->usuario_id = $row['usuario_id'];
-            $this->sesion_id = $row['sesion_id'] ?? null; // Manejo de nulo si la columna no existe o es nula
+            $this->sesion_id = $row['sesion_id'] ?? null;
             $this->total = $row['total'];
+            $this->monto_recibido = $row['monto_recibido'] ?? 0;
             $this->metodo_pago = $row['metodo_pago'];
             $this->observaciones = $row['observaciones'];
-            // Propiedad auxiliar para el nombre del cliente
+            $this->estado = $row['estado']; // Cargar estado
             $this->cliente_nombre = $row['cliente_nombre'];
+            $this->cliente_documento = $row['cliente_documento'];
+            $this->cliente_direccion = $row['cliente_direccion'];
+            $this->cliente_telefono = $row['cliente_telefono'];
+            $this->cliente_email = $row['cliente_email'];
             $this->usuario_nombre = $row['usuario_nombre'];
 
             // 2. Obtener detalles
@@ -105,7 +137,9 @@ class Invoice {
             $stmt_det = $this->conn->prepare($query_det);
             $stmt_det->bindParam(1, $this->id_factura);
             $stmt_det->execute();
-
+            
+            // Limpiar detalles anteriores
+            $this->detalles = [];
             while ($row_det = $stmt_det->fetch(PDO::FETCH_ASSOC)) {
                 array_push($this->detalles, $row_det);
             }
@@ -113,6 +147,78 @@ class Invoice {
         }
         return false;
     }
+
+    /**
+     * Anula una factura y revierte el stock.
+     * 
+     * @return boolean True si la anulación fue exitosa.
+     * @throws Exception Si la factura ya está anulada o falla la transacción.
+     */
+    public function annul() {
+        if ($this->estado === 'anulada') {
+            throw new Exception("La factura ya se encuentra anulada.");
+        }
+
+        try {
+            $this->conn->beginTransaction();
+
+            // 1. Actualizar estado de la factura
+            $query = "UPDATE " . $this->table_name . " SET estado = 'anulada' WHERE id_factura = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':id', $this->id_factura);
+            if (!$stmt->execute()) {
+                throw new Exception("Error al actualizar estado de factura.");
+            }
+
+            // 2. Revertir stock y registrar movimientos
+            foreach ($this->detalles as $detalle) {
+                $producto_id = $detalle['producto_id'];
+                $cantidad = $detalle['cantidad'];
+
+                // a. Devolver stock
+                $queryStock = "UPDATE productos SET stock_actual = stock_actual + :cantidad WHERE id_producto = :id";
+                $stmtStock = $this->conn->prepare($queryStock);
+                $stmtStock->bindParam(':cantidad', $cantidad);
+                $stmtStock->bindParam(':id', $producto_id);
+                if (!$stmtStock->execute()) {
+                    throw new Exception("Error al revertir stock del producto ID: " . $producto_id);
+                }
+
+                // b. Registrar movimiento de entrada (devolución)
+                // Instanciamos InventoryMovement o hacemos query directa. 
+                // Para mantener consistencia, query directa es más rápida aquí o instanciamos si está disponible.
+                // Usaremos query directa para evitar dependencia circular o sobrecarga, 
+                // pero lo ideal es reutilizar. Como estamos dentro de una transacción manual, 
+                // InventoryMovement debería usar la misma conexión.
+                
+                $queryMov = "INSERT INTO movimientos_inventario 
+                             (tipo, producto_id, cantidad, descripcion, referencia, fecha) 
+                             VALUES ('entrada', :pid, :cant, :desc, :ref, NOW())";
+                $stmtMov = $this->conn->prepare($queryMov);
+                $tipo = 'entrada';
+                $desc = "Anulación Factura " . $this->numero_factura;
+                $ref = "ANULACION";
+                
+                $stmtMov->bindParam(':pid', $producto_id);
+                $stmtMov->bindParam(':cant', $cantidad);
+                $stmtMov->bindParam(':desc', $desc);
+                $stmtMov->bindParam(':ref', $ref);
+                
+                if (!$stmtMov->execute()) {
+                     throw new Exception("Error al registrar movimiento de inventario.");
+                }
+            }
+
+            $this->conn->commit();
+            $this->estado = 'anulada';
+            return true;
+
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            throw $e;
+        }
+    }
+
 
     /**
      * Crea una nueva factura de venta.
