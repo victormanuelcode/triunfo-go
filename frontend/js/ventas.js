@@ -4,6 +4,156 @@ let productosGlobal = [];
 let ultimaVenta = null; // Para guardar los datos de la última venta exitosa
 let sesionCajaId = null;
 let metodoPagoSeleccionado = 'efectivo'; // Default
+let quoteCache = null;
+let quoteCartKey = null;
+let quoteRefreshTimer = null;
+let quoteBreakdownVisible = true;
+
+function getAuthHeaders(includeJson = false) {
+    const token = localStorage.getItem('token');
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (includeJson) headers['Content-Type'] = 'application/json';
+    return headers;
+}
+
+function getCartKey() {
+    const items = (carrito || [])
+        .map(i => ({ p: Number(i.id_producto), q: Number(i.cantidad), l: i.lote_id ? Number(i.lote_id) : null }))
+        .sort((a, b) => (a.p - b.p) || ((a.l ?? 0) - (b.l ?? 0)));
+    return JSON.stringify(items);
+}
+
+function scheduleQuoteRefresh() {
+    if (quoteRefreshTimer) clearTimeout(quoteRefreshTimer);
+    quoteRefreshTimer = setTimeout(() => {
+        quoteRefreshTimer = null;
+        refreshQuote();
+    }, 250);
+}
+
+function toggleQuoteBreakdown() {
+    quoteBreakdownVisible = !quoteBreakdownVisible;
+    renderQuoteBreakdown();
+}
+
+window.toggleQuoteBreakdown = toggleQuoteBreakdown;
+
+async function refreshQuote() {
+    const breakdown = document.getElementById('quote-breakdown');
+    const body = document.getElementById('quote-breakdown-body');
+
+    if (!sesionCajaId) {
+        quoteCache = null;
+        quoteCartKey = null;
+        if (breakdown) breakdown.style.display = 'none';
+        if (body) body.innerHTML = '';
+        actualizarCarritoUI();
+        return;
+    }
+
+    const usuarioId = localStorage.getItem('usuario_id');
+    if (!usuarioId || !carrito || carrito.length === 0) {
+        quoteCache = null;
+        quoteCartKey = null;
+        if (breakdown) breakdown.style.display = 'none';
+        if (body) body.innerHTML = '';
+        actualizarCarritoUI();
+        return;
+    }
+
+    const cartKey = getCartKey();
+    try {
+        const itemsQuote = carrito.map(item => ({
+            producto_id: item.id_producto,
+            cantidad: item.cantidad,
+            lote_id: item.lote_id || null
+        }));
+
+        const response = await fetch(`${API_URL}/invoices/quote`, {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({ usuario_id: usuarioId, items: itemsQuote })
+        });
+        const json = await response.json();
+        if (!response.ok) {
+            quoteCache = null;
+            quoteCartKey = null;
+            if (breakdown) breakdown.style.display = 'none';
+            if (body) body.innerHTML = '';
+            actualizarCarritoUI();
+            return;
+        }
+
+        if (cartKey !== getCartKey()) return;
+
+        quoteCache = json;
+        quoteCartKey = cartKey;
+        renderQuoteBreakdown();
+        actualizarCarritoUI();
+    } catch (e) {
+        quoteCache = null;
+        quoteCartKey = null;
+        if (breakdown) breakdown.style.display = 'none';
+        if (body) body.innerHTML = '';
+        actualizarCarritoUI();
+    }
+}
+
+function renderQuoteBreakdown() {
+    const container = document.getElementById('quote-breakdown');
+    const body = document.getElementById('quote-breakdown-body');
+    if (!container || !body) return;
+
+    if (!quoteCache || quoteCartKey !== getCartKey() || !Array.isArray(quoteCache.lines) || quoteCache.lines.length === 0) {
+        container.style.display = 'none';
+        body.innerHTML = '';
+        return;
+    }
+
+    if (!quoteBreakdownVisible) {
+        container.style.display = 'block';
+        body.innerHTML = '';
+        const btn = container.querySelector('button');
+        if (btn) btn.textContent = 'Mostrar';
+        return;
+    }
+
+    container.style.display = 'block';
+    const btn = container.querySelector('button');
+    if (btn) btn.textContent = 'Ocultar';
+
+    const nameById = new Map((carrito || []).map(i => [Number(i.id_producto), i.nombre]));
+    const grouped = new Map();
+    quoteCache.lines.forEach(ln => {
+        const key = `${ln.producto_id}|${ln.lote_id}|${ln.precio_unitario}`;
+        if (!grouped.has(key)) {
+            grouped.set(key, { producto_id: Number(ln.producto_id), lote_id: Number(ln.lote_id), precio_unitario: Number(ln.precio_unitario), cantidad: 0, subtotal: 0 });
+        }
+        const row = grouped.get(key);
+        row.cantidad += Number(ln.cantidad);
+        row.subtotal += Number(ln.subtotal);
+    });
+
+    body.innerHTML = '';
+    Array.from(grouped.values())
+        .sort((a, b) => (a.producto_id - b.producto_id) || (a.lote_id - b.lote_id))
+        .forEach(r => {
+            const productName = nameById.get(r.producto_id) || `Producto #${r.producto_id}`;
+            const line = document.createElement('div');
+            line.style.display = 'flex';
+            line.style.justifyContent = 'space-between';
+            line.style.gap = '10px';
+            line.innerHTML = `
+                <div style="display:flex; flex-direction:column;">
+                    <span style="font-weight:600; color:#111827; font-size:0.9rem;">${productName}</span>
+                    <span style="font-size:0.78rem; color:#6b7280;">Lote: #${r.lote_id} · ${r.cantidad} × $${r.precio_unitario.toLocaleString('es-CO')}</span>
+                </div>
+                <div style="font-weight:700; color:#111827;">$${Math.round(r.subtotal).toLocaleString('es-CO')}</div>
+            `;
+            body.appendChild(line);
+        });
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     // Cargar carrito desde localStorage
@@ -37,16 +187,20 @@ async function verificarEstadoCaja() {
     if (!usuarioId) return;
 
     try {
-        const response = await fetch(`${API_URL}/box/status?usuario_id=${usuarioId}`);
+        const response = await fetch(`${API_URL}/box/status?usuario_id=${usuarioId}`, { headers: getAuthHeaders(false) });
         const sesion = await response.json();
 
         if (sesion && sesion.estado === 'abierta') {
             sesionCajaId = sesion.id_sesion;
             localStorage.setItem('sesion_actual', JSON.stringify(sesion));
             actualizarBotonCaja(true);
+            scheduleQuoteRefresh();
         } else {
             sesionCajaId = null;
             actualizarBotonCaja(false);
+            quoteCache = null;
+            quoteCartKey = null;
+            renderQuoteBreakdown();
             // Si no hay caja abierta, podríamos bloquear la interfaz o mostrar aviso
             // Por ahora solo el botón cambia
         }
@@ -88,7 +242,7 @@ async function abrirCaja() {
     try {
         const response = await fetch(`${API_URL}/box/open`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(true),
             body: JSON.stringify({
                 usuario_id: usuarioId,
                 monto_apertura: monto
@@ -119,7 +273,7 @@ function mostrarModalCierreCaja() {
     const sesion = JSON.parse(localStorage.getItem('sesion_actual') || '{}');
     
     // Actualizar total ventas consultando API
-    fetch(`${API_URL}/box/status?usuario_id=${localStorage.getItem('usuario_id')}`)
+    fetch(`${API_URL}/box/status?usuario_id=${localStorage.getItem('usuario_id')}`, { headers: getAuthHeaders(false) })
         .then(res => res.json())
         .then(data => {
             if (data) {
@@ -163,7 +317,7 @@ async function procesarCierreCaja() {
     try {
         const response = await fetch(`${API_URL}/box/close`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(true),
             body: JSON.stringify({
                 id_sesion: sesionCajaId,
                 monto_cierre: montoCierre
@@ -188,7 +342,7 @@ async function procesarCierreCaja() {
 async function cargarClientes() {
     const select = document.getElementById('cliente-select');
     try {
-        const response = await fetch(`${API_URL}/clients`);
+        const response = await fetch(`${API_URL}/clients`, { headers: getAuthHeaders(false) });
         const clientes = await response.json();
 
         select.innerHTML = '<option value="">Cliente General (Público)</option>';
@@ -206,7 +360,7 @@ async function cargarClientes() {
 async function cargarCatalogo() {
     const container = document.getElementById('productos-catalogo');
     try {
-        const response = await fetch(`${API_URL}/products`);
+        const response = await fetch(`${API_URL}/products`, { headers: getAuthHeaders(false) });
         const json = await response.json();
         
         // Manejar estructura paginada o array directo
@@ -299,11 +453,13 @@ function agregarAlCarrito(producto) {
             precio: parseFloat(producto.precio_venta),
             cantidad: 1,
             max_stock: producto.stock_actual,
-            imagen: producto.imagen
+            imagen: producto.imagen,
+            lote_id: null
         });
     }
     guardarCarrito();
     actualizarCarritoUI();
+    scheduleQuoteRefresh();
 }
 
 function cambiarCantidad(id, delta) {
@@ -323,12 +479,64 @@ function cambiarCantidad(id, delta) {
     }
     guardarCarrito();
     actualizarCarritoUI();
+    scheduleQuoteRefresh();
 }
 
 function eliminarDelCarrito(id) {
     carrito = carrito.filter(p => p.id_producto !== id);
     guardarCarrito();
     actualizarCarritoUI();
+    scheduleQuoteRefresh();
+}
+
+async function seleccionarLotePreferido(productoId) {
+    const item = carrito.find(p => p.id_producto === productoId);
+    if (!item) return;
+
+    try {
+        const response = await fetch(`${API_URL}/products/${productoId}/lots`, { headers: getAuthHeaders(false) });
+        const json = await response.json();
+        const lots = Array.isArray(json?.data) ? json.data : [];
+        const disponibles = lots.filter(l => Number(l.cantidad_disponible || 0) > 0 && (l.estado || 'activo') === 'activo');
+
+        if (disponibles.length === 0) {
+            alert('No hay lotes disponibles. Se usará FIFO.');
+            item.lote_id = null;
+            guardarCarrito();
+            actualizarCarritoUI();
+            return;
+        }
+
+        const listado = disponibles
+            .map(l => `#${l.id_lote} | disp: ${l.cantidad_disponible} | $${Number(l.precio_venta || 0).toLocaleString('es-CO')}`)
+            .join('\n');
+
+        const input = prompt(`Seleccione un lote (vacío = FIFO)\n${listado}`, item.lote_id ? String(item.lote_id) : '');
+        if (input === null) return;
+        const trimmed = input.trim();
+        if (trimmed === '') {
+            item.lote_id = null;
+        } else {
+            const selectedId = Number(trimmed);
+            if (!Number.isFinite(selectedId) || selectedId <= 0) {
+                alert('ID de lote inválido.');
+                return;
+            }
+            const found = disponibles.find(l => Number(l.id_lote) === selectedId);
+            if (!found) {
+                alert('El lote seleccionado no está disponible.');
+                return;
+            }
+            item.lote_id = selectedId;
+        }
+
+        guardarCarrito();
+        actualizarCarritoUI();
+        scheduleQuoteRefresh();
+    } catch (e) {
+        console.error(e);
+        alert('Error consultando lotes.');
+    }
 }
 
 function actualizarCarritoUI() {
@@ -369,6 +577,10 @@ function actualizarCarritoUI() {
             <td>
                 <div style="font-weight:600; font-size:0.9rem;">${item.nombre}</div>
                 <div style="color:#666; font-size:0.8rem;">$${item.precio.toLocaleString('es-CO')}</div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:4px; font-size:0.75rem; color:#666;">
+                    <span>${item.lote_id ? `Lote: #${item.lote_id}` : 'Lote: FIFO'}</span>
+                    <button class="btn-qty" style="padding:2px 8px; font-size:0.75rem;" onclick="event.stopPropagation(); seleccionarLotePreferido(${item.id_producto})">Cambiar</button>
+                </div>
                 <div class="cart-qty-control" style="margin-top:4px;">
                     <button class="btn-qty" onclick="cambiarCantidad(${item.id_producto}, -1)">-</button>
                     <div class="cart-qty-val">${item.cantidad}</div>
@@ -384,6 +596,11 @@ function actualizarCarritoUI() {
         `;
         tbody.appendChild(tr);
     });
+
+    if (quoteCache && quoteCartKey === getCartKey() && Number(quoteCache.total || 0) > 0) {
+        total = Number(quoteCache.total || 0);
+        renderQuoteBreakdown();
+    }
 
     // Cálculos de Totales (Asumiendo Precios con IVA incluido)
     // Base = Total / 1.19
@@ -455,7 +672,43 @@ async function procesarVenta() {
         return;
     }
 
-    const totalVenta = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+    const usuarioId = localStorage.getItem('usuario_id');
+    if (!usuarioId) {
+        alert('Sesión inválida. Inicie sesión nuevamente.');
+        return;
+    }
+
+    let quote = null;
+    try {
+        const itemsQuote = carrito.map(item => ({
+            producto_id: item.id_producto,
+            cantidad: item.cantidad,
+            lote_id: item.lote_id || null
+        }));
+        const responseQuote = await fetch(`${API_URL}/invoices/quote`, {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({
+                usuario_id: usuarioId,
+                items: itemsQuote
+            })
+        });
+        quote = await responseQuote.json();
+        if (!responseQuote.ok) {
+            alert('Error al calcular total: ' + (quote.message || 'Desconocido'));
+            return;
+        }
+    } catch (error) {
+        console.error(error);
+        alert('Error de conexión al calcular total.');
+        return;
+    }
+
+    const totalVenta = parseFloat(quote.total || 0);
+    if (!(totalVenta > 0)) {
+        alert('No se pudo calcular el total de la venta.');
+        return;
+    }
     
     // Validaciones de Pago
     if (metodoPagoSeleccionado === 'efectivo') {
@@ -469,16 +722,15 @@ async function procesarVenta() {
 
     if (!confirm('¿Confirmar venta por $' + totalVenta.toLocaleString('es-CO') + '?')) return;
 
-    // Preparar datos
-    const itemsVenta = carrito.map(item => ({
-        producto_id: item.id_producto,
-        cantidad: item.cantidad,
-        precio_unitario: item.precio
-    }));
+    const grouped = new Map();
+    (quote.lines || []).forEach(line => {
+        const pid = Number(line.producto_id);
+        if (!grouped.has(pid)) grouped.set(pid, []);
+        grouped.get(pid).push({ lote_id: Number(line.lote_id), cantidad: Number(line.cantidad) });
+    });
+    const itemsVenta = Array.from(grouped.entries()).map(([producto_id, lotes]) => ({ producto_id, lotes }));
 
     const clienteId = document.getElementById('cliente-select').value;
-    const usuarioId = localStorage.getItem('usuario_id');
-
     const data = {
         items: itemsVenta,
         total: totalVenta,
@@ -491,7 +743,7 @@ async function procesarVenta() {
     try {
         const response = await fetch(`${API_URL}/invoices`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(true),
             body: JSON.stringify(data)
         });
 
@@ -502,7 +754,7 @@ async function procesarVenta() {
             ultimaVenta = {
                 id_factura: result.id_factura,
                 numero_factura: result.numero_factura,
-                total: totalVenta,
+                total: parseFloat(result.total || totalVenta),
                 cliente_nombre: document.getElementById('cliente-select').options[document.getElementById('cliente-select').selectedIndex].text,
                 fecha: new Date().toLocaleString(),
                 metodo_pago: metodoPagoSeleccionado
@@ -522,6 +774,8 @@ async function procesarVenta() {
 function limpiarDespuesDeVenta() {
     carrito = [];
     localStorage.removeItem('pos_carrito');
+    quoteCache = null;
+    quoteCartKey = null;
     actualizarCarritoUI();
     document.getElementById('monto-recibido').value = '';
     document.getElementById('texto-cambio').innerText = '$0';
