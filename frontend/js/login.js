@@ -1,5 +1,5 @@
 // URL Base de la API
-const URL_API = 'http://localhost/proyecto_final/backend';
+const URL_API = '/proyecto_final/backend';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Limpiar sesión al entrar al login

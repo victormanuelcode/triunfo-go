@@ -9,9 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+const API_URL = '/proyecto_final/backend';
+
 async function cargarConfiguracion() {
     try {
-        const response = await fetch('http://localhost/proyecto_final/backend/company');
+        const response = await fetch(`${API_URL}/company`);
         const data = await response.json();
 
         document.getElementById('nombre').value = data.nombre || '';
@@ -22,7 +24,7 @@ async function cargarConfiguracion() {
 
         if (data.logo) {
             const preview = document.getElementById('logoPreview');
-            preview.innerHTML = `<img src="http://localhost/proyecto_final/backend/uploads/company/${data.logo}" alt="Logo actual" style="max-height: 100px; border: 1px solid #ddd; padding: 5px; border-radius: 4px;">`;
+            preview.innerHTML = `<img src="${API_URL}/uploads/company/${data.logo}" alt="Logo actual" style="max-height: 100px; border: 1px solid #ddd; padding: 5px; border-radius: 4px;">`;
         }
     } catch (error) {
         console.error('Error cargando configuración:', error);
@@ -34,7 +36,7 @@ async function guardarConfiguracion() {
     const formData = new FormData(form);
 
     try {
-        const response = await fetch('http://localhost/proyecto_final/backend/company', {
+        const response = await fetch(`${API_URL}/company`, {
             method: 'POST',
             body: formData
         });

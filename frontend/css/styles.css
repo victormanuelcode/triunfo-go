@@ -249,8 +249,10 @@ a {
 .layout-root {
     display: flex;
     min-height: 100vh;
+    height: 100vh;
     background-color: #F9FAFB;
     color: #111827;
+    overflow: hidden;
 }
 
 .sidebar {
@@ -260,6 +262,10 @@ a {
     display: flex;
     flex-direction: column;
     padding: 16px 16px 20px;
+    height: 100vh;
+    overflow-y: auto;
+    flex: 0 0 256px;
+    transition: width 0.2s ease, padding 0.2s ease, transform 0.2s ease;
 }
 
 .sidebar-header {
@@ -305,6 +311,9 @@ a {
     width: 100%;
     max-width: 1600px;
     margin: 0 auto;
+    flex: 1;
+    overflow: auto;
+    min-height: 0;
 }
 
 .page-title {
@@ -456,6 +465,20 @@ a {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.layout-root.layout-collapsed .sidebar {
+    width: 0;
+    padding: 0;
+    border-right: 0;
+    overflow: hidden;
+    flex-basis: 0;
+}
+
+.layout-root.layout-collapsed .sidebar > * {
+    display: none;
 }
 
 .topbar {
@@ -466,6 +489,34 @@ a {
     align-items: center;
     justify-content: space-between;
     padding: 0 24px;
+    flex: 0 0 64px;
+    z-index: 20;
+}
+
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.layout-toggle-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid #E5E7EB;
+    background: #FFFFFF;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #374151;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.layout-toggle-btn:hover {
+    background-color: #F3F4F6;
 }
 
 .search-box {
@@ -877,7 +928,7 @@ a {
 .card.compact-card {
     padding: 12px 24px !important;
     min-height: auto;
-    height: 15%;
+    height: auto !important;
 }
 
 .card.compact-card .card-header {
@@ -900,31 +951,55 @@ a {
 
 .quick-actions.compact {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 16px;
 }
 
 .quick-actions.compact .quick-action-btn {
-    padding: 16px; /* Restaurado tamaño original */
-    background-color: #F3F4F6;
+    padding: 14px 16px;
+    background-color: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
     height: auto;
-    flex-direction: column; /* Restaurado orientación vertical */
-    gap: 8px;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    min-width: 0;
+    border-radius: 14px;
+}
+
+.quick-actions.compact .quick-action-btn:hover {
+    background-color: #F9FAFB;
+    color: #111827;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.10);
+}
+
+.quick-actions.compact .quick-action-btn span {
+    font-size: 14px;
+    font-weight: 700;
+    color: inherit;
+    overflow-wrap: anywhere;
+    text-align: left;
 }
 
 .quick-actions.compact .quick-action-icon {
-    font-size: 24px; /* Restaurado tamaño original */
+    font-size: 24px;
     margin-bottom: 0;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
+    flex: 0 0 auto;
 }
 
 /* Colores Específicos para Acciones Rápidas */
+.quick-action-btn.action-sale {
+    border-left: 4px solid #059669;
+}
 .quick-action-btn.action-sale .quick-action-icon {
     color: #059669; /* Verde - Ventas */
     background-color: #D1FAE5;
@@ -934,6 +1009,9 @@ a {
     color: #ffffff;
 }
 
+.quick-action-btn.action-product {
+    border-left: 4px solid #2563EB;
+}
 .quick-action-btn.action-product .quick-action-icon {
     color: #2563EB; /* Azul - Productos */
     background-color: #DBEAFE;
@@ -943,6 +1021,9 @@ a {
     color: #ffffff;
 }
 
+.quick-action-btn.action-history {
+    border-left: 4px solid #D97706;
+}
 .quick-action-btn.action-history .quick-action-icon {
     color: #D97706; /* Naranja - Historial */
     background-color: #FEF3C7;
@@ -952,6 +1033,9 @@ a {
     color: #ffffff;
 }
 
+.quick-action-btn.action-report {
+    border-left: 4px solid #7C3AED;
+}
 .quick-action-btn.action-report .quick-action-icon {
     color: #7C3AED; /* Violeta - Reportes */
     background-color: #EDE9FE;

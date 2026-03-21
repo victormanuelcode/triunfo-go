@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost/proyecto_final/backend';
+const API_URL = '/proyecto_final/backend';
 let proveedoresGlobal = [];
 
 document.addEventListener('DOMContentLoaded', () => {

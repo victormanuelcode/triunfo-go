@@ -85,15 +85,28 @@ function inyectarModalesCaja() {
     }
 }
 
+function getUsuarioIdCaja() {
+    const usuarioStr = localStorage.getItem('usuario_datos');
+    if (usuarioStr) {
+        try {
+            const usuario = JSON.parse(usuarioStr);
+            const id = usuario?.id_usuario;
+            if (id !== undefined && id !== null && String(id).trim() !== '') return String(id);
+        } catch (_) { }
+    }
+
+    const usuarioId = localStorage.getItem('usuario_id');
+    if (usuarioId !== undefined && usuarioId !== null && String(usuarioId).trim() !== '') return String(usuarioId);
+    return null;
+}
+
 // Verificar estado de la caja
 async function verificarEstadoCaja() {
-    const usuarioStr = localStorage.getItem('usuario_datos');
-    if (!usuarioStr) return; // No logueado
-    
-    const usuario = JSON.parse(usuarioStr);
+    const usuarioId = getUsuarioIdCaja();
+    if (!usuarioId) return; // No logueado
 
     try {
-        const res = await fetch(`${CAJA_API_STATUS}?usuario_id=${usuario.id_usuario}`);
+        const res = await fetch(`${CAJA_API_STATUS}?usuario_id=${usuarioId}`);
         const data = await res.json();
 
         if (data && data.id_sesion) {
@@ -153,7 +166,11 @@ function mostrarModalApertura() {
 
 async function confirmarApertura() {
     const monto = document.getElementById('montoApertura').value;
-    const usuario = JSON.parse(localStorage.getItem('usuario_datos'));
+    const usuarioId = getUsuarioIdCaja();
+    if (!usuarioId) {
+        mostrarError('errorApertura', 'Sesión no válida. Inicie sesión nuevamente.');
+        return;
+    }
 
     if (monto === '' || monto < 0) {
         mostrarError('errorApertura', 'Por favor, ingrese un monto inicial válido (mayor o igual a 0).');
@@ -165,7 +182,7 @@ async function confirmarApertura() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                usuario_id: usuario.id_usuario,
+                usuario_id: usuarioId,
                 monto_apertura: monto
             })
         });
@@ -198,9 +215,14 @@ async function mostrarModalCierre() {
     document.getElementById('montoCierre').value = '';
 
     // Obtener datos actualizados de la sesión
-    const usuario = JSON.parse(localStorage.getItem('usuario_datos'));
+    const usuarioId = getUsuarioIdCaja();
+    if (!usuarioId) {
+        alert("Sesión no válida. Inicie sesión nuevamente.");
+        modal.style.display = 'none';
+        return;
+    }
     try {
-        const res = await fetch(`${CAJA_API_STATUS}?usuario_id=${usuario.id_usuario}`);
+        const res = await fetch(`${CAJA_API_STATUS}?usuario_id=${usuarioId}`);
         const data = await res.json();
         
         if (data && data.id_sesion) {
