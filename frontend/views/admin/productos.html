@@ -166,6 +166,88 @@
         </div>
     </div>
 
+    <!-- Modal Lotes del Producto -->
+    <div id="lotesModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3>Lotes del Producto</h3>
+                <span class="close-modal-lotes">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap: 10px; margin-bottom: 12px;">
+                    <div>
+                        <div style="font-weight: 600;" id="lotesProductoNombre">---</div>
+                        <div style="color: var(--gris-medio); font-size: 12px;">Trazabilidad y precio por lote</div>
+                    </div>
+                    <button class="btn-primary" id="btnNuevaEntradaLote">+ Nueva entrada</button>
+                </div>
+
+                <table class="table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>ID Lote</th>
+                            <th>Número</th>
+                            <th>Fecha</th>
+                            <th>Disponible</th>
+                            <th>Precio venta</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaLotesBody">
+                        <tr><td colspan="6" style="text-align:center;">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer" style="padding: 15px; text-align: right; border-top: 1px solid #eee;">
+                <button type="button" class="btn-secondary close-modal-lotes-btn">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Crear Lote (Entrada) -->
+    <div id="crearLoteModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>Nueva entrada por lote</h3>
+                <span class="close-modal-crear-lote">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="crearLoteForm">
+                    <input type="hidden" id="loteProductoId">
+                    <div class="form-group">
+                        <label>Producto: <span id="loteProductoNombre" style="font-weight: bold;"></span></label>
+                    </div>
+                    <div class="form-group">
+                        <label for="loteNumero">Número de lote (opcional)</label>
+                        <input type="text" id="loteNumero" placeholder="Ej: L-2026-001">
+                    </div>
+                    <div class="form-group">
+                        <label for="loteProveedorId">Proveedor (opcional)</label>
+                        <select id="loteProveedorId">
+                            <option value="">Seleccione un proveedor</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="loteCantidad">Cantidad</label>
+                        <input type="number" id="loteCantidad" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lotePrecioVenta">Precio venta (por lote)</label>
+                        <input type="number" id="lotePrecioVenta" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loteCostoUnitario">Costo unitario (opcional)</label>
+                        <input type="number" id="loteCostoUnitario" min="0" value="0">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary close-modal-crear-lote-btn">Cancelar</button>
+                        <button type="submit" class="btn-primary">Guardar entrada</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Ajuste de Stock -->
     <div id="ajusteStockModal" class="modal">
         <div class="modal-content">
