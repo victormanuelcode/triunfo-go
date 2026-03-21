@@ -322,17 +322,49 @@ async function generarFacturaManual() {
     const metodoPago = metodoPagoSelect ? metodoPagoSelect.value : 'efectivo';
 
     const usuarioId = localStorage.getItem('usuario_id');
+    const token = localStorage.getItem('token');
+    const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-    const subtotal = itemsFactura.reduce((sum, i) => sum + i.precio * i.cantidad, 0);
-    const iva = subtotal * 0.19;
-    const total = subtotal + iva;
+    let quote = null;
+    try {
+        const itemsQuote = itemsFactura.map(i => ({
+            producto_id: i.id_producto,
+            cantidad: i.cantidad
+        }));
+        const responseQuote = await fetch(`${API_URL}/invoices/quote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...authHeaders },
+            body: JSON.stringify({
+                usuario_id: usuarioId || null,
+                items: itemsQuote
+            })
+        });
+        quote = await responseQuote.json();
+        if (!responseQuote.ok) {
+            alert(quote.message || 'No se pudo calcular el total.');
+            return;
+        }
+    } catch (error) {
+        console.error('Error calculando total:', error);
+        alert('Error de conexión al calcular total.');
+        return;
+    }
+
+    const total = parseFloat(quote.total || 0);
+    if (!(total > 0)) {
+        alert('No se pudo calcular el total de la factura.');
+        return;
+    }
+
+    const grouped = new Map();
+    (quote.lines || []).forEach(line => {
+        const pid = Number(line.producto_id);
+        if (!grouped.has(pid)) grouped.set(pid, []);
+        grouped.get(pid).push({ lote_id: Number(line.lote_id), cantidad: Number(line.cantidad) });
+    });
 
     const data = {
-        items: itemsFactura.map(i => ({
-            producto_id: i.id_producto,
-            cantidad: i.cantidad,
-            precio_unitario: i.precio
-        })),
+        items: Array.from(grouped.entries()).map(([producto_id, lotes]) => ({ producto_id, lotes })),
         total: total,
         metodo_pago: metodoPago,
         cliente_id: null,
@@ -342,7 +374,7 @@ async function generarFacturaManual() {
     try {
         const response = await fetch(`${API_URL}/invoices`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...authHeaders },
             body: JSON.stringify(data)
         });
 

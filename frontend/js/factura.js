@@ -86,6 +86,7 @@ function renderFactura(factura) {
                     <td>${imgHtml}</td>
                     <td>
                         <div style="font-weight: 600;">${item.producto_nombre}</div>
+                        <div style="font-size: 11px; color: #6b7280;">${item.lote_id ? (`Lote: ${item.lote_numero ? item.lote_numero : ('#' + item.lote_id)}`) : ''}</div>
                     </td>
                     <td class="col-right">${formatMoney(item.precio_unitario)}</td>
                     <td class="col-center">${item.cantidad}</td>

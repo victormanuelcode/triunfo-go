@@ -114,9 +114,10 @@
             
             items.forEach(item => {
                 const tr = document.createElement('tr');
+                const loteTxt = item.lote_id ? ` Lote:${item.lote_numero ? item.lote_numero : ('#' + item.lote_id)}` : '';
                 tr.innerHTML = `
                     <td class="col-cant">${item.cantidad}</td>
-                    <td class="col-desc">${item.producto_nombre || 'Item'}</td>
+                    <td class="col-desc">${(item.producto_nombre || 'Item') + loteTxt}</td>
                     <td class="col-price">${formatMoney(item.subtotal)}</td>
                 `;
                 tbody.appendChild(tr);
