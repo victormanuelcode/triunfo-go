@@ -74,10 +74,11 @@ class Product {
      * @return boolean True si el producto se creó correctamente.
      */
     public function create() {
+        $stockInicial = (int)($this->stock_actual ?? 0);
         $query = "INSERT INTO " . $this->table_name . " 
                   SET nombre=:nombre, descripcion=:descripcion, categoria_id=:categoria_id, 
                       unidad_medida_id=:unidad_medida_id, precio_compra=:precio_compra, 
-                      precio_venta=:precio_venta, stock_actual=:stock_actual, 
+                      precio_venta=:precio_venta, stock_actual=0, 
                       stock_minimo=:stock_minimo, imagen=:imagen, estado=:estado";
         
         $stmt = $this->conn->prepare($query);
@@ -94,12 +95,17 @@ class Product {
         $stmt->bindParam(":unidad_medida_id", $this->unidad_medida_id);
         $stmt->bindParam(":precio_compra", $this->precio_compra);
         $stmt->bindParam(":precio_venta", $this->precio_venta);
-        $stmt->bindParam(":stock_actual", $this->stock_actual);
         $stmt->bindParam(":stock_minimo", $this->stock_minimo);
         $stmt->bindParam(":imagen", $this->imagen);
         $stmt->bindParam(":estado", $this->estado);
 
-        if ($stmt->execute()) {
+        $this->conn->beginTransaction();
+        try {
+            if (!$stmt->execute()) {
+                $this->conn->rollBack();
+                return false;
+            }
+
             $this->id_producto = $this->conn->lastInsertId();
 
             // Guardar proveedor si existe
@@ -111,22 +117,25 @@ class Product {
                 $stmt_prov->execute();
             }
 
-            // Si hay stock inicial, registrar movimiento
-            if ($this->stock_actual > 0) {
-                // $this->id_producto ya está seteado arriba
-                $query_mov = "INSERT INTO movimientos_inventario 
-                              SET tipo='entrada', producto_id=:producto_id, 
-                                  cantidad=:cantidad, descripcion='Stock Inicial', 
-                                  referencia='CREACION'";
-                
-                $stmt_mov = $this->conn->prepare($query_mov);
-                $stmt_mov->bindParam(":producto_id", $this->id_producto);
-                $stmt_mov->bindParam(":cantidad", $this->stock_actual);
-                $stmt_mov->execute();
+            if ($stockInicial > 0) {
+                include_once __DIR__ . '/ProductLot.php';
+                $lotModel = new ProductLot($this->conn);
+                $lotModel->createLot(
+                    $this->id_producto,
+                    $stockInicial,
+                    (float)$this->precio_venta,
+                    (float)$this->precio_compra,
+                    !empty($this->proveedor_id) ? (int)$this->proveedor_id : null,
+                    null
+                );
             }
+
+            $this->conn->commit();
             return true;
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            return false;
         }
-        return false;
     }
 
     // Leer un producto

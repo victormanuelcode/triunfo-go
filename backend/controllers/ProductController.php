@@ -196,6 +196,12 @@ class ProductController {
                 return;
             }
 
+            if (isset($data['stock_actual']) && (int)$stockActual !== (int)$oldProduct->stock_actual) {
+                http_response_code(400);
+                echo json_encode(["message" => "No se permite modificar stock desde edición de producto. Use entradas por lote o ajuste de inventario por lote."]);
+                return;
+            }
+
             $this->product->nombre = $data['nombre'] ?? $oldProduct->nombre;
             $this->product->descripcion = array_key_exists('descripcion', $data) ? $data['descripcion'] : $oldProduct->descripcion;
             $this->product->categoria_id = $data['categoria_id'] ?? $oldProduct->categoria_id;
@@ -211,20 +217,6 @@ class ProductController {
             $this->product->imagen = $newImage ? $newImage : $oldProduct->imagen;
 
             if ($this->product->update()) {
-                // Registrar movimiento si hubo cambio de stock
-                $oldStock = (int)$oldProduct->stock_actual;
-                $newStock = (int)$this->product->stock_actual;
-                $diff = $newStock - $oldStock;
-
-                if ($diff !== 0) {
-                    $this->movement->producto_id = $id;
-                    $this->movement->cantidad = abs($diff);
-                    $this->movement->tipo = $diff > 0 ? 'entrada' : 'salida';
-                    $this->movement->descripcion = "Ajuste manual de stock (Edición de producto)";
-                    $this->movement->referencia = "MANUAL-" . date('YmdHis');
-                    $this->movement->create();
-                }
-
                 http_response_code(200);
                 echo json_encode(["message" => "Producto actualizado."]);
             } else {

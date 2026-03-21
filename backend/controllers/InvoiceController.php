@@ -140,31 +140,54 @@ class InvoiceController {
             return;
         }
 
-        if (!empty($data['items']) && isset($data['total'])) {
-            $total = (float) $data['total'];
-            if ($total <= 0) {
-                http_response_code(400);
-                echo json_encode(["message" => "El total de la venta debe ser mayor a cero."]);
-                return;
-            }
-
+        if (!empty($data['items'])) {
             foreach ($data['items'] as $item) {
-                if (!isset($item['producto_id'], $item['cantidad'], $item['precio_unitario'])) {
+                if (!is_array($item)) {
                     http_response_code(400);
-                    echo json_encode(["message" => "Cada ítem debe incluir producto_id, cantidad y precio_unitario."]);
+                    echo json_encode(["message" => "Cada ítem debe ser un objeto válido."]);
                     return;
                 }
-                $cantidad = (int) $item['cantidad'];
-                $precioUnitario = (float) $item['precio_unitario'];
-                if ($cantidad <= 0 || $precioUnitario <= 0) {
+
+                if (isset($item['lotes']) && is_array($item['lotes']) && !empty($item['lotes'])) {
+                    foreach ($item['lotes'] as $sel) {
+                        if (!is_array($sel) || !isset($sel['lote_id'], $sel['cantidad'])) {
+                            http_response_code(400);
+                            echo json_encode(["message" => "Cada lote debe incluir lote_id y cantidad."]);
+                            return;
+                        }
+                        $cantSel = (int)$sel['cantidad'];
+                        $loteId = (int)$sel['lote_id'];
+                        if ($cantSel <= 0 || $loteId <= 0) {
+                            http_response_code(400);
+                            echo json_encode(["message" => "lote_id y cantidad deben ser mayores a cero."]);
+                            return;
+                        }
+                    }
+                    continue;
+                }
+
+                if (!isset($item['producto_id'], $item['cantidad'])) {
                     http_response_code(400);
-                    echo json_encode(["message" => "Cantidad y precio unitario deben ser mayores a cero."]);
+                    echo json_encode(["message" => "Cada ítem debe incluir producto_id y cantidad."]);
+                    return;
+                }
+                $cantidad = (int)$item['cantidad'];
+                $productoId = (int)$item['producto_id'];
+                if ($cantidad <= 0 || $productoId <= 0) {
+                    http_response_code(400);
+                    echo json_encode(["message" => "producto_id y cantidad deben ser mayores a cero."]);
                     return;
                 }
             }
 
             $this->invoice->cliente_id = isset($data['cliente_id']) ? $data['cliente_id'] : null; // Nullable por ahora
             $this->invoice->usuario_id = isset($data['usuario_id']) ? $data['usuario_id'] : null; // Nuevo: trazabilidad
+
+            if (empty($this->invoice->usuario_id)) {
+                http_response_code(400);
+                echo json_encode(["message" => "usuario_id es requerido."]);
+                return;
+            }
             
             // Validar sesión de caja activa
             $boxSession = new BoxSession($this->db);
@@ -178,7 +201,7 @@ class InvoiceController {
             }
 
             $this->invoice->sesion_id = $currentSession['id_sesion'];
-            $this->invoice->total = $total;
+            $this->invoice->total = isset($data['total']) ? (float)$data['total'] : 0;
             $this->invoice->metodo_pago = isset($data['metodo_pago']) ? $data['metodo_pago'] : 'efectivo';
 
             // Validar metodo de pago
@@ -195,7 +218,9 @@ class InvoiceController {
                 http_response_code(201);
                 echo json_encode([
                     "message" => "Venta registrada exitosamente.",
-                    "numero_factura" => $this->invoice->numero_factura
+                    "id_factura" => $this->invoice->id_factura,
+                    "numero_factura" => $this->invoice->numero_factura,
+                    "total" => $this->invoice->total
                 ]);
             } else {
                 http_response_code(503);
@@ -203,7 +228,50 @@ class InvoiceController {
             }
         } else {
             http_response_code(400);
-            echo json_encode(["message" => "Datos incompletos. Se requieren items y total."]);
+            echo json_encode(["message" => "Datos incompletos. Se requieren items."]);
+        }
+    }
+
+    public function quote() {
+        $data = json_decode(file_get_contents("php://input"), true);
+
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Formato de datos inválido."]);
+            return;
+        }
+
+        if (empty($data['items']) || !is_array($data['items'])) {
+            http_response_code(400);
+            echo json_encode(["message" => "Datos incompletos. Se requieren items."]);
+            return;
+        }
+
+        $usuarioId = isset($data['usuario_id']) ? $data['usuario_id'] : null;
+        if (empty($usuarioId)) {
+            http_response_code(400);
+            echo json_encode(["message" => "usuario_id es requerido."]);
+            return;
+        }
+
+        $boxSession = new BoxSession($this->db);
+        $stmtSession = $boxSession->getCurrentSession($usuarioId);
+        $currentSession = $stmtSession->fetch(PDO::FETCH_ASSOC);
+        if (!$currentSession) {
+            http_response_code(400);
+            echo json_encode(["message" => "No hay una caja abierta para este usuario."]);
+            return;
+        }
+
+        try {
+            $quote = $this->invoice->quoteItems($data['items']);
+            echo json_encode([
+                "total" => $quote['total'],
+                "lines" => $quote['lines']
+            ]);
+        } catch (Exception $e) {
+            http_response_code(400);
+            echo json_encode(["message" => $e->getMessage()]);
         }
     }
 }

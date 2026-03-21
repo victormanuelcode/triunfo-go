@@ -12,6 +12,7 @@ class InventoryMovement {
     public $id_movimiento;
     public $tipo; // 'entrada', 'salida'
     public $producto_id;
+    public $lote_id;
     public $cantidad;
     public $fecha;
     public $descripcion;
@@ -30,6 +31,7 @@ class InventoryMovement {
         $query = "INSERT INTO " . $this->table_name . "
                   SET tipo = :tipo,
                       producto_id = :producto_id,
+                      lote_id = :lote_id,
                       cantidad = :cantidad,
                       descripcion = :descripcion,
                       referencia = :referencia";
@@ -43,6 +45,7 @@ class InventoryMovement {
         // Vincular parámetros
         $stmt->bindParam(":tipo", $this->tipo);
         $stmt->bindParam(":producto_id", $this->producto_id);
+        $stmt->bindValue(":lote_id", $this->lote_id !== null ? (int)$this->lote_id : null, $this->lote_id !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
         $stmt->bindParam(":cantidad", $this->cantidad);
         $stmt->bindParam(":descripcion", $this->descripcion);
         $stmt->bindParam(":referencia", $this->referencia);
@@ -64,9 +67,10 @@ class InventoryMovement {
      */
     public function getAll($from = null, $to = null, $type = null, $search = null) {
         $query = "SELECT m.*, p.nombre as producto_nombre, p.imagen as producto_imagen, 
-                         c.nombre as categoria_nombre, f.id_factura
+                         c.nombre as categoria_nombre, f.id_factura, l.numero_lote
                   FROM " . $this->table_name . " m
                   LEFT JOIN productos p ON m.producto_id = p.id_producto
+                  LEFT JOIN lotes_producto l ON m.lote_id = l.id_lote
                   LEFT JOIN categorias c ON p.categoria_id = c.id_categoria
                   LEFT JOIN facturas f ON m.referencia = f.numero_factura
                   WHERE 1=1";

@@ -67,16 +67,23 @@ class InventoryController {
         // Obtener datos del body
         $data = json_decode(file_get_contents("php://input"));
 
-        if (!isset($data->producto_id) || !isset($data->cantidad) || !isset($data->tipo) || !isset($data->razon)) {
+        if (!isset($data->producto_id) || !isset($data->cantidad) || !isset($data->tipo) || !isset($data->razon) || !isset($data->lote_id)) {
             http_response_code(400);
-            echo json_encode(["message" => "Datos incompletos. Se requiere producto_id, cantidad, tipo y razon."]);
+            echo json_encode(["message" => "Datos incompletos. Se requiere producto_id, lote_id, cantidad, tipo y razon."]);
             return;
         }
 
         $producto_id = $data->producto_id;
+        $lote_id = (int)$data->lote_id;
         $cantidad = (int)$data->cantidad;
         $tipo = $data->tipo; // 'entrada' o 'salida'
         $razon = $data->razon;
+
+        if ($lote_id <= 0) {
+            http_response_code(400);
+            echo json_encode(["message" => "lote_id inválido."]);
+            return;
+        }
 
         if ($cantidad <= 0) {
             http_response_code(400);
@@ -94,8 +101,23 @@ class InventoryController {
         try {
             $this->db->beginTransaction();
 
-            // 1. Actualizar stock del producto
-            // Necesitamos instanciar Product (aunque idealmente debería inyectarse)
+            include_once __DIR__ . '/../models/ProductLot.php';
+            $lotModel = new ProductLot($this->db);
+
+            $lot = $lotModel->getLotById($lote_id);
+            if (!$lot) {
+                throw new Exception("Lote no encontrado.");
+            }
+            if ((int)$lot['producto_id'] !== (int)$producto_id) {
+                throw new Exception("El lote no pertenece al producto indicado.");
+            }
+
+            if ($tipo === 'entrada') {
+                $lotModel->restoreLot($lote_id, $cantidad);
+            } else {
+                $lotModel->consumeLot($lote_id, $cantidad);
+            }
+
             include_once __DIR__ . '/../models/Product.php';
             $product = new Product($this->db);
             $product->id_producto = $producto_id;
@@ -106,6 +128,7 @@ class InventoryController {
 
             // 2. Registrar movimiento
             $this->movement->producto_id = $producto_id;
+            $this->movement->lote_id = $lote_id;
             $this->movement->tipo = $tipo;
             $this->movement->cantidad = $cantidad;
             $this->movement->descripcion = "Ajuste Manual: " . $razon;

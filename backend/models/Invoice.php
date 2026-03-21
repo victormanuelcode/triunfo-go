@@ -35,6 +35,90 @@ class Invoice {
         $this->conn = $db;
     }
 
+    private function buildSaleLines($items, $lotModel) {
+        if (!is_array($items) || empty($items)) {
+            throw new Exception("Items inválidos.");
+        }
+
+        $lines = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                throw new Exception("Ítem inválido.");
+            }
+
+            $productoId = isset($item['producto_id']) ? (int)$item['producto_id'] : 0;
+            $cantidad = isset($item['cantidad']) ? (int)$item['cantidad'] : 0;
+            $preferredLotId = isset($item['lote_id']) ? (int)$item['lote_id'] : null;
+
+            if (isset($item['lotes']) && is_array($item['lotes']) && !empty($item['lotes'])) {
+                foreach ($item['lotes'] as $sel) {
+                    if (!is_array($sel) || !isset($sel['lote_id'], $sel['cantidad'])) {
+                        throw new Exception("Selección de lote inválida.");
+                    }
+                    $loteId = (int)$sel['lote_id'];
+                    $cantSel = (int)$sel['cantidad'];
+                    if ($loteId <= 0 || $cantSel <= 0) {
+                        throw new Exception("Selección de lote inválida.");
+                    }
+                    $lot = $lotModel->getLotById($loteId);
+                    if (!$lot) {
+                        throw new Exception("Lote no encontrado: {$loteId}.");
+                    }
+                    if ($productoId > 0 && (int)$lot['producto_id'] !== $productoId) {
+                        throw new Exception("El lote {$loteId} no pertenece al producto {$productoId}.");
+                    }
+                    if ((int)$lot['cantidad_disponible'] < $cantSel) {
+                        throw new Exception("Stock insuficiente en lote ID: {$loteId}.");
+                    }
+
+                    $lines[] = [
+                        'producto_id' => (int)$lot['producto_id'],
+                        'lote_id' => $loteId,
+                        'cantidad' => $cantSel,
+                        'precio_unitario' => (float)$lot['precio_venta'],
+                        'subtotal' => (float)$lot['precio_venta'] * $cantSel
+                    ];
+                }
+                continue;
+            }
+
+            if ($productoId <= 0 || $cantidad <= 0) {
+                throw new Exception("Cada ítem debe incluir producto_id y cantidad.");
+            }
+
+            $allocations = $preferredLotId ? $lotModel->allocateWithPreferredLot($productoId, $cantidad, $preferredLotId) : $lotModel->allocateFifo($productoId, $cantidad);
+            foreach ($allocations as $alloc) {
+                $lines[] = [
+                    'producto_id' => $productoId,
+                    'lote_id' => (int)$alloc['lote_id'],
+                    'cantidad' => (int)$alloc['cantidad'],
+                    'precio_unitario' => (float)$alloc['precio_unitario'],
+                    'subtotal' => (float)$alloc['precio_unitario'] * (int)$alloc['cantidad']
+                ];
+            }
+        }
+
+        $total = 0;
+        foreach ($lines as $ln) {
+            $total += (float)$ln['subtotal'];
+        }
+
+        return [
+            'lines' => $lines,
+            'total' => $total
+        ];
+    }
+
+    public function quoteItems($items) {
+        include_once __DIR__ . '/ProductLot.php';
+        $lotModel = new ProductLot($this->conn);
+        $sale = $this->buildSaleLines($items, $lotModel);
+        return [
+            "total" => $sale['total'],
+            "lines" => $sale['lines']
+        ];
+    }
+
     /**
      * Obtiene el historial de facturas con paginación.
      * Incluye el nombre del cliente asociado.
@@ -130,9 +214,10 @@ class Invoice {
             $this->usuario_nombre = $row['usuario_nombre'];
 
             // 2. Obtener detalles
-            $query_det = "SELECT d.*, p.nombre as producto_nombre 
+            $query_det = "SELECT d.*, p.nombre as producto_nombre, l.numero_lote as lote_numero
                           FROM detalle_factura d
                           LEFT JOIN productos p ON d.producto_id = p.id_producto
+                          LEFT JOIN lotes_producto l ON d.lote_id = l.id_lote
                           WHERE d.factura_id = ?";
             $stmt_det = $this->conn->prepare($query_det);
             $stmt_det->bindParam(1, $this->id_factura);
@@ -160,6 +245,9 @@ class Invoice {
         }
 
         try {
+            include_once __DIR__ . '/ProductLot.php';
+            $lotModel = new ProductLot($this->conn);
+
             $this->conn->beginTransaction();
 
             // 1. Actualizar estado de la factura
@@ -174,6 +262,7 @@ class Invoice {
             foreach ($this->detalles as $detalle) {
                 $producto_id = $detalle['producto_id'];
                 $cantidad = $detalle['cantidad'];
+                $lote_id = isset($detalle['lote_id']) ? $detalle['lote_id'] : null;
 
                 // a. Devolver stock
                 $queryStock = "UPDATE productos SET stock_actual = stock_actual + :cantidad WHERE id_producto = :id";
@@ -184,6 +273,10 @@ class Invoice {
                     throw new Exception("Error al revertir stock del producto ID: " . $producto_id);
                 }
 
+                if (!empty($lote_id)) {
+                    $lotModel->restoreLot((int)$lote_id, (int)$cantidad);
+                }
+
                 // b. Registrar movimiento de entrada (devolución)
                 // Instanciamos InventoryMovement o hacemos query directa. 
                 // Para mantener consistencia, query directa es más rápida aquí o instanciamos si está disponible.
@@ -192,14 +285,15 @@ class Invoice {
                 // InventoryMovement debería usar la misma conexión.
                 
                 $queryMov = "INSERT INTO movimientos_inventario 
-                             (tipo, producto_id, cantidad, descripcion, referencia, fecha) 
-                             VALUES ('entrada', :pid, :cant, :desc, :ref, NOW())";
+                             (tipo, producto_id, lote_id, cantidad, descripcion, referencia, fecha) 
+                             VALUES ('entrada', :pid, :lid, :cant, :desc, :ref, NOW())";
                 $stmtMov = $this->conn->prepare($queryMov);
                 $tipo = 'entrada';
                 $desc = "Anulación Factura " . $this->numero_factura;
                 $ref = "ANULACION";
                 
                 $stmtMov->bindParam(':pid', $producto_id);
+                $stmtMov->bindValue(':lid', !empty($lote_id) ? (int)$lote_id : null, !empty($lote_id) ? PDO::PARAM_INT : PDO::PARAM_NULL);
                 $stmtMov->bindParam(':cant', $cantidad);
                 $stmtMov->bindParam(':desc', $desc);
                 $stmtMov->bindParam(':ref', $ref);
@@ -233,11 +327,17 @@ class Invoice {
      */
     public function create() {
         try {
+            include_once __DIR__ . '/ProductLot.php';
+            $lotModel = new ProductLot($this->conn);
+
             // Iniciar transacción
             $this->conn->beginTransaction();
 
             // 1. Generar número de factura (simple por ahora: timestamp)
             $this->numero_factura = 'FAC-' . time();
+
+            $sale = $this->buildSaleLines($this->items, $lotModel);
+            $this->total = (float)$sale['total'];
 
             // 2. Insertar Factura
             $query = "INSERT INTO " . $this->table_name . " 
@@ -279,6 +379,7 @@ class Invoice {
             $query_detail = "INSERT INTO detalle_factura 
                              SET factura_id=:factura_id, 
                                  producto_id=:producto_id, 
+                                 lote_id=:lote_id,
                                  cantidad=:cantidad, 
                                  precio_unitario=:precio_unitario, 
                                  subtotal=:subtotal";
@@ -287,12 +388,13 @@ class Invoice {
             // b. Descontar Stock
             $query_stock = "UPDATE productos 
                             SET stock_actual = stock_actual - :cantidad 
-                            WHERE id_producto = :producto_id";
+                            WHERE id_producto = :producto_id
+                              AND stock_actual >= :cantidad_check";
             $stmt_stock = $this->conn->prepare($query_stock);
 
             // c. Registrar Movimiento de Salida
             $query_mov = "INSERT INTO movimientos_inventario 
-                          SET tipo='salida', producto_id=:producto_id, 
+                          SET tipo='salida', producto_id=:producto_id, lote_id=:lote_id,
                               cantidad=:cantidad, descripcion=:descripcion, 
                               referencia=:referencia";
             $stmt_mov = $this->conn->prepare($query_mov);
@@ -301,6 +403,7 @@ class Invoice {
             // Variables para vinculación
             $d_factura_id = $this->id_factura;
             $d_producto_id = 0;
+            $d_lote_id = null;
             $d_cantidad = 0;
             $d_precio = 0;
             $d_subtotal = 0;
@@ -308,6 +411,7 @@ class Invoice {
             // Vincular Detalle
             $stmt_detail->bindParam(":factura_id", $d_factura_id);
             $stmt_detail->bindParam(":producto_id", $d_producto_id);
+            $stmt_detail->bindParam(":lote_id", $d_lote_id);
             $stmt_detail->bindParam(":cantidad", $d_cantidad);
             $stmt_detail->bindParam(":precio_unitario", $d_precio);
             $stmt_detail->bindParam(":subtotal", $d_subtotal);
@@ -316,46 +420,49 @@ class Invoice {
             $s_cantidad = 0;
             $s_producto_id = 0;
             $stmt_stock->bindParam(":cantidad", $s_cantidad);
+            $stmt_stock->bindParam(":cantidad_check", $s_cantidad);
             $stmt_stock->bindParam(":producto_id", $s_producto_id);
 
             // Vincular Movimiento
             $m_producto_id = 0;
+            $m_lote_id = null;
             $m_cantidad = 0;
             $m_descripcion = "Venta Factura " . $this->numero_factura;
             $m_referencia = $this->numero_factura;
 
             $stmt_mov->bindParam(":producto_id", $m_producto_id);
+            $stmt_mov->bindParam(":lote_id", $m_lote_id);
             $stmt_mov->bindParam(":cantidad", $m_cantidad);
             $stmt_mov->bindParam(":descripcion", $m_descripcion);
             $stmt_mov->bindParam(":referencia", $m_referencia);
 
-            foreach ($this->items as $item) {
-                // Asignar valores a las variables vinculadas
-                $d_producto_id = $item['producto_id'];
-                $d_cantidad = $item['cantidad'];
-                $d_precio = $item['precio_unitario'];
-                $d_subtotal = $item['cantidad'] * $item['precio_unitario'];
-                
-                // Stock vars
-                $s_cantidad = $item['cantidad'];
-                $s_producto_id = $item['producto_id'];
+            foreach ($sale['lines'] as $line) {
+                $d_producto_id = (int)$line['producto_id'];
+                $d_lote_id = (int)$line['lote_id'];
+                $d_cantidad = (int)$line['cantidad'];
+                $d_precio = (float)$line['precio_unitario'];
+                $d_subtotal = (float)$line['subtotal'];
 
-                // Variables de Movimiento
-                $m_producto_id = $item['producto_id'];
-                $m_cantidad = $item['cantidad'];
-                // m_descripcion y m_referencia son constantes por factura
+                $s_cantidad = (int)$line['cantidad'];
+                $s_producto_id = (int)$line['producto_id'];
 
-                // a. Insertar Detalle
+                $m_producto_id = (int)$line['producto_id'];
+                $m_lote_id = (int)$line['lote_id'];
+                $m_cantidad = (int)$line['cantidad'];
+
                 if (!$stmt_detail->execute()) {
-                    throw new Exception("Error al insertar detalle del producto ID: " . $item['producto_id']);
+                    throw new Exception("Error al insertar detalle del producto ID: " . $d_producto_id);
                 }
 
-                // b. Descontar Stock
+                $lotModel->consumeLot($m_lote_id, $m_cantidad);
+
                 if (!$stmt_stock->execute()) {
-                    throw new Exception("Error al actualizar stock del producto ID: " . $item['producto_id']);
+                    throw new Exception("Error al actualizar stock del producto ID: " . $d_producto_id);
+                }
+                if ($stmt_stock->rowCount() < 1) {
+                    throw new Exception("Stock insuficiente para el producto ID: " . $d_producto_id);
                 }
 
-                // c. Registrar Movimiento de Salida
                 if (!$stmt_mov->execute()) {
                     throw new Exception("Error al registrar movimiento de inventario.");
                 }
