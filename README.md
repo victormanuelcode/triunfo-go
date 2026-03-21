@@ -285,6 +285,31 @@ Elimina (soft delete) un producto.
 
 ---
 
+### Lotes (Trazabilidad y precio por lote)
+
+Los lotes permiten manejar el inventario con trazabilidad (FIFO) y con precio de venta por lote.
+
+#### `GET /products/{id}/lots`
+Lista los lotes de un producto (FIFO: más antiguo primero).
+- **Auth:** Admin y Cajero.
+
+#### `POST /lots`
+Crea un lote (entrada de inventario) para un producto.
+- **Auth:** solo Admin.
+- **Body (JSON):**
+  ```json
+  {
+    "producto_id": 5,
+    "cantidad": 20,
+    "precio_venta": 6500,
+    "costo_unitario": 4000,
+    "proveedor_id": 1,
+    "numero_lote": "L-2026-001"
+  }
+  ```
+
+---
+
 ### Ventas / Facturas
 
 #### `GET /invoices`  
@@ -300,25 +325,39 @@ Obtiene detalle completo de una factura (cabecera + items).
 #### `POST /invoices`  
 Registra una venta/factura.  
 - **Auth:** Admin y Cajero.  
-- **Body (JSON):**
+- **Body (JSON) (nuevo con lotes):**
   ```json
   {
     "cliente_id": 1,
     "usuario_id": 2,
     "sesion_id": 3,
-    "total": 25000,
     "metodo_pago": "efectivo",
     "observaciones": "Entrega inmediata",
     "items": [
       {
         "producto_id": 1,
-        "cantidad": 2,
-        "precio_unitario": 10000
+        "lotes": [
+          { "lote_id": 101, "cantidad": 1 },
+          { "lote_id": 102, "cantidad": 1 }
+        ]
       }
     ]
   }
   ```
-- Valida cantidades y precios > 0, descuenta stock y guarda detalles.
+- El backend calcula el total real usando precio por lote, descuenta stock y guarda trazabilidad (detalle_factura.lote_id y movimientos_inventario.lote_id).
+
+#### `POST /invoices/quote`
+Cotiza una venta antes de cobrar (devuelve total real y desglose por lotes).
+- **Auth:** Admin y Cajero.
+- **Body (JSON):**
+  ```json
+  {
+    "usuario_id": 2,
+    "items": [
+      { "producto_id": 5, "cantidad": 3, "lote_id": 101 }
+    ]
+  }
+  ```
 
 ---
 
@@ -343,7 +382,7 @@ Obtiene datos de la empresa (nombre, NIT, dirección, etc.).
 #### `POST /company`  
 Crea/actualiza datos de la empresa.  
 - **Auth:** solo Admin.  
-- **Body (JSON):** campos de configuración de empresa.
+- **Body:** `multipart/form-data` (permite subir logo).
 
 ---
 
@@ -353,6 +392,24 @@ Crea/actualiza datos de la empresa.
 Lista movimientos de inventario (entradas/salidas).  
 - **Auth:** Admin y Cajero.  
 - **Uso típico:** reportes y auditoría de stock.
+
+#### `GET /inventory/summary`
+Devuelve KPIs/resumen de movimientos para el módulo de inventario.
+- **Auth:** Admin y Cajero.
+
+#### `POST /inventory/adjust`
+Registra un ajuste manual de inventario (entrada/salida) **por lote**.
+- **Auth:** solo Admin.
+- **Body (JSON):**
+  ```json
+  {
+    "producto_id": 5,
+    "lote_id": 101,
+    "tipo": "salida",
+    "cantidad": 2,
+    "razon": "Ajuste por inventario físico"
+  }
+  ```
 
 ---
 
@@ -390,30 +447,30 @@ Cierra la sesión de caja actual.
 ## 🖥 Frontend (Interfaz)
 
 ### Módulos:
-1. **Login (`login.html`)**: Acceso al sistema. Redirección basada en roles.
-2. **Inventario (`index.html`)**:
-   - Listado de productos con indicadores de stock.
-   - Modal para Crear/Editar productos (carga categorías dinámicamente).
-3. **Categorías (`categorias.html`)**:
-   - Gestión CRUD de familias de productos.
-4. **Punto de Venta (`ventas.html`)**:
-   - **Panel Izquierdo:** Buscador y catálogo visual de productos.
-   - **Panel Derecho:** Carrito de compras interactivo.
-   - **Proceso:** Selección -> Cálculo -> Confirmación -> Actualización de Stock.
+1. **Login**: `frontend/views/auth/login.html`.
+2. **Admin**:
+   - Dashboard: `frontend/views/admin/dashboard.html`.
+   - Inventario: `frontend/views/admin/productos.html` (incluye gestión de lotes).
+   - Movimientos: `frontend/views/admin/movimientos.html` (ajustes por lote).
+   - Facturación/Historial: `frontend/views/admin/historial.html`.
+3. **Cajero**:
+   - POS/Caja: `frontend/views/cashier/ventas.html` (muestra desglose por lotes).
+   - Historial: `frontend/views/cashier/historial.html`.
 
 ---
 
 ## ⚙️ Instalación y Configuración
 
-1. **Requisitos:** XAMPP (Apache + MySQL).
+1. **Requisitos:** XAMPP (Apache + MySQL) + Composer.
 2. **Base de Datos:**
    - Crear BD `triunfo_go_php` en phpMyAdmin.
-   - Importar script `backend/triunfo_go_php.sql` (si existe) o estructura actual.
-   - Asegurar existencia de "Cliente General" (ID 1).
-3. **Configuración:**
-   - Verificar credenciales en `backend/config/Database.php`.
-4. **Ejecución:**
-   - Abrir navegador en `http://localhost/proyecto_final/frontend/login.html`.
+   - Importar el SQL base (ej: `backend/db/triunfo_go_php(1).sql`) o el SQL actualizado con lotes.
+3. **Backend (dependencias):**
+   - Entrar a `backend/` y ejecutar `composer install`.
+4. **Configuración:**
+   - Ajustar credenciales en `backend/.env` (DB_HOST, DB_NAME, DB_USER, DB_PASS, JWT_SECRET).
+5. **Ejecución:**
+   - Login: `http://localhost/proyecto_final/frontend/views/auth/login.html`.
 
 ---
 
@@ -428,7 +485,9 @@ Cierra la sesión de caja actual.
     - [x] Carrito de compras JS.
     - [x] Backend de facturación con transacción.
     - [x] Descuento de stock automático.
-- [ ] **Reportes/Historial**: Visualización de ventas realizadas (Pendiente).
-- [ ] **Gestión de Clientes**: CRUD de clientes (Pendiente).
+- [x] **Gestión de Clientes**: CRUD de clientes.
+- [x] **Reportes/Historial**: visualización de ventas realizadas.
+- [x] **Caja**: apertura/cierre y sesión por usuario.
+- [x] **Lotes**: FIFO, selección manual y precio por lote.
 
 ---
