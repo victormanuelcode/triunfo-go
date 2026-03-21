@@ -3,6 +3,7 @@ const API_URL = '/proyecto_final/backend';
 let movimientosGlobal = [];
 let currentPage = 1;
 let itemsPerPage = 10;
+let lotesPorProductoMovimiento = new Map();
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
@@ -255,6 +256,10 @@ function renderizarTabla() {
             ? `<img src="${m.producto_imagen}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 8px; margin-right: 12px; border: 1px solid #e5e7eb;">` 
             : '<div style="width: 40px; height: 40px; background-color: #f3f4f6; border-radius: 8px; margin-right: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid #e5e7eb;"><i class="fas fa-box text-muted"></i></div>';
 
+        const loteTexto = m.lote_id
+            ? `Lote: ${m.numero_lote ? m.numero_lote : ('#' + m.lote_id)}`
+            : 'Lote: -';
+
         tr.innerHTML = `
             <td><span style="font-family: monospace; color: #6b7280; font-weight: 500;">#${m.id_movimiento}</span></td>
             <td>
@@ -269,6 +274,7 @@ function renderizarTabla() {
                     <div>
                         <div style="font-weight: 600; color: #1f2937; font-size: 0.95rem;">${m.producto_nombre || 'Producto Eliminado'}</div>
                         <div style="font-size: 0.8rem; color: #6b7280;">${m.categoria_nombre || 'Sin categoría'}</div>
+                        <div style="font-size: 0.75rem; color: #6b7280;">${loteTexto}</div>
                     </div>
                 </div>
             </td>
@@ -319,6 +325,8 @@ function renderizarTabla() {
                                 <span style="font-family: monospace; color: #111827;">${m.id_movimiento}</span>
                                 <span style="color: #6b7280;">ID Producto:</span>
                                 <span style="font-family: monospace; color: #111827;">${m.producto_id}</span>
+                                <span style="color: #6b7280;">Lote:</span>
+                                <span style="font-family: monospace; color: #111827;">${m.lote_id ? (m.numero_lote ? m.numero_lote : ('#' + m.lote_id)) : '-'}</span>
                                 <span style="color: #6b7280;">Registrado:</span>
                                 <span style="color: #111827;">${new Date(m.fecha).toLocaleString()}</span>
                             </div>
@@ -403,6 +411,19 @@ async function abrirModalMovimiento() {
             backdrop.className = 'modal-backdrop fade show';
             document.body.appendChild(backdrop);
         }
+
+        const productoSelect = document.getElementById('movimiento-producto');
+        const loteSelect = document.getElementById('movimiento-lote');
+        if (loteSelect) {
+            loteSelect.innerHTML = '<option value="">Seleccione un lote...</option>';
+        }
+        if (productoSelect && !productoSelect.dataset.loteListener) {
+            productoSelect.addEventListener('change', async (e) => {
+                const pid = e.target.value;
+                await cargarLotesDeProductoParaMovimiento(pid);
+            });
+            productoSelect.dataset.loteListener = 'true';
+        }
     }
 }
 
@@ -419,22 +440,82 @@ function cerrarModalMovimiento() {
         
         // Limpiar formulario
         document.getElementById('form-movimiento').reset();
+        const loteSelect = document.getElementById('movimiento-lote');
+        if (loteSelect) {
+            loteSelect.innerHTML = '<option value="">Seleccione un lote...</option>';
+        }
     }
+}
+
+async function cargarLotesDeProductoParaMovimiento(productoId) {
+    const loteSelect = document.getElementById('movimiento-lote');
+    if (!loteSelect) return;
+
+    const pid = Number(productoId || 0);
+    if (!(pid > 0)) {
+        loteSelect.innerHTML = '<option value="">Seleccione un lote...</option>';
+        return;
+    }
+
+    loteSelect.innerHTML = '<option value="">Cargando lotes...</option>';
+
+    try {
+        if (lotesPorProductoMovimiento.has(pid)) {
+            const cached = lotesPorProductoMovimiento.get(pid);
+            renderLotesSelect(loteSelect, cached);
+            return;
+        }
+
+        const response = await fetch(`${API_URL}/products/${pid}/lots`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const json = await response.json();
+        if (!response.ok) {
+            throw new Error(json.message || 'Error cargando lotes');
+        }
+        const lots = Array.isArray(json) ? json : (json.data || []);
+        const disponibles = (lots || []).filter(l => Number(l.cantidad_disponible || 0) > 0 && (l.estado || 'activo') === 'activo');
+        lotesPorProductoMovimiento.set(pid, disponibles);
+        renderLotesSelect(loteSelect, disponibles);
+    } catch (err) {
+        console.error(err);
+        loteSelect.innerHTML = '<option value="">Error cargando lotes</option>';
+    }
+}
+
+function renderLotesSelect(selectEl, lots) {
+    selectEl.innerHTML = '<option value="">Seleccione un lote...</option>';
+    if (!lots || lots.length === 0) {
+        selectEl.innerHTML = '<option value="">No hay lotes disponibles</option>';
+        return;
+    }
+    lots.forEach(l => {
+        const opt = document.createElement('option');
+        const idLote = Number(l.id_lote);
+        const numero = l.numero_lote ? String(l.numero_lote) : ('#' + idLote);
+        const disp = Number(l.cantidad_disponible || 0);
+        const precio = Number(l.precio_venta || 0);
+        opt.value = String(idLote);
+        opt.textContent = `${numero} | disp:${disp} | $${precio.toLocaleString('es-CO')}`;
+        selectEl.appendChild(opt);
+    });
 }
 
 async function guardarMovimiento() {
     const productoId = document.getElementById('movimiento-producto').value;
+    const loteId = document.getElementById('movimiento-lote')?.value;
     const tipo = document.getElementById('movimiento-tipo').value;
     const cantidad = document.getElementById('movimiento-cantidad').value;
     const descripcion = document.getElementById('movimiento-descripcion').value;
 
-    if (!productoId || !tipo || !cantidad || !descripcion) {
+    if (!productoId || !loteId || !tipo || !cantidad || !descripcion) {
         alert('Por favor complete todos los campos');
         return;
     }
 
     const data = {
         producto_id: productoId,
+        lote_id: loteId,
         tipo: tipo,
         cantidad: cantidad,
         razon: descripcion
