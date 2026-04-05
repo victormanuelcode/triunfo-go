@@ -20,3 +20,7 @@ error_log
 # Configuración local (opcional, por si agregamos .env después)
 .env
 config/config.local.php
+
+# Uploads (runtime)
+backend/uploads/avatars/*
+!backend/uploads/avatars/.gitkeep
