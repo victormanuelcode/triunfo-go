@@ -116,6 +116,24 @@ Obtiene el perfil del usuario autenticado (datos básicos).
 Actualiza datos del usuario autenticado.  
 - **Body (JSON):** campos editables de perfil.
 
+#### `POST /profile/avatar`
+Sube una imagen de avatar y actualiza el perfil.
+- **Auth:** cualquier usuario logueado.
+- **Body:** `multipart/form-data` con campo `avatar` (jpg/png/webp).
+
+---
+
+### Notificaciones
+
+#### `GET /notifications`
+Lista notificaciones del usuario (incluye globales).
+- **Auth:** cualquier usuario logueado.
+- **Query opcional:** `?only_unread=1`
+
+#### `PATCH /notifications/{id}/read`
+Marca una notificación como leída.
+- **Auth:** cualquier usuario logueado.
+
 #### `GET /users`  
 Lista todos los usuarios.  
 - **Auth:** solo rol **Admin (1)**.
@@ -308,6 +326,20 @@ Crea un lote (entrada de inventario) para un producto.
   }
   ```
 
+- `numero_lote` es opcional. Si se envía vacío, el sistema asigna uno automáticamente con formato `L-YYYYMMDD-ID`.
+
+#### `PUT /lots/{id}`
+Actualiza datos del lote (precio de venta, costo unitario, proveedor, número).
+- **Auth:** solo Admin.
+
+#### `POST /lots/{id}/restock`
+Registra compra/reabastecimiento sobre un lote existente (aumenta disponible y stock del producto).
+- **Auth:** solo Admin.
+
+#### `DELETE /lots/{id}`
+Inactiva el lote (lo deja con disponible 0 para evitar su uso en ventas).
+- **Auth:** solo Admin.
+
 ---
 
 ### Ventas / Facturas
@@ -426,6 +458,7 @@ Abre una nueva sesión de caja.
 - **Body (JSON):**
   ```json
   {
+    "usuario_id": 2,
     "monto_apertura": 50000
   }
   ```
@@ -436,6 +469,7 @@ Cierra la sesión de caja actual.
 - **Body (JSON):**
   ```json
   {
+    "id_sesion": 3,
     "monto_cierre": 120000,
     "observaciones": "Turno mañana"
   }
@@ -456,6 +490,8 @@ Cierra la sesión de caja actual.
 3. **Cajero**:
    - POS/Caja: `frontend/views/cashier/ventas.html` (muestra desglose por lotes).
    - Historial: `frontend/views/cashier/historial.html`.
+4. **Común**:
+   - Perfil: `frontend/views/common/perfil.html`.
 
 ---
 
