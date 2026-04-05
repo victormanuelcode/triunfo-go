@@ -3,7 +3,6 @@ let productosAdminGlobal = [];
 let productoLotesActualId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('App iniciada');
     cargarProductos();
     cargarCategoriasSelect();
     cargarUnidadesSelect();
@@ -13,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupModal();
     setupUnidadesModal(); 
     setupLotesModals();
+    setupCompraProductoModal();
     
     // Listener global para cerrar modales al hacer click fuera
     window.onclick = function(event) {
@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const modalUnidades = document.getElementById('unidadesModal');
         const modalLotes = document.getElementById('lotesModal');
         const modalCrearLote = document.getElementById('crearLoteModal');
+        const modalEditarLote = document.getElementById('editarLoteModal');
+        const modalCompra = document.getElementById('compraProductoModal');
         
         if (modalProductos && event.target == modalProductos) {
             modalProductos.style.display = "none";
@@ -33,6 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (modalCrearLote && event.target == modalCrearLote) {
             modalCrearLote.style.display = "none";
+        }
+        if (modalEditarLote && event.target == modalEditarLote) {
+            modalEditarLote.style.display = "none";
+        }
+        if (modalCompra && event.target == modalCompra) {
+            modalCompra.style.display = "none";
         }
     };
 });
@@ -147,10 +155,12 @@ function getProductoAdminById(id) {
 function setupLotesModals() {
     const lotesModal = document.getElementById('lotesModal');
     const crearLoteModal = document.getElementById('crearLoteModal');
+    const editarLoteModal = document.getElementById('editarLoteModal');
     if (!lotesModal || !crearLoteModal) return;
 
     const closeLotes = () => { lotesModal.style.display = "none"; };
     const closeCrear = () => { crearLoteModal.style.display = "none"; };
+    const closeEditar = () => { if (editarLoteModal) editarLoteModal.style.display = "none"; };
 
     const spanCloseLotes = document.getElementsByClassName('close-modal-lotes')[0];
     const btnCloseLotes = document.getElementsByClassName('close-modal-lotes-btn')[0];
@@ -161,6 +171,11 @@ function setupLotesModals() {
     const btnCloseCrear = document.getElementsByClassName('close-modal-crear-lote-btn')[0];
     if (spanCloseCrear) spanCloseCrear.onclick = closeCrear;
     if (btnCloseCrear) btnCloseCrear.onclick = closeCrear;
+
+    const spanCloseEditar = document.getElementsByClassName('close-modal-editar-lote')[0];
+    const btnCloseEditar = document.getElementsByClassName('close-modal-editar-lote-btn')[0];
+    if (spanCloseEditar) spanCloseEditar.onclick = closeEditar;
+    if (btnCloseEditar) btnCloseEditar.onclick = closeEditar;
 
     const btnNuevaEntrada = document.getElementById('btnNuevaEntradaLote');
     if (btnNuevaEntrada) {
@@ -221,6 +236,44 @@ function setupLotesModals() {
         };
     }
 
+    const editForm = document.getElementById('editarLoteForm');
+    if (editForm) {
+        editForm.onsubmit = async function (e) {
+            e.preventDefault();
+            const loteId = Number(document.getElementById('editLoteId').value || 0);
+            const numero = (document.getElementById('editLoteNumero').value || '').trim();
+            const proveedorIdRaw = (document.getElementById('editLoteProveedorId').value || '').trim();
+            const proveedorId = proveedorIdRaw ? Number(proveedorIdRaw) : null;
+            const precioVenta = Number(document.getElementById('editLotePrecioVenta').value || 0);
+            const costoUnitario = Number(document.getElementById('editLoteCostoUnitario').value || 0);
+            if (!(loteId > 0) || !(precioVenta > 0)) {
+                alert('Precio de venta es obligatorio.');
+                return;
+            }
+            try {
+                const payload = { precio_venta: precioVenta, costo_unitario: costoUnitario };
+                if (proveedorId) payload.proveedor_id = proveedorId;
+                payload.numero_lote = numero || null;
+                const resp = await fetch(`${API_URL}/lots/${loteId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const json = await resp.json();
+                if (!resp.ok) {
+                    alert(json.message || 'No se pudo actualizar el lote.');
+                    return;
+                }
+                closeEditar();
+                await cargarProductos();
+                if (productoLotesActualId) await window.verLotesProducto(productoLotesActualId);
+            } catch (err) {
+                console.error(err);
+                alert('Error de conexión actualizando lote.');
+            }
+        };
+    }
+
     window.verLotesProducto = async function (productoId) {
         productoLotesActualId = Number(productoId);
         const prod = getProductoAdminById(productoLotesActualId);
@@ -229,7 +282,7 @@ function setupLotesModals() {
         if (nombreEl) nombreEl.textContent = nombre;
 
         const tbody = document.getElementById('tablaLotesBody');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Cargando...</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Cargando...</td></tr>';
         lotesModal.style.display = "block";
 
         try {
@@ -240,7 +293,7 @@ function setupLotesModals() {
             if (!tbody) return;
             tbody.innerHTML = '';
             if (!lots || lots.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No hay lotes para este producto.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No hay lotes para este producto.</td></tr>';
                 return;
             }
 
@@ -258,17 +311,23 @@ function setupLotesModals() {
                     <td>${disponible}</td>
                     <td>$${precio.toLocaleString('es-CO')}</td>
                     <td>${estado}</td>
+                    <td>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+                            <button class="btn-secondary" onclick="editarLote(${l.id_lote})">Editar</button>
+                            <button class="btn-danger" onclick="eliminarLote(${l.id_lote})">Inactivar</button>
+                        </div>
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });
         } catch (err) {
             console.error(err);
-            if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#dc2626;">Error cargando lotes.</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#dc2626;">Error cargando lotes.</td></tr>';
         }
     };
 
-    async function cargarProveedoresLoteSelect() {
-        const select = document.getElementById('loteProveedorId');
+    async function cargarProveedoresEnSelect(selectId) {
+        const select = document.getElementById(selectId);
         if (!select) return;
         select.innerHTML = '<option value="">Seleccione un proveedor</option>';
         try {
@@ -294,8 +353,231 @@ function setupLotesModals() {
         document.getElementById('loteCostoUnitario').value = '0';
         document.getElementById('lotePrecioVenta').value = prod?.precio_venta ? String(prod.precio_venta) : '';
 
-        await cargarProveedoresLoteSelect();
+        await cargarProveedoresEnSelect('loteProveedorId');
         crearLoteModal.style.display = "block";
+    };
+
+    window.editarLote = async function (loteId) {
+        const id = Number(loteId);
+        if (!(id > 0)) return;
+        try {
+            const resp = await fetch(`${API_URL}/products/${productoLotesActualId}/lots`);
+            const json = await resp.json();
+            const lots = Array.isArray(json) ? json : (json.data || []);
+            const lot = (lots || []).find(x => Number(x.id_lote) === id);
+            if (!lot) {
+                alert('Lote no encontrado.');
+                return;
+            }
+            const prod = getProductoAdminById(Number(lot.producto_id));
+            document.getElementById('editLoteId').value = String(id);
+            document.getElementById('editLoteProductoNombre').textContent = prod?.nombre || `Producto #${lot.producto_id}`;
+            document.getElementById('editLoteNumero').value = lot.numero_lote || '';
+            document.getElementById('editLotePrecioVenta').value = lot.precio_venta || '';
+            document.getElementById('editLoteCostoUnitario').value = lot.costo_unitario || 0;
+            await cargarProveedoresEnSelect('editLoteProveedorId');
+            document.getElementById('editLoteProveedorId').value = lot.proveedor_id || '';
+            if (editarLoteModal) editarLoteModal.style.display = "block";
+        } catch (err) {
+            console.error(err);
+            alert('Error cargando datos del lote.');
+        }
+    };
+
+    window.eliminarLote = async function (loteId) {
+        const id = Number(loteId);
+        if (!(id > 0)) return;
+        if (!confirm('¿Inactivar este lote? Esto dejará el disponible en 0 y evitará su uso en ventas.')) return;
+        try {
+            const resp = await fetch(`${API_URL}/lots/${id}`, { method: 'DELETE' });
+            const json = await resp.json();
+            if (!resp.ok) {
+                alert(json.message || 'No se pudo eliminar el lote.');
+                return;
+            }
+            await cargarProductos();
+            if (productoLotesActualId) await window.verLotesProducto(productoLotesActualId);
+        } catch (err) {
+            console.error(err);
+            alert('Error de conexión eliminando lote.');
+        }
+    };
+}
+
+function setupCompraProductoModal() {
+    const modal = document.getElementById('compraProductoModal');
+    const btnCompra = document.getElementById('btnNuevoProducto');
+    const btnCrearProd = document.getElementById('btnCrearProducto');
+    const modalProducto = document.getElementById('productoModal');
+    const formProducto = document.getElementById('productoForm');
+    if (btnCrearProd && modalProducto && formProducto) {
+        btnCrearProd.onclick = function () {
+            formProducto.reset();
+            document.getElementById('productoId').value = '';
+            modalProducto.style.display = 'block';
+        };
+    }
+    if (!modal || !btnCompra) return;
+
+    const close = () => { modal.style.display = 'none'; };
+    const spanClose = document.getElementsByClassName('close-modal-compra')[0];
+    const btnClose = document.getElementsByClassName('close-modal-compra-btn')[0];
+    if (spanClose) spanClose.onclick = close;
+    if (btnClose) btnClose.onclick = close;
+
+    const productoSelect = document.getElementById('compraProductoId');
+    const loteSelect = document.getElementById('compraLoteId');
+    const proveedorNuevoSelect = document.getElementById('compraNuevoProveedorId');
+
+    async function cargarProveedoresCompra() {
+        if (!proveedorNuevoSelect) return;
+        proveedorNuevoSelect.innerHTML = '<option value="">Seleccione un proveedor</option>';
+        try {
+            const response = await fetch(`${API_URL}/suppliers`);
+            const proveedores = await response.json();
+            (proveedores || []).forEach(p => {
+                proveedorNuevoSelect.innerHTML += `<option value="${p.id_proveedor}">${p.nombre}</option>`;
+            });
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    async function cargarProductosCompra() {
+        if (!productoSelect) return;
+        productoSelect.innerHTML = '<option value="">Seleccione un producto</option>';
+        (productosAdminGlobal || []).forEach(p => {
+            productoSelect.innerHTML += `<option value="${p.id_producto}">${p.nombre}</option>`;
+        });
+    }
+
+    async function cargarLotesProducto(productoId) {
+        if (!loteSelect) return;
+        loteSelect.innerHTML = '<option value="">Seleccione un lote</option>';
+        if (!(productoId > 0)) return;
+        try {
+            const resp = await fetch(`${API_URL}/products/${productoId}/lots`);
+            const json = await resp.json();
+            const lots = Array.isArray(json) ? json : (json.data || []);
+            (lots || []).forEach(l => {
+                const numero = l.numero_lote ? String(l.numero_lote) : `#${l.id_lote}`;
+                const disp = Number(l.cantidad_disponible || 0);
+                const estado = String(l.estado || '');
+                if (estado === 'inactivo') return;
+                loteSelect.innerHTML += `<option value="${l.id_lote}">${numero} | disp: ${disp} | $${Number(l.precio_venta||0).toLocaleString('es-CO')}</option>`;
+            });
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    const existenteBox = document.getElementById('compraExistenteBox');
+    const nuevoBox = document.getElementById('compraNuevoBox');
+    function setTipo(tipo) {
+        if (existenteBox) existenteBox.style.display = tipo === 'existente' ? 'block' : 'none';
+        if (nuevoBox) nuevoBox.style.display = tipo === 'nuevo' ? 'block' : 'none';
+        const nCant = document.getElementById('compraNuevoCantidad');
+        const nPrecio = document.getElementById('compraNuevoPrecioVenta');
+        const eCant = document.getElementById('compraCantidad');
+        const eLote = document.getElementById('compraLoteId');
+        if (nCant) nCant.required = tipo === 'nuevo';
+        if (nPrecio) nPrecio.required = tipo === 'nuevo';
+        if (eCant) eCant.required = tipo === 'existente';
+        if (eLote) eLote.required = tipo === 'existente';
+    }
+
+    Array.from(document.querySelectorAll('input[name="compraTipo"]')).forEach(r => {
+        r.addEventListener('change', () => setTipo(r.value));
+    });
+
+    if (productoSelect) {
+        productoSelect.addEventListener('change', () => {
+            const pid = Number(productoSelect.value || 0);
+            cargarLotesProducto(pid);
+            const prod = getProductoAdminById(pid);
+            const precio = prod?.precio_venta ? Number(prod.precio_venta) : 0;
+            const precioNuevo = document.getElementById('compraNuevoPrecioVenta');
+            if (precioNuevo && precio > 0) precioNuevo.value = String(precio);
+        });
+    }
+
+    const form = document.getElementById('compraProductoForm');
+    if (form) {
+        form.onsubmit = async function (e) {
+            e.preventDefault();
+            const productoId = Number(document.getElementById('compraProductoId').value || 0);
+            const tipo = (document.querySelector('input[name="compraTipo"]:checked')?.value || 'existente');
+            if (!(productoId > 0)) {
+                alert('Seleccione un producto.');
+                return;
+            }
+
+            try {
+                if (tipo === 'existente') {
+                    const loteId = Number(document.getElementById('compraLoteId').value || 0);
+                    const cantidad = Number(document.getElementById('compraCantidad').value || 0);
+                    const precioVenta = Number(document.getElementById('compraPrecioVenta').value || 0);
+                    const costoUnitario = Number(document.getElementById('compraCostoUnitario').value || 0);
+                    if (!(loteId > 0) || !(cantidad > 0)) {
+                        alert('Lote y cantidad son obligatorios.');
+                        return;
+                    }
+                    const payload = { cantidad };
+                    if (precioVenta > 0) payload.precio_venta = precioVenta;
+                    if (costoUnitario >= 0) payload.costo_unitario = costoUnitario;
+                    const resp = await fetch(`${API_URL}/lots/${loteId}/restock`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const json = await resp.json();
+                    if (!resp.ok) {
+                        alert(json.message || 'No se pudo registrar la compra.');
+                        return;
+                    }
+                } else {
+                    const cantidad = Number(document.getElementById('compraNuevoCantidad').value || 0);
+                    const precioVenta = Number(document.getElementById('compraNuevoPrecioVenta').value || 0);
+                    const costoUnitario = Number(document.getElementById('compraNuevoCostoUnitario').value || 0);
+                    const proveedorIdRaw = (document.getElementById('compraNuevoProveedorId').value || '').trim();
+                    const proveedorId = proveedorIdRaw ? Number(proveedorIdRaw) : null;
+                    const numero = (document.getElementById('compraNuevoNumero').value || '').trim();
+                    if (!(cantidad > 0) || !(precioVenta > 0)) {
+                        alert('Cantidad y precio de venta son obligatorios.');
+                        return;
+                    }
+                    const payload = { producto_id: productoId, cantidad, precio_venta: precioVenta, costo_unitario: costoUnitario };
+                    if (proveedorId) payload.proveedor_id = proveedorId;
+                    if (numero) payload.numero_lote = numero;
+                    const resp = await fetch(`${API_URL}/lots`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const json = await resp.json();
+                    if (!resp.ok) {
+                        alert(json.message || 'No se pudo registrar la compra.');
+                        return;
+                    }
+                }
+
+                close();
+                await cargarProductos();
+            } catch (err) {
+                console.error(err);
+                alert('Error de conexión registrando compra.');
+            }
+        };
+    }
+
+    btnCompra.onclick = async function () {
+        const formEl = document.getElementById('compraProductoForm');
+        if (formEl) formEl.reset();
+        await cargarProductosCompra();
+        await cargarProveedoresCompra();
+        await cargarLotesProducto(Number(productoSelect?.value || 0));
+        setTipo('existente');
+        modal.style.display = 'block';
     };
 }
 
@@ -433,16 +715,17 @@ function setupUnidadesModal() {
 // Lógica del Modal Producto (setupModal existente)
 function setupModal() {
     const modal = document.getElementById('productoModal');
-    const btnNuevo = document.getElementById('btnNuevoProducto');
+    const btnNuevo = document.getElementById('btnCrearProducto');
     const spanClose = document.getElementsByClassName('close-modal')[0];
     const btnCancel = document.getElementsByClassName('close-modal-btn')[0];
     const form = document.getElementById('productoForm');
 
-    // Abrir modal para crear
-    btnNuevo.onclick = function() {
-        form.reset();
-        document.getElementById('productoId').value = ''; 
-        modal.style.display = "block";
+    if (btnNuevo) {
+        btnNuevo.onclick = function() {
+            form.reset();
+            document.getElementById('productoId').value = ''; 
+            modal.style.display = "block";
+        }
     }
 
     // Cerrar modal

@@ -40,7 +40,8 @@
                         </div>
                         <div class="inventory-actions">
                             <button class="btn-secondary" id="btnGestionarUnidades">Unidades</button>
-                            <button class="btn-primary" id="btnNuevoProducto">+ Nuevo Producto</button>
+                            <button class="btn-secondary" id="btnCrearProducto">+ Producto</button>
+                            <button class="btn-primary" id="btnNuevoProducto">+ Compra de producto</button>
                         </div>
                     </div>
 
@@ -191,15 +192,142 @@
                             <th>Disponible</th>
                             <th>Precio venta</th>
                             <th>Estado</th>
+                            <th style="width: 180px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="tablaLotesBody">
-                        <tr><td colspan="6" style="text-align:center;">Cargando...</td></tr>
+                        <tr><td colspan="7" style="text-align:center;">Cargando...</td></tr>
                     </tbody>
                 </table>
             </div>
             <div class="modal-footer" style="padding: 15px; text-align: right; border-top: 1px solid #eee;">
                 <button type="button" class="btn-secondary close-modal-lotes-btn">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Lote -->
+    <div id="editarLoteModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>Editar lote</h3>
+                <span class="close-modal-editar-lote">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="editarLoteForm">
+                    <input type="hidden" id="editLoteId">
+                    <div class="form-group">
+                        <label>Producto: <span id="editLoteProductoNombre" style="font-weight: bold;"></span></label>
+                    </div>
+                    <div class="form-group">
+                        <label for="editLoteNumero">Número de lote (opcional)</label>
+                        <input type="text" id="editLoteNumero" placeholder="Ej: L-2026-001">
+                    </div>
+                    <div class="form-group">
+                        <label for="editLoteProveedorId">Proveedor (opcional)</label>
+                        <select id="editLoteProveedorId">
+                            <option value="">Seleccione un proveedor</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editLotePrecioVenta">Precio venta (por lote)</label>
+                        <input type="number" id="editLotePrecioVenta" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editLoteCostoUnitario">Costo unitario (opcional)</label>
+                        <input type="number" id="editLoteCostoUnitario" min="0" value="0">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary close-modal-editar-lote-btn">Cancelar</button>
+                        <button type="submit" class="btn-primary">Guardar cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Compra de Producto -->
+    <div id="compraProductoModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3>Compra de producto</h3>
+                <span class="close-modal-compra">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="compraProductoForm">
+                    <div class="form-group">
+                        <label for="compraProductoId">Producto</label>
+                        <select id="compraProductoId" required>
+                            <option value="">Seleccione un producto</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                            <label style="display:flex; gap:8px; align-items:center;">
+                                <input type="radio" name="compraTipo" value="existente" checked> Lote existente
+                            </label>
+                            <label style="display:flex; gap:8px; align-items:center;">
+                                <input type="radio" name="compraTipo" value="nuevo"> Nuevo lote
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="compraExistenteBox">
+                        <div class="form-group">
+                            <label for="compraLoteId">Lote</label>
+                            <select id="compraLoteId" required>
+                                <option value="">Seleccione un lote</option>
+                            </select>
+                        </div>
+                        <div style="margin-top:-6px; margin-bottom:10px; color: var(--gris-medio); font-size: 12px;">
+                            Los lotes inactivos no se pueden usar. Inactivar deja el disponible en 0.
+                        </div>
+                        <div class="form-group">
+                            <label for="compraCantidad">Cantidad</label>
+                            <input type="number" id="compraCantidad" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="compraPrecioVenta">Actualizar precio venta (opcional)</label>
+                            <input type="number" id="compraPrecioVenta" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="compraCostoUnitario">Actualizar costo unitario (opcional)</label>
+                            <input type="number" id="compraCostoUnitario" min="0" value="0">
+                        </div>
+                    </div>
+
+                    <div id="compraNuevoBox" style="display:none;">
+                        <div class="form-group">
+                            <label for="compraNuevoNumero">Número de lote (opcional)</label>
+                            <input type="text" id="compraNuevoNumero" placeholder="Ej: L-2026-001">
+                        </div>
+                        <div class="form-group">
+                            <label for="compraNuevoProveedorId">Proveedor (opcional)</label>
+                            <select id="compraNuevoProveedorId">
+                                <option value="">Seleccione un proveedor</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="compraNuevoCantidad">Cantidad</label>
+                            <input type="number" id="compraNuevoCantidad" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="compraNuevoPrecioVenta">Precio venta (por lote)</label>
+                            <input type="number" id="compraNuevoPrecioVenta" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="compraNuevoCostoUnitario">Costo unitario (opcional)</label>
+                            <input type="number" id="compraNuevoCostoUnitario" min="0" value="0">
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary close-modal-compra-btn">Cancelar</button>
+                        <button type="submit" class="btn-primary">Guardar compra</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
