@@ -9,8 +9,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Cargar datos del usuario
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    document.getElementById('userWelcome').textContent = `Hola, ${user.nombre || 'Cajero'} 👋`;
+    const usuarioDatos = JSON.parse(localStorage.getItem('usuario_datos') || '{}');
+    document.getElementById('userWelcome').textContent = `Hola, ${usuarioDatos.nombre || 'Cajero'} 👋`;
     
     // Fecha actual
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -85,7 +85,14 @@ function showProfile() {
 }
 
 function logout() {
+    if (typeof window.logout === 'function') {
+        window.logout(false);
+        return;
+    }
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem('sesion_activa');
+    localStorage.removeItem('usuario_id');
+    localStorage.removeItem('usuario_rol');
+    localStorage.removeItem('usuario_datos');
     window.location.href = '../auth/login.html';
 }

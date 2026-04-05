@@ -11,6 +11,32 @@ const CAJA_API_CLOSE = '/proyecto_final/backend/box/close';
 // Estado local de la caja
 window.cajaSesion = null;
 
+function showCajaToast(message, type = 'info') {
+    let el = document.getElementById('admin-toast');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'admin-toast';
+        el.style.position = 'fixed';
+        el.style.top = '16px';
+        el.style.right = '16px';
+        el.style.zIndex = '99999';
+        el.style.display = 'none';
+        el.style.padding = '10px 14px';
+        el.style.borderRadius = '10px';
+        el.style.border = '1px solid #e5e7eb';
+        el.style.background = '#111827';
+        el.style.color = '#fff';
+        el.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)';
+        el.style.maxWidth = '360px';
+        document.body.appendChild(el);
+    }
+    el.textContent = message;
+    el.style.background = type === 'success' ? '#065f46' : type === 'error' ? '#991b1b' : type === 'warning' ? '#92400e' : '#111827';
+    el.style.display = 'block';
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.style.display = 'none'; }, 3500);
+}
+
 // HTML de los modales
 const MODAL_APERTURA_HTML = `
 <div id="modalAperturaCaja" class="modal" style="display:none; align-items:center; justify-content:center; background-color: rgba(0,0,0,0.8);">
@@ -112,12 +138,10 @@ async function verificarEstadoCaja() {
         if (data && data.id_sesion) {
             // Caja Abierta
             window.cajaSesion = data;
-            console.log("Sesión de caja activa:", window.cajaSesion.id_sesion);
             actualizarBotonCaja(true);
         } else {
             // Caja Cerrada -> Mostrar Modal Apertura
             window.cajaSesion = null;
-            console.log("No hay sesión de caja activa.");
             actualizarBotonCaja(false);
             
             // Si estamos en login, no mostrar. Si estamos en dashboard u otra interna, mostrar.
@@ -191,7 +215,7 @@ async function confirmarApertura() {
         if (res.ok) {
             document.getElementById('modalAperturaCaja').style.display = 'none';
             // Recargar estado
-            alert('¡Caja abierta exitosamente! Ya puede realizar ventas.');
+            showCajaToast('Caja abierta exitosamente. Ya puede realizar ventas.', 'success');
             verificarEstadoCaja();
         } else {
             mostrarError('errorApertura', data.message || 'Error al abrir caja');
@@ -217,7 +241,7 @@ async function mostrarModalCierre() {
     // Obtener datos actualizados de la sesión
     const usuarioId = getUsuarioIdCaja();
     if (!usuarioId) {
-        alert("Sesión no válida. Inicie sesión nuevamente.");
+        showCajaToast('Sesión no válida. Inicie sesión nuevamente.', 'error');
         modal.style.display = 'none';
         return;
     }
@@ -239,13 +263,13 @@ async function mostrarModalCierre() {
             document.getElementById('contentResumen').style.display = 'block';
             setTimeout(() => document.getElementById('montoCierre').focus(), 100);
         } else {
-            alert("No se encontró una sesión activa para cerrar.");
+            showCajaToast('No se encontró una sesión activa para cerrar.', 'warning');
             modal.style.display = 'none';
             window.location.reload();
         }
     } catch (e) {
         console.error(e);
-        alert("Error obteniendo datos de caja.");
+        showCajaToast('Error obteniendo datos de caja.', 'error');
         modal.style.display = 'none';
     }
 }
@@ -287,8 +311,7 @@ async function confirmarCierre() {
             if(data.resumen.diferencia_calculada < 0) msg += "\n⚠️ Hay un faltante de dinero.";
             else if(data.resumen.diferencia_calculada > 0) msg += "\n⚠️ Hay un sobrante de dinero.";
             else msg += "\n✅ Cuadre perfecto.";
-
-            alert(msg);
+            showCajaToast(msg.replace(/\n/g, ' | '), data.resumen.diferencia_calculada === 0 ? 'success' : 'warning');
             
             window.cajaSesion = null;
             actualizarBotonCaja(false);

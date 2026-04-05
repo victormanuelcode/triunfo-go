@@ -3,8 +3,7 @@ const URL_API = '/proyecto_final/backend';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Limpiar sesión al entrar al login
-    localStorage.clear();
-    sessionStorage.clear();
+    clearSessionKeys();
 
     // Referencia al formulario
     const formulario = document.getElementById('formularioLogin');
@@ -12,6 +11,24 @@ document.addEventListener('DOMContentLoaded', () => {
         formulario.addEventListener('submit', manejarInicioSesion);
     }
 });
+
+const SESSION_KEYS = [
+    'sesion_activa',
+    'token',
+    'usuario_id',
+    'usuario_rol',
+    'usuario_datos',
+    'usuario_nombre',
+    'usuario_email',
+    'sesion_actual',
+    'pos_carrito',
+    'user'
+];
+
+function clearSessionKeys() {
+    SESSION_KEYS.forEach(k => localStorage.removeItem(k));
+    sessionStorage.clear();
+}
 
 /**
  * Función para manejar el evento de envío del formulario de login
@@ -77,6 +94,12 @@ function guardarSesion(datos) {
     localStorage.setItem('usuario_nombre', datos.nombre);
     localStorage.setItem('usuario_rol', datos.rol_id);
     localStorage.setItem('usuario_email', datos.email);
+    localStorage.setItem('usuario_datos', JSON.stringify({
+        id_usuario: datos.user_id ? Number(datos.user_id) : null,
+        rol_id: datos.rol_id ? Number(datos.rol_id) : null,
+        nombre: datos.nombre || null,
+        email: datos.email || null
+    }));
 }
 
 /**
@@ -96,7 +119,7 @@ function redirigirUsuario(rolId) {
     } else {
         // Otros roles por defecto a login
         alert('Rol no reconocido. Contacte al administrador.');
-        localStorage.clear();
+        clearSessionKeys();
     }
 }
 

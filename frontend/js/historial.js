@@ -34,7 +34,7 @@ async function loadHistory() {
         actualizarKPIs(facturasGlobal);
     } catch (error) {
         console.error('Error cargando historial:', error);
-        alert('Error al cargar el historial de ventas.');
+        showAdminToast('Error al cargar el historial de ventas.', 'error');
     }
 }
 
@@ -111,14 +111,14 @@ async function anularFactura(id) {
         const result = await response.json();
 
         if (response.ok) {
-            alert('Factura anulada correctamente.');
+            showAdminToast('Factura anulada correctamente.', 'success');
             loadHistory(); // Recargar tabla
         } else {
-            alert('Error: ' + (result.message || 'Error desconocido'));
+            showAdminToast('Error: ' + (result.message || 'Error desconocido'), 'error');
         }
     } catch (error) {
         console.error(error);
-        alert('Error al conectar con el servidor.');
+        showAdminToast('Error al conectar con el servidor.', 'error');
     }
 }
 
@@ -217,9 +217,11 @@ async function viewDetail(id) {
             const tr = document.createElement('tr');
             const precio = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(item.precio_unitario);
             const subtotal = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(item.subtotal);
+            const loteTxt = item.lote_id ? (item.lote_numero ? item.lote_numero : ('#' + item.lote_id)) : '-';
             
             tr.innerHTML = `
                 <td>${item.producto_nombre}</td>
+                <td>${loteTxt}</td>
                 <td>${item.cantidad}</td>
                 <td>${precio}</td>
                 <td>${subtotal}</td>
@@ -231,7 +233,7 @@ async function viewDetail(id) {
 
     } catch (error) {
         console.error('Error:', error);
-        alert('No se pudo cargar el detalle de la venta.');
+        showAdminToast('No se pudo cargar el detalle de la venta.', 'error');
     }
 }
 
@@ -240,9 +242,131 @@ function accionFactura(tipo, id) {
         // Abrir la vista de factura imprimible
         // Como estamos en /views/admin/, la ruta relativa es directa
         window.open(`factura.html?id=${id}`, '_blank');
-    } else if (tipo === 'excel') {
-        alert('Función de Excel pendiente de implementación.');
-    } else if (tipo === 'whatsapp') {
-        alert('Función de WhatsApp pendiente de implementación.');
+        return;
     }
+
+    if (tipo === 'excel') {
+        exportarFacturaCsv(id);
+        return;
+    }
+
+    if (tipo === 'whatsapp') {
+        enviarFacturaWhatsApp(id);
+    }
+}
+
+function showAdminToast(message, type = 'info') {
+    const el = document.getElementById('admin-toast');
+    if (!el) return;
+    el.textContent = message;
+    el.style.background = type === 'success' ? '#065f46' : type === 'error' ? '#991b1b' : type === 'warning' ? '#92400e' : '#111827';
+    el.style.display = 'block';
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+function sanitizePhoneForWa(value) {
+    const raw = (value || '').toString().trim();
+    const digits = raw.replace(/[^\d]/g, '');
+    return digits;
+}
+
+function downloadCsv(filename, csvText) {
+    const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+async function fetchFacturaDetalle(idFactura) {
+    const token = localStorage.getItem('token');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    const response = await fetch(`${API_URL}/invoices/${idFactura}`, { headers });
+    const json = await response.json();
+    if (!response.ok) throw new Error(json.message || 'No se pudo cargar la factura');
+    return json;
+}
+
+function buildFacturaCsv(factura) {
+    const esc = (val) => {
+        const s = (val ?? '').toString();
+        const needs = /[",\n]/.test(s);
+        const clean = s.replace(/"/g, '""');
+        return needs ? `"${clean}"` : clean;
+    };
+
+    const lines = [];
+    lines.push(['Numero', 'Fecha', 'Cliente', 'Documento', 'Telefono', 'Metodo', 'Total'].map(esc).join(','));
+    lines.push([
+        factura.numero_factura,
+        factura.fecha,
+        factura.cliente_nombre || 'Cliente General',
+        factura.cliente_documento || '',
+        factura.cliente_telefono || '',
+        factura.metodo_pago || '',
+        factura.total || 0
+    ].map(esc).join(','));
+    lines.push('');
+    lines.push(['Producto', 'Lote', 'Cantidad', 'PrecioUnitario', 'Subtotal'].map(esc).join(','));
+
+    (factura.detalles || []).forEach(d => {
+        const loteTxt = d.lote_id ? (d.lote_numero ? d.lote_numero : ('#' + d.lote_id)) : '';
+        lines.push([
+            d.producto_nombre || '',
+            loteTxt,
+            d.cantidad || 0,
+            d.precio_unitario || 0,
+            d.subtotal || 0
+        ].map(esc).join(','));
+    });
+
+    return lines.join('\n');
+}
+
+function buildWhatsappMessage(factura) {
+    const total = Number(factura.total || 0);
+    const totalTxt = '$' + total.toLocaleString('es-CO', { maximumFractionDigits: 0 });
+    const header = `TRIUNFO GO\nFactura: ${factura.numero_factura}\nTotal: ${totalTxt}\n`;
+    const items = (factura.detalles || []).map(d => {
+        const loteTxt = d.lote_id ? (d.lote_numero ? d.lote_numero : ('#' + d.lote_id)) : '';
+        const sub = Number(d.subtotal || 0);
+        const subTxt = '$' + sub.toLocaleString('es-CO', { maximumFractionDigits: 0 });
+        const nombre = d.producto_nombre || 'Item';
+        const cant = d.cantidad || 0;
+        return `- ${nombre}${loteTxt ? ` (Lote: ${loteTxt})` : ''} x${cant}: ${subTxt}`;
+    }).join('\n');
+    return `${header}${items ? (items + '\n') : ''}Gracias por su compra.`;
+}
+
+function exportarFacturaCsv(idFactura) {
+    fetchFacturaDetalle(idFactura)
+        .then(factura => {
+            const csv = buildFacturaCsv(factura);
+            const filename = `factura_${(factura.numero_factura || idFactura)}.csv`;
+            downloadCsv(filename, csv);
+        })
+        .catch(e => {
+            console.error(e);
+            alert('No se pudo exportar la factura.');
+        });
+}
+
+function enviarFacturaWhatsApp(idFactura) {
+    fetchFacturaDetalle(idFactura)
+        .then(factura => {
+            const telefonoSan = sanitizePhoneForWa(factura.cliente_telefono || '') || sanitizePhoneForWa(prompt('Ingrese el número de WhatsApp (ej: 573001234567):') || '');
+            if (!telefonoSan) return;
+            const mensaje = buildWhatsappMessage(factura);
+            const url = `https://wa.me/${telefonoSan}?text=${encodeURIComponent(mensaje)}`;
+            window.open(url, '_blank');
+        })
+        .catch(e => {
+            console.error(e);
+            alert('No se pudo preparar el mensaje de WhatsApp.');
+        });
 }

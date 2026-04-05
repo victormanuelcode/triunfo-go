@@ -98,11 +98,7 @@ function renderFactura(factura) {
     // Totales
     const totalFactura = parseFloat(factura.total);
     const montoRecibido = parseFloat(factura.monto_recibido || 0);
-    const subtotal = totalFactura / 1.19;
-    const iva = totalFactura - subtotal;
-
-    document.getElementById('lbl-subtotal').textContent = formatMoney(subtotal);
-    document.getElementById('lbl-iva').textContent = formatMoney(iva);
+    document.getElementById('lbl-subtotal').textContent = formatMoney(totalFactura);
     document.getElementById('lbl-total').textContent = formatMoney(totalFactura);
 
     // Pago

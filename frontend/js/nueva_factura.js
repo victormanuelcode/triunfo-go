@@ -2,11 +2,25 @@ const API_URL = window.location.origin + '/proyecto_final/backend';
 
 let itemsFactura = [];
 let productosFacturaGlobal = [];
+let toastTimer = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     cargarProductosFactura();
     setupClienteSearch();
 });
+
+function showAdminToast(message, type = 'info') {
+    const el = document.getElementById('admin-toast');
+    if (!el) {
+        alert(message);
+        return;
+    }
+    el.textContent = message;
+    el.style.background = type === 'success' ? '#065f46' : type === 'error' ? '#991b1b' : type === 'warning' ? '#92400e' : '#111827';
+    el.style.display = 'block';
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
 
 function setupClienteSearch() {
     const inputBusqueda = document.getElementById('clienteBusqueda');
@@ -210,7 +224,7 @@ function agregarItemFactura(prod) {
     const cantidadActual = itemExistente ? itemExistente.cantidad : 0;
 
     if (cantidadActual + 1 > stockDisponible) {
-        alert(`No hay suficiente stock disponible. Stock actual: ${stockDisponible}`);
+        showAdminToast(`No hay suficiente stock disponible. Stock actual: ${stockDisponible}`, 'warning');
         return;
     }
 
@@ -235,7 +249,7 @@ function cambiarCantidadItem(index, delta) {
     const nuevaCant = item.cantidad + delta;
     
     if (nuevaCant > item.stock_max) {
-        alert(`No puedes agregar más unidades. Stock disponible: ${item.stock_max}`);
+        showAdminToast(`No puedes agregar más unidades. Stock disponible: ${item.stock_max}`, 'warning');
         return;
     }
 
@@ -285,24 +299,21 @@ function recalcularTotalesFactura() {
     itemsFactura.forEach(i => {
         subtotal += i.precio * i.cantidad;
     });
-    const iva = subtotal * 0.19;
-    const total = subtotal + iva;
+    const total = subtotal;
 
     const formatCurrency = val => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(val);
 
     const subEl = document.getElementById('subtotalFactura');
-    const ivaEl = document.getElementById('ivaFactura');
     const totalEl = document.getElementById('totalFactura');
 
     if (subEl) subEl.textContent = formatCurrency(subtotal);
-    if (ivaEl) ivaEl.textContent = formatCurrency(iva);
     if (totalEl) totalEl.textContent = formatCurrency(total);
 }
 
 async function generarFacturaManual() {
     // Validar si la caja está abierta (variable global desde caja.js)
     if (typeof cajaSesion === 'undefined' || !cajaSesion) {
-        alert('Debe abrir la caja antes de generar una factura.');
+        showAdminToast('Debe abrir la caja antes de generar una factura.', 'warning');
         if (typeof window.mostrarAperturaCaja === 'function') {
             window.mostrarAperturaCaja();
         }
@@ -310,7 +321,7 @@ async function generarFacturaManual() {
     }
 
     if (itemsFactura.length === 0) {
-        alert('Agrega al menos un producto.');
+        showAdminToast('Agrega al menos un producto.', 'warning');
         return;
     }
 
@@ -341,18 +352,18 @@ async function generarFacturaManual() {
         });
         quote = await responseQuote.json();
         if (!responseQuote.ok) {
-            alert(quote.message || 'No se pudo calcular el total.');
+            showAdminToast(quote.message || 'No se pudo calcular el total.', 'error');
             return;
         }
     } catch (error) {
         console.error('Error calculando total:', error);
-        alert('Error de conexión al calcular total.');
+        showAdminToast('Error de conexión al calcular total.', 'error');
         return;
     }
 
     const total = parseFloat(quote.total || 0);
     if (!(total > 0)) {
-        alert('No se pudo calcular el total de la factura.');
+        showAdminToast('No se pudo calcular el total de la factura.', 'error');
         return;
     }
 
@@ -385,21 +396,99 @@ async function generarFacturaManual() {
         } else {
             // Manejar error de caja cerrada desde backend
             if (response.status === 400 && result.message && result.message.toLowerCase().includes('caja')) {
-                alert(result.message);
+                showAdminToast(result.message, 'warning');
                 if (typeof window.mostrarAperturaCaja === 'function') {
                     window.mostrarAperturaCaja();
                 }
             } else {
-                alert(result.message || 'Error al generar factura.');
+                showAdminToast(result.message || 'Error al generar factura.', 'error');
             }
         }
     } catch (error) {
         console.error('Error generando factura manual:', error);
-        alert('Error de conexión al generar factura.');
+        showAdminToast('Error de conexión al generar factura.', 'error');
     }
 }
 
 let ultimaFacturaId = null;
+
+function sanitizePhoneForWa(value) {
+    const raw = (value || '').toString().trim();
+    const digits = raw.replace(/[^\d]/g, '');
+    return digits;
+}
+
+function downloadCsv(filename, csvText) {
+    const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+async function fetchFacturaDetalle(idFactura) {
+    const token = localStorage.getItem('token');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    const response = await fetch(`${API_URL}/invoices/${idFactura}`, { headers });
+    const json = await response.json();
+    if (!response.ok) throw new Error(json.message || 'No se pudo cargar la factura');
+    return json;
+}
+
+function buildFacturaCsv(factura) {
+    const esc = (val) => {
+        const s = (val ?? '').toString();
+        const needs = /[",\n]/.test(s);
+        const clean = s.replace(/"/g, '""');
+        return needs ? `"${clean}"` : clean;
+    };
+
+    const lines = [];
+    lines.push(['Numero', 'Fecha', 'Cliente', 'Documento', 'Telefono', 'Metodo', 'Total'].map(esc).join(','));
+    lines.push([
+        factura.numero_factura,
+        factura.fecha,
+        factura.cliente_nombre || 'Cliente General',
+        factura.cliente_documento || '',
+        factura.cliente_telefono || '',
+        factura.metodo_pago || '',
+        factura.total || 0
+    ].map(esc).join(','));
+    lines.push('');
+    lines.push(['Producto', 'Lote', 'Cantidad', 'PrecioUnitario', 'Subtotal'].map(esc).join(','));
+
+    (factura.detalles || []).forEach(d => {
+        const loteTxt = d.lote_id ? (d.lote_numero ? d.lote_numero : ('#' + d.lote_id)) : '';
+        lines.push([
+            d.producto_nombre || '',
+            loteTxt,
+            d.cantidad || 0,
+            d.precio_unitario || 0,
+            d.subtotal || 0
+        ].map(esc).join(','));
+    });
+
+    return lines.join('\n');
+}
+
+function buildWhatsappMessage(factura) {
+    const total = Number(factura.total || 0);
+    const totalTxt = '$' + total.toLocaleString('es-CO', { maximumFractionDigits: 0 });
+    const header = `TRIUNFO GO\nFactura: ${factura.numero_factura}\nTotal: ${totalTxt}\n`;
+    const items = (factura.detalles || []).map(d => {
+        const loteTxt = d.lote_id ? (d.lote_numero ? d.lote_numero : ('#' + d.lote_id)) : '';
+        const sub = Number(d.subtotal || 0);
+        const subTxt = '$' + sub.toLocaleString('es-CO', { maximumFractionDigits: 0 });
+        const nombre = d.producto_nombre || 'Item';
+        const cant = d.cantidad || 0;
+        return `- ${nombre}${loteTxt ? ` (Lote: ${loteTxt})` : ''} x${cant}: ${subTxt}`;
+    }).join('\n');
+    return `${header}${items ? (items + '\n') : ''}Gracias por su compra.`;
+}
 
 function mostrarBannerFactura(idFactura) {
     ultimaFacturaId = idFactura;
@@ -416,15 +505,42 @@ function ocultarBannerFactura() {
 
 function accionFacturaBanner(tipo) {
     if (!ultimaFacturaId) {
-        alert('No hay factura reciente.');
+        showAdminToast('No hay factura reciente.', 'warning');
         return;
     }
     if (tipo === 'print' || tipo === 'pdf') {
         window.open(`factura.html?id=${ultimaFacturaId}`, '_blank');
-    } else if (tipo === 'excel') {
-        alert('Función de Excel pendiente de implementación.');
-    } else if (tipo === 'whatsapp') {
-        alert('Envío por WhatsApp pendiente de implementación.');
+        return;
+    }
+
+    if (tipo === 'excel') {
+        fetchFacturaDetalle(ultimaFacturaId)
+            .then(factura => {
+                const csv = buildFacturaCsv(factura);
+                const filename = `factura_${(factura.numero_factura || ultimaFacturaId)}.csv`;
+                downloadCsv(filename, csv);
+            })
+            .catch(e => {
+                console.error(e);
+                showAdminToast('No se pudo exportar la factura.', 'error');
+            });
+        return;
+    }
+
+    if (tipo === 'whatsapp') {
+        fetchFacturaDetalle(ultimaFacturaId)
+            .then(factura => {
+                const telefonoPreferido = factura.cliente_telefono || document.getElementById('clienteTelefono')?.value || '';
+                const telefonoSan = sanitizePhoneForWa(telefonoPreferido) || sanitizePhoneForWa(prompt('Ingrese el número de WhatsApp (ej: 573001234567):') || '');
+                if (!telefonoSan) return;
+                const mensaje = buildWhatsappMessage(factura);
+                const url = `https://wa.me/${telefonoSan}?text=${encodeURIComponent(mensaje)}`;
+                window.open(url, '_blank');
+            })
+            .catch(e => {
+                console.error(e);
+                showAdminToast('No se pudo preparar el mensaje de WhatsApp.', 'error');
+            });
     }
 }
 
