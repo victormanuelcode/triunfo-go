@@ -1,0 +1,132 @@
+function showAdminToast(message, type = 'info') {
+  const el = document.getElementById('admin-toast');
+  if (!el) return alert(message);
+  el.textContent = message;
+  el.style.background = type === 'success' ? '#065f46' : type === 'error' ? '#991b1b' : type === 'warning' ? '#92400e' : '#111827';
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+function apiBase() {
+  return `${window.location.origin}/proyecto_final/backend`;
+}
+
+function authHeaders() {
+  const token = localStorage.getItem('token');
+  const h = { 'Content-Type': 'application/json' };
+  if (token) h['Authorization'] = `Bearer ${token}`;
+  return h;
+}
+
+function normalizePerfilLayout() {
+  const rol = String(localStorage.getItem('usuario_rol') || '');
+  if (rol === '1') return;
+  const root = document.querySelector('.layout-root');
+  if (root) root.classList.remove('layout-root');
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar) sidebar.remove();
+  const topbar = document.querySelector('.topbar');
+  if (topbar) topbar.remove();
+  const contentArea = document.querySelector('.content-area');
+  if (contentArea) {
+    contentArea.style.marginLeft = '0';
+    contentArea.style.width = '100%';
+  }
+}
+
+async function cargarPerfil() {
+  try {
+    const resp = await fetch(`${apiBase()}/profile`, { headers: authHeaders() });
+    const json = await resp.json();
+    if (!resp.ok) throw new Error(json.message || 'No se pudo leer el perfil');
+    document.getElementById('pf-email').value = json.email || '';
+    document.getElementById('pf-telefono').value = json.telefono || '';
+    document.getElementById('pf-avatar').value = json.avatar_url || '';
+    let pref = {};
+    try { pref = json.preferencias ? JSON.parse(json.preferencias) : {}; } catch (_) { pref = {}; }
+    document.getElementById('pf-pref-collapse').checked = !!pref.sidebarCollapsed;
+    const prev = document.getElementById('pf-avatar-preview');
+    if (prev) prev.src = json.avatar_url || '';
+
+    const rol = String(localStorage.getItem('usuario_rol') || '');
+    const restr = document.getElementById('pf-restriccion');
+    if (rol !== '1' && restr) restr.style.display = 'block';
+  } catch (e) {
+    showAdminToast(e.message, 'error');
+  }
+}
+
+async function guardarPerfil(e) {
+  e.preventDefault();
+  const email = document.getElementById('pf-email').value.trim();
+  const telefono = document.getElementById('pf-telefono').value.trim();
+  const avatar = document.getElementById('pf-avatar').value.trim();
+  const pref = {
+    sidebarCollapsed: document.getElementById('pf-pref-collapse').checked
+  };
+  try {
+    const resp = await fetch(`${apiBase()}/profile`, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        email,
+        telefono,
+        avatar_url: avatar,
+        preferencias: pref
+      })
+    });
+    const json = await resp.json();
+    if (!resp.ok) throw new Error(json.message || 'No se pudo actualizar el perfil');
+    showAdminToast('Perfil actualizado', 'success');
+    try {
+      const stored = JSON.parse(localStorage.getItem('usuario_datos') || '{}');
+      stored.email = email;
+      localStorage.setItem('usuario_datos', JSON.stringify(stored));
+      localStorage.setItem('usuario_email', email);
+    } catch (_) {}
+    if (pref.sidebarCollapsed !== undefined) {
+      localStorage.setItem('admin_layout_collapsed', pref.sidebarCollapsed ? '1' : '0');
+    }
+  } catch (e) {
+    showAdminToast(e.message, 'error');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  normalizePerfilLayout();
+  setTimeout(normalizePerfilLayout, 350);
+  cargarPerfil();
+  document.getElementById('perfilForm').addEventListener('submit', guardarPerfil);
+  const btn = document.getElementById('pf-avatar-btn');
+  const file = document.getElementById('pf-avatar-file');
+  const clearBtn = document.getElementById('pf-avatar-clear');
+  if (btn && file) {
+    btn.addEventListener('click', () => file.click());
+    file.addEventListener('change', async () => {
+      const f = file.files && file.files[0];
+      if (!f) return;
+      const urlPrev = URL.createObjectURL(f);
+      const prev = document.getElementById('pf-avatar-preview');
+      if (prev) prev.src = urlPrev;
+      const fd = new FormData();
+      fd.append('avatar', f);
+      try {
+        const resp = await fetch(`${apiBase()}/profile/avatar`, { method: 'POST', headers: { 'Authorization': authHeaders()['Authorization'] || '' }, body: fd });
+        const json = await resp.json();
+        if (!resp.ok) throw new Error(json.message || 'No se pudo subir el avatar');
+        document.getElementById('pf-avatar').value = json.avatar_url || '';
+        showAdminToast('Avatar actualizado', 'success');
+      } catch (e) {
+        showAdminToast(e.message, 'error');
+      }
+    });
+  }
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      document.getElementById('pf-avatar').value = '';
+      const prev = document.getElementById('pf-avatar-preview');
+      if (prev) prev.src = '';
+    });
+  }
+});

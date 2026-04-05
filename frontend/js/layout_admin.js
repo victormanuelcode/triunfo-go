@@ -115,5 +115,9 @@
         const scriptCaja = document.createElement('script');
         scriptCaja.src = '../../js/caja.js';
         document.body.appendChild(scriptCaja);
+
+        const scriptNotif = document.createElement('script');
+        scriptNotif.src = '../../js/notifications.js';
+        document.body.appendChild(scriptNotif);
     });
 })();

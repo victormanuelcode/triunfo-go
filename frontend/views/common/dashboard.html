@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Redirigiendo…</title>
+    <link rel="stylesheet" href="../../css/styles.css"/>
+</head>
+<body style="display:flex;align-items:center;justify-content:center;min-height:100vh;">
+    <div class="card" style="max-width:520px;text-align:center;">
+        <h1>Redirigiendo…</h1>
+        <p id="msg">Por favor espera</p>
+        <div style="margin-top:12px;">
+            <a href="../auth/login.html">Ir al Login</a>
+        </div>
+    </div>
+    <script>
+        (function(){
+            var base = '../';
+            var has = localStorage.getItem('sesion_activa');
+            var token = localStorage.getItem('token');
+            if(!has || !token){
+                window.location.href = base + 'auth/login.html';
+                return;
+            }
+            var rol = localStorage.getItem('usuario_rol');
+            if(String(rol) === '1'){
+                window.location.href = base + 'admin/dashboard.html';
+                return;
+            }
+            if(String(rol) === '2'){
+                window.location.href = base + 'cashier/dashboard.html';
+                return;
+            }
+            document.getElementById('msg').textContent = 'No se pudo determinar tu rol de usuario.';
+        })();
+    </script>
+</body>
+</html>

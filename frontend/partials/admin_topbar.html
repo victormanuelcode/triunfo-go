@@ -10,11 +10,17 @@
         <div class="notif-icon">
             🔔
             <div class="notif-badge">3</div>
+            <div id="notif-panel" style="display:none; position:absolute; right:64px; top:54px; width:360px; max-height:420px; overflow:auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);">
+                <div style="padding:10px 12px; border-bottom:1px solid #e5e7eb; font-weight:700;">Notificaciones</div>
+                <div id="notif-list" style="padding:8px 0;"></div>
+                <div style="padding:10px 12px; border-top:1px solid #e5e7eb; text-align:right;">
+                    <button id="notif-markall" class="btn-light" style="padding:6px 10px;">Marcar todas como leídas</button>
+                </div>
+            </div>
         </div>
         <div class="user-menu-trigger">
             <div class="user-avatar" style="width: 28px; height: 28px; font-size: 14px;" id="adminAvatarTop">A</div>
-            <span id="adminEmail">admin@triunfo.go</span>
-            <span class="chevron">▾</span>
+            <a href="../common/perfil.html" id="adminEmail" style="text-decoration:none; color:inherit;">Mi perfil</a>
         </div>
     </div>
 </header>

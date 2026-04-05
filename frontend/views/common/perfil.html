@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Mi Perfil</title>
+    <link rel="stylesheet" href="../../css/styles.css"/>
+</head>
+<body>
+    <div class="layout-root">
+        <aside class="sidebar"></aside>
+        <div class="content-area">
+            <header class="topbar"></header>
+            <main class="content-inner">
+                <div class="page-title">
+                    <div>
+                        <h1>Mi Perfil</h1>
+                        <p>Actualiza tus datos de contacto y preferencias.</p>
+                    </div>
+                </div>
+
+                <div id="admin-toast" style="display:none; position:fixed; top:16px; right:16px; z-index:99999; padding:10px 14px; border-radius:10px; border:1px solid #e5e7eb; background:#111827; color:#fff;"></div>
+
+                <div class="card" style="max-width:720px;">
+                    <form id="perfilForm" class="form-grid">
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>Avatar</label>
+                            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                                <img id="pf-avatar-preview" src="" alt="avatar" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:1px solid #e5e7eb; background:#f3f4f6;">
+                                <input type="file" id="pf-avatar-file" accept="image/*" style="display:none;">
+                                <button type="button" id="pf-avatar-btn" class="btn-light">Subir imagen</button>
+                                <button type="button" id="pf-avatar-clear" class="btn-outline">Quitar</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Email *</label>
+                            <input type="email" id="pf-email" required />
+                        </div>
+                        <div class="form-group">
+                            <label>Teléfono</label>
+                            <input type="text" id="pf-telefono" />
+                        </div>
+                        <div class="form-group">
+                            <label>Avatar URL</label>
+                            <input type="text" id="pf-avatar" placeholder="https://..."/>
+                        </div>
+                        <div class="form-group">
+                            <label>Preferencias</label>
+                            <div>
+                                <label style="display:flex; gap:8px; align-items:center;">
+                                    <input type="checkbox" id="pf-pref-collapse"/> Colapsar menú lateral
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">Guardar</button>
+                        </div>
+                    </form>
+
+                    <div class="alert" id="pf-restriccion" style="margin-top:12px; display:none;">
+                        El nombre y la contraseña solo pueden ser cambiados por el Administrador.
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="../../js/auth.js"></script>
+    <script src="../../js/layout_admin.js"></script>
+    <script src="../../js/perfil.js"></script>
+</body>
+</html>
