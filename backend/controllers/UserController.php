@@ -19,6 +19,71 @@ class UserController {
         $this->user = new User($db);
     }
 
+    public function uploadAvatar($tokenData) {
+        $id = $tokenData['id_usuario'];
+        if (!isset($_FILES['avatar']) || $_FILES['avatar']['error'] !== UPLOAD_ERR_OK) {
+            http_response_code(400);
+            echo json_encode(["message" => "Archivo inválido."]);
+            return;
+        }
+        $file = $_FILES['avatar'];
+        $mime = null;
+        if (class_exists('finfo')) {
+            $fi = new finfo(FILEINFO_MIME_TYPE);
+            $mime = $fi->file($file['tmp_name']);
+        }
+        if (!$mime && function_exists('mime_content_type')) {
+            $mime = mime_content_type($file['tmp_name']);
+        }
+        if (!$mime) {
+            $mime = $file['type'];
+        }
+        $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+        if (!isset($allowed[$mime])) {
+            http_response_code(400);
+            echo json_encode(["message" => "Formato no soportado."]);
+            return;
+        }
+        $ext = $allowed[$mime];
+        $uploadDir = __DIR__ . '/../uploads/avatars/';
+        if (!file_exists($uploadDir)) {
+            @mkdir($uploadDir, 0777, true);
+        }
+        $base = preg_replace('/[^A-Za-z0-9_\.-]/', '_', basename($file['name']));
+        $name = uniqid() . '_' . $base;
+        $target = $uploadDir . $name;
+        if (!move_uploaded_file($file['tmp_name'], $target)) {
+            http_response_code(503);
+            echo json_encode(["message" => "No se pudo guardar el archivo."]);
+            return;
+        }
+        $url = '/proyecto_final/backend/uploads/avatars/' . $name;
+
+        $old = new User($this->db);
+        $old->id_usuario = $id;
+        $stmt = $old->getOne();
+        if ($stmt->rowCount() === 0) {
+            http_response_code(404);
+            echo json_encode(["message" => "Usuario no encontrado."]);
+            return;
+        }
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->user->id_usuario = $id;
+        $this->user->nombre = $row['nombre'];
+        $this->user->usuario = $row['usuario'];
+        $this->user->email = $row['email'];
+        $this->user->telefono = $row['telefono'] ?? null;
+        $this->user->avatar_url = $url;
+        $this->user->preferencias = $row['preferencias'] ?? null;
+        if ($this->user->update()) {
+            http_response_code(200);
+            echo json_encode(["message" => "Avatar actualizado.", "avatar_url" => $url]);
+        } else {
+            http_response_code(503);
+            echo json_encode(["message" => "No se pudo actualizar el avatar."]);
+        }
+    }
+
     /**
      * Obtiene todos los usuarios.
      * 
@@ -117,20 +182,11 @@ class UserController {
         }
         $currentUserData = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Solo permitir cambiar ciertos campos
-        $newNombre = $data->nombre ?? $currentUserData['nombre'];
-        $newUsuario = $data->usuario ?? $currentUserData['usuario'];
+        // Perfil propio: actualizar email, telefono, avatar_url, preferencias
         $newEmail = isset($data->email) ? $data->email : $currentUserData['email'];
-        
-        // El rol NO se puede cambiar desde el perfil personal
-        $newRolId = $currentUserData['rol_id'];
-
-        // Validaciones
-        if (strlen($newNombre) < 3 || strlen($newUsuario) < 3) {
-            http_response_code(400);
-            echo json_encode(["message" => "Nombre y usuario deben tener al menos 3 caracteres."]);
-            return;
-        }
+        $telefono = isset($data->telefono) ? $data->telefono : $currentUserData['telefono'];
+        $avatar = isset($data->avatar_url) ? $data->avatar_url : $currentUserData['avatar_url'];
+        $preferencias = isset($data->preferencias) ? (is_string($data->preferencias) ? $data->preferencias : json_encode($data->preferencias)) : $currentUserData['preferencias'];
 
         if ($newEmail !== '' && $newEmail !== null && !filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
             http_response_code(400);
@@ -138,20 +194,13 @@ class UserController {
             return;
         }
 
-        if (isset($data->contrasena) && $data->contrasena !== '') {
-            if (strlen($data->contrasena) < 6) {
-                http_response_code(400);
-                echo json_encode(["message" => "La contraseña debe tener al menos 6 caracteres."]);
-                return;
-            }
-            $this->user->contrasena = $data->contrasena;
-        }
-
         $this->user->id_usuario = $id;
-        $this->user->nombre = $newNombre;
-        $this->user->usuario = $newUsuario;
+        $this->user->nombre = $currentUserData['nombre'];
+        $this->user->usuario = $currentUserData['usuario'];
         $this->user->email = $newEmail;
-        $this->user->rol_id = $newRolId;
+        $this->user->telefono = $telefono;
+        $this->user->avatar_url = $avatar;
+        $this->user->preferencias = $preferencias;
 
         if($this->user->update()){
             http_response_code(200);

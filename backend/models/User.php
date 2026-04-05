@@ -15,9 +15,13 @@ class User {
     public $contrasena;
     public $email;
     public $rol_id; // Propiedad para guardar el rol
+    public $telefono;
+    public $avatar_url;
+    public $preferencias; // JSON/TEXT
 
     public function __construct($db) {
         $this->conn = $db;
+        $this->ensureProfileColumns();
     }
 
     /**
@@ -53,7 +57,10 @@ class User {
                     u.id_usuario, 
                     u.nombre, 
                     u.usuario, 
-                    u.email, 
+                    u.email,
+                    u.telefono,
+                    u.avatar_url,
+                    u.preferencias, 
                     ru.rol_id 
                   FROM " . $this->table_name . " u
                   LEFT JOIN roles_user ru ON u.id_usuario = ru.usuario_id
@@ -120,13 +127,19 @@ class User {
                       SET nombre = :nombre,
                           usuario = :usuario,
                           email = :email,
+                          telefono = :telefono,
+                          avatar_url = :avatar_url,
+                          preferencias = :preferencias,
                           contrasena = :contrasena
                       WHERE id_usuario = :id_usuario";
         } else {
             $query = "UPDATE " . $this->table_name . "
                       SET nombre = :nombre,
                           usuario = :usuario,
-                          email = :email
+                          email = :email,
+                          telefono = :telefono,
+                          avatar_url = :avatar_url,
+                          preferencias = :preferencias
                       WHERE id_usuario = :id_usuario";
         }
 
@@ -136,11 +149,17 @@ class User {
         $this->usuario = htmlspecialchars(strip_tags($this->usuario));
         $this->email = htmlspecialchars(strip_tags($this->email));
         $this->id_usuario = htmlspecialchars(strip_tags($this->id_usuario));
+        $this->telefono = isset($this->telefono) ? htmlspecialchars(strip_tags($this->telefono)) : null;
+        $this->avatar_url = isset($this->avatar_url) ? htmlspecialchars(strip_tags($this->avatar_url)) : null;
+        $this->preferencias = isset($this->preferencias) ? $this->preferencias : null;
 
         $stmt->bindParam(':nombre', $this->nombre);
         $stmt->bindParam(':usuario', $this->usuario);
         $stmt->bindParam(':email', $this->email);
         $stmt->bindParam(':id_usuario', $this->id_usuario);
+        $stmt->bindParam(':telefono', $this->telefono);
+        $stmt->bindParam(':avatar_url', $this->avatar_url);
+        $stmt->bindParam(':preferencias', $this->preferencias);
 
         if(!empty($this->contrasena)){
             $this->contrasena = htmlspecialchars(strip_tags($this->contrasena));
@@ -171,6 +190,18 @@ class User {
             return true;
         }
         return false;
+    }
+
+    private function ensureProfileColumns() {
+        try {
+            $this->conn->exec("ALTER TABLE {$this->table_name} ADD COLUMN telefono VARCHAR(20) NULL");
+        } catch (\Throwable $e) {}
+        try {
+            $this->conn->exec("ALTER TABLE {$this->table_name} ADD COLUMN avatar_url VARCHAR(255) NULL");
+        } catch (\Throwable $e) {}
+        try {
+            $this->conn->exec("ALTER TABLE {$this->table_name} ADD COLUMN preferencias TEXT NULL");
+        } catch (\Throwable $e) {}
     }
 
     // Método para eliminar usuario

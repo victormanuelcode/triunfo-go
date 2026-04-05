@@ -87,6 +87,12 @@ class BoxController {
             $this->boxSession->monto_apertura = $montoApertura;
 
             if ($this->boxSession->open()) {
+                // Notificación al usuario: caja abierta
+                include_once __DIR__ . '/../models/Notification.php';
+                try {
+                    $notif = new Notification($this->db);
+                    $notif->create((int)$this->boxSession->usuario_id, "Caja abierta", "Tu caja ha sido abierta correctamente.", "info");
+                } catch (\Throwable $e) {}
                 http_response_code(201);
                 echo json_encode(["message" => "Caja abierta exitosamente.", "id_sesion" => $this->boxSession->id_sesion]);
             } else {
@@ -150,6 +156,12 @@ class BoxController {
             $this->boxSession->diferencia = $montoCierre - $totalEsperado; 
 
             if ($this->boxSession->close()) {
+                // Notificación al usuario: caja cerrada
+                include_once __DIR__ . '/../models/Notification.php';
+                try {
+                    $notif = new Notification($this->db);
+                    $notif->create((int)$session['usuario_id'], "Caja cerrada", "Has cerrado tu caja. Diferencia: " . number_format($this->boxSession->diferencia, 0, ',', '.'), ($this->boxSession->diferencia == 0 ? 'info' : 'warning'));
+                } catch (\Throwable $e) {}
                 http_response_code(200);
                 echo json_encode([
                     "message" => "Caja cerrada exitosamente.",

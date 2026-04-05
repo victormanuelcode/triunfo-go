@@ -64,6 +64,64 @@ class LotController {
             echo json_encode(["message" => "Error consultando lotes."]);
         }
     }
+
+    public function update($loteId) {
+        $loteId = (int)$loteId;
+        $data = json_decode(file_get_contents("php://input"), true);
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Formato de datos inválido."]);
+            return;
+        }
+
+        try {
+            $this->lot->updateLot($loteId, $data);
+            http_response_code(200);
+            echo json_encode(["message" => "Lote actualizado correctamente."]);
+        } catch (Exception $e) {
+            http_response_code(400);
+            echo json_encode(["message" => $e->getMessage()]);
+        }
+    }
+
+    public function restock($loteId) {
+        $loteId = (int)$loteId;
+        $data = json_decode(file_get_contents("php://input"), true);
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Formato de datos inválido."]);
+            return;
+        }
+        $cantidad = isset($data['cantidad']) ? (int)$data['cantidad'] : 0;
+        $precioVenta = isset($data['precio_venta']) ? (float)$data['precio_venta'] : null;
+        $costoUnitario = isset($data['costo_unitario']) ? (float)$data['costo_unitario'] : null;
+
+        if ($cantidad <= 0) {
+            http_response_code(400);
+            echo json_encode(["message" => "cantidad debe ser mayor a cero."]);
+            return;
+        }
+
+        try {
+            $this->lot->restockLot($loteId, $cantidad, $precioVenta, $costoUnitario);
+            http_response_code(200);
+            echo json_encode(["message" => "Compra registrada correctamente."]);
+        } catch (Exception $e) {
+            http_response_code(400);
+            echo json_encode(["message" => $e->getMessage()]);
+        }
+    }
+
+    public function delete($loteId) {
+        $loteId = (int)$loteId;
+        try {
+            $this->lot->inactivateLot($loteId);
+            http_response_code(200);
+            echo json_encode(["message" => "Lote eliminado/inactivado correctamente."]);
+        } catch (Exception $e) {
+            http_response_code(400);
+            echo json_encode(["message" => $e->getMessage()]);
+        }
+    }
 }
 ?>
-

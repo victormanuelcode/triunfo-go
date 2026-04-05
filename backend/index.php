@@ -1,7 +1,7 @@
 <?php
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS");
 header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
@@ -28,6 +28,7 @@ include_once 'controllers/CompanyController.php';
 include_once 'controllers/InventoryController.php';
 include_once 'controllers/BoxController.php';
 include_once 'controllers/LotController.php';
+include_once 'controllers/NotificationController.php';
 include_once 'utils/AuthMiddleware.php';
 
 $database = new Database();
@@ -54,6 +55,7 @@ $companyController = new CompanyController($db);
 $inventoryController = new InventoryController($db);
 $boxController = new BoxController($db);
 $lotController = new LotController($db);
+$notificationController = new NotificationController($db);
 
 $request_uri = $_SERVER['REQUEST_URI'];
 $base_path = '/proyecto_final/backend';
@@ -84,6 +86,10 @@ $router->add('GET', '/profile', function () use ($userController, $auth) {
 $router->add('PUT', '/profile', function () use ($userController, $auth) {
     $tokenData = $auth->validateToken();
     $userController->updateProfile($tokenData);
+});
+$router->add('POST', '/profile/avatar', function () use ($userController, $auth) {
+    $tokenData = $auth->validateToken();
+    $userController->uploadAvatar($tokenData);
 });
 
 $router->add('GET', '/users', function () use ($userController, $auth) {
@@ -249,6 +255,18 @@ $router->add('POST', '/lots', function () use ($lotController, $auth) {
     $auth->requireRole([1]);
     $lotController->create();
 });
+$router->add('PUT', '/lots/{id}', function ($id) use ($lotController, $auth) {
+    $auth->requireRole([1]);
+    $lotController->update($id);
+});
+$router->add('POST', '/lots/{id}/restock', function ($id) use ($lotController, $auth) {
+    $auth->requireRole([1]);
+    $lotController->restock($id);
+});
+$router->add('DELETE', '/lots/{id}', function ($id) use ($lotController, $auth) {
+    $auth->requireRole([1]);
+    $lotController->delete($id);
+});
 
 // Rutas de Ventas (Facturas)
 $router->add('GET', '/invoices', function () use ($invoiceController, $auth) {
@@ -316,6 +334,16 @@ $router->add('POST', '/box/open', function () use ($boxController, $auth) {
 $router->add('POST', '/box/close', function () use ($boxController, $auth) {
     $auth->validateToken(); // Cajero cierra caja
     $boxController->close();
+});
+
+// Notificaciones
+$router->add('GET', '/notifications', function () use ($notificationController, $auth) {
+    $tokenData = $auth->validateToken();
+    $notificationController->getAll($tokenData);
+});
+$router->add('PATCH', '/notifications/{id}/read', function ($id) use ($notificationController, $auth) {
+    $tokenData = $auth->validateToken();
+    $notificationController->markRead($tokenData, $id);
 });
 
 // Despachar la ruta
