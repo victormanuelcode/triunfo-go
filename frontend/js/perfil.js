@@ -2,7 +2,8 @@ function showAdminToast(message, type = 'info') {
   const el = document.getElementById('admin-toast');
   if (!el) return alert(message);
   el.textContent = message;
-  el.style.background = type === 'success' ? '#065f46' : type === 'error' ? '#991b1b' : type === 'warning' ? '#92400e' : '#111827';
+  el.classList.remove('toast--success', 'toast--error', 'toast--warning', 'toast--info');
+  el.classList.add(type === 'success' ? 'toast--success' : type === 'error' ? 'toast--error' : type === 'warning' ? 'toast--warning' : 'toast--info');
   el.style.display = 'block';
   clearTimeout(el._t);
   el._t = setTimeout(() => { el.style.display = 'none'; }, 3000);
@@ -22,17 +23,41 @@ function authHeaders() {
 function normalizePerfilLayout() {
   const rol = String(localStorage.getItem('usuario_rol') || '');
   if (rol === '1') return;
+  document.body.classList.add('perfil-standalone');
   const root = document.querySelector('.layout-root');
   if (root) root.classList.remove('layout-root');
   const sidebar = document.querySelector('.sidebar');
   if (sidebar) sidebar.remove();
   const topbar = document.querySelector('.topbar');
   if (topbar) topbar.remove();
-  const contentArea = document.querySelector('.content-area');
-  if (contentArea) {
-    contentArea.style.marginLeft = '0';
-    contentArea.style.width = '100%';
-  }
+}
+
+function setStoredAvatarUrl(url) {
+  try {
+    const raw = localStorage.getItem('usuario_datos');
+    const u = raw ? JSON.parse(raw) : {};
+    u.avatar_url = url || '';
+    localStorage.setItem('usuario_datos', JSON.stringify(u));
+  } catch (_) {}
+  if (url) localStorage.setItem('usuario_avatar_url', url);
+  else localStorage.removeItem('usuario_avatar_url');
+}
+
+function applyAvatarToLayout(url) {
+  const els = [
+    document.getElementById('adminAvatar'),
+    document.getElementById('adminAvatarTop')
+  ];
+  els.forEach(el => {
+    if (!el) return;
+    if (!url) {
+      el.classList.remove('has-image');
+      el.style.removeProperty('background-image');
+      return;
+    }
+    el.classList.add('has-image');
+    el.style.backgroundImage = `url("${url}")`;
+  });
 }
 
 async function cargarPerfil() {
@@ -48,6 +73,8 @@ async function cargarPerfil() {
     document.getElementById('pf-pref-collapse').checked = !!pref.sidebarCollapsed;
     const prev = document.getElementById('pf-avatar-preview');
     if (prev) prev.src = json.avatar_url || '';
+    setStoredAvatarUrl(json.avatar_url || '');
+    applyAvatarToLayout(json.avatar_url || '');
 
     const rol = String(localStorage.getItem('usuario_rol') || '');
     const restr = document.getElementById('pf-restriccion');
@@ -116,6 +143,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const json = await resp.json();
         if (!resp.ok) throw new Error(json.message || 'No se pudo subir el avatar');
         document.getElementById('pf-avatar').value = json.avatar_url || '';
+        setStoredAvatarUrl(json.avatar_url || '');
+        applyAvatarToLayout(json.avatar_url || '');
         showAdminToast('Avatar actualizado', 'success');
       } catch (e) {
         showAdminToast(e.message, 'error');

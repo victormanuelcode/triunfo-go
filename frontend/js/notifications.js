@@ -1,6 +1,8 @@
 const NOTIF_POLL_MS = 60000;
 let notifTimer = null;
 let notifCache = [];
+let notifBound = false;
+let notifStarted = false;
 
 function getApiBase() {
   return `${window.location.origin}/proyecto_final/backend`;
@@ -29,28 +31,27 @@ function renderNotifUI() {
   const badge = document.querySelector('.notif-icon .notif-badge');
   if (badge) {
     const count = notifCache.filter(n => n.estado === 'nuevo').length;
-    badge.style.display = count > 0 ? 'block' : 'none';
+    badge.style.display = count > 0 ? 'flex' : 'none';
     badge.textContent = String(count);
   }
   const list = document.getElementById('notif-list');
   if (list) {
     list.innerHTML = '';
     if (notifCache.length === 0) {
-      list.innerHTML = '<div style="padding:10px 12px; color:#6b7280; text-align:center;">Sin notificaciones</div>';
+      list.innerHTML = '<div class="notif-empty">Sin notificaciones</div>';
       return;
     }
     notifCache.forEach(n => {
       const wrap = document.createElement('div');
-      const color = n.tipo === 'alert' ? '#991b1b' : (n.tipo === 'warning' ? '#92400e' : '#111827');
-      wrap.style.cssText = 'display:flex; gap:8px; align-items:flex-start; padding:10px 12px; border-bottom:1px solid #f3f4f6;';
+      wrap.className = `notif-item notif-item--${n.tipo || 'info'}`;
       wrap.innerHTML = `
-        <div style="width:28px;height:28px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;flex:0 0 28px;color:${color}">!</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;color:${color};">${n.titulo}</div>
-          <div style="font-size:12px;color:#4b5563;word-break:break-word;">${n.mensaje}</div>
-          <div style="font-size:11px;color:#9ca3af;margin-top:2px;">${new Date(n.creado_en).toLocaleString()}</div>
+        <div class="notif-item__icon">!</div>
+        <div class="notif-item__content">
+          <div class="notif-item__title">${n.titulo}</div>
+          <div class="notif-item__msg">${n.mensaje}</div>
+          <div class="notif-item__date">${new Date(n.creado_en).toLocaleString()}</div>
         </div>
-        ${n.estado === 'nuevo' ? '<button class="btn-qty" style="padding:6px 8px;">Leer</button>' : ''}
+        ${n.estado === 'nuevo' ? '<button class="btn-light notif-read-btn">Leer</button>' : ''}
       `;
       const btn = wrap.querySelector('button');
       if (btn) {
@@ -72,15 +73,31 @@ async function markReadNotification(id) {
 }
 
 function bindNotifUI() {
+  if (notifBound) return;
   const icon = document.querySelector('.notif-icon');
   const panel = document.getElementById('notif-panel');
   const markAll = document.getElementById('notif-markall');
   if (icon && panel) {
+    const closePanel = () => {
+      panel.style.display = 'none';
+      panel.dataset.open = '0';
+    };
+    const openPanel = () => {
+      panel.style.display = 'block';
+      panel.dataset.open = '1';
+    };
+
+    closePanel();
     icon.addEventListener('click', (e) => {
       e.stopPropagation();
-      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      const open = panel.dataset.open === '1';
+      if (open) closePanel();
+      else openPanel();
     });
-    document.addEventListener('click', () => { panel.style.display = 'none'; });
+    document.addEventListener('click', closePanel);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closePanel();
+    });
   }
   if (markAll) {
     markAll.addEventListener('click', async () => {
@@ -90,11 +107,22 @@ function bindNotifUI() {
       }
     });
   }
+  notifBound = true;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function startNotifications() {
+  if (notifStarted) return;
   bindNotifUI();
   fetchNotifications(true);
+  clearInterval(notifTimer);
   notifTimer = setInterval(() => fetchNotifications(true), NOTIF_POLL_MS);
-});
+  notifStarted = true;
+}
 
+window.initNotifications = startNotifications;
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startNotifications);
+} else {
+  startNotifications();
+}
