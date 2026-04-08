@@ -64,6 +64,33 @@
         return document.querySelector('.layout-root');
     }
 
+    function ensureSidebarOverlay() {
+        let el = document.getElementById('sidebar-overlay');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'sidebar-overlay';
+            el.className = 'sidebar-overlay';
+            el.addEventListener('click', () => {
+                setCollapsed(true);
+            });
+            document.body.appendChild(el);
+        }
+        return el;
+    }
+
+    function isMobileLayout() {
+        return window.matchMedia('(max-width: 768px)').matches;
+    }
+
+    function updateSidebarOverlay() {
+        const root = getLayoutRoot();
+        if (!root) return;
+        const overlay = ensureSidebarOverlay();
+        const open = isMobileLayout() && !root.classList.contains('layout-collapsed');
+        overlay.style.display = open ? 'block' : 'none';
+        document.body.classList.toggle('sidebar-overlay-open', open);
+    }
+
     function isCollapsed() {
         return localStorage.getItem(LAYOUT_COLLAPSED_KEY) === '1';
     }
@@ -73,11 +100,14 @@
         if (!root) return;
         root.classList.toggle('layout-collapsed', collapsed);
         localStorage.setItem(LAYOUT_COLLAPSED_KEY, collapsed ? '1' : '0');
+        updateSidebarOverlay();
     }
 
     function toggleCollapsed() {
         const root = getLayoutRoot();
         if (!root) return;
+        const notifPanel = document.getElementById('notif-panel');
+        if (notifPanel) notifPanel.style.display = 'none';
         setCollapsed(!root.classList.contains('layout-collapsed'));
     }
 
@@ -102,6 +132,37 @@
         }
     }
 
+    function getStoredAvatarUrl() {
+        try {
+            const raw = localStorage.getItem('usuario_datos');
+            if (raw) {
+                const u = JSON.parse(raw);
+                const url = u?.avatar_url || u?.avatarUrl || null;
+                if (url && String(url).trim() !== '') return String(url);
+            }
+        } catch (_) {}
+        const url2 = localStorage.getItem('usuario_avatar_url');
+        if (url2 && String(url2).trim() !== '') return String(url2);
+        return null;
+    }
+
+    function applyAvatarToEl(el, url) {
+        if (!el) return;
+        if (!url) {
+            el.classList.remove('has-image');
+            el.style.removeProperty('background-image');
+            return;
+        }
+        el.classList.add('has-image');
+        el.style.backgroundImage = `url("${url}")`;
+    }
+
+    function applyUserAvatarFromStorage() {
+        const url = getStoredAvatarUrl();
+        applyAvatarToEl(document.getElementById('adminAvatar'), url);
+        applyAvatarToEl(document.getElementById('adminAvatarTop'), url);
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
         setCollapsed(isCollapsed());
 
@@ -111,6 +172,9 @@
         ]);
 
         bindLayoutToggles();
+        updateSidebarOverlay();
+        window.addEventListener('resize', updateSidebarOverlay);
+        applyUserAvatarFromStorage();
 
         const scriptCaja = document.createElement('script');
         scriptCaja.src = '../../js/caja.js';
@@ -118,6 +182,9 @@
 
         const scriptNotif = document.createElement('script');
         scriptNotif.src = '../../js/notifications.js';
+        scriptNotif.onload = () => {
+            try { window.initNotifications && window.initNotifications(); } catch (_) {}
+        };
         document.body.appendChild(scriptNotif);
     });
 })();
