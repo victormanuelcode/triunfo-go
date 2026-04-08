@@ -18,7 +18,7 @@
 
         <div class="content-area">
             <header class="topbar"></header>
-            <div id="admin-toast" style="position:fixed; top:16px; right:16px; z-index:99999; display:none; padding:10px 14px; border-radius:10px; border:1px solid #e5e7eb; background:#111827; color:#fff; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1); max-width:360px;"></div>
+            <div id="admin-toast"></div>
 
             <main class="content-inner">
                 <div class="page-title">
@@ -39,7 +39,7 @@
                         </div>
                     </div>
 
-                    <div class="metrics-grid" style="margin-top: 8px;">
+                    <div class="metrics-grid mt-8">
                         <div class="metric-card">
                             <div class="metric-label">Facturas hoy</div>
                             <div class="metric-value" id="kpiFacturasHoy">0</div>
@@ -62,7 +62,7 @@
                         </div>
                     </div>
 
-                    <div class="inventory-filters" style="margin-top: 18px;">
+                    <div class="inventory-filters mt-18">
                         <div class="filter-group">
                             <label for="buscadorFacturas">Buscar</label>
                             <div class="filter-input-wrapper">
@@ -90,9 +90,9 @@
                         </div>
                     </div>
 
-                    <div class="history-container" style="max-width: 100%; margin: 0; box-shadow: none; padding: 0; margin-top: 10px;">
-                        <div class="table-wrapper">
-                            <table id="historyTable">
+                    <div class="history-container history-container--flat mt-10">
+                        <div class="table-container">
+                            <table id="historyTable" class="data-table">
                                 <thead>
                                     <tr>
                                         <th>Número</th>
@@ -124,7 +124,7 @@
             <div class="detail-info" id="modalInfo">
                 <!-- Info general -->
             </div>
-            <table id="modalTable" style="width: 100%;">
+            <table id="modalTable" class="data-table">
                 <thead>
                     <tr>
                         <th>Producto</th>

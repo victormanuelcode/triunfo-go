@@ -19,15 +19,15 @@
                     </div>
                 </div>
 
-                <div id="admin-toast" style="display:none; position:fixed; top:16px; right:16px; z-index:99999; padding:10px 14px; border-radius:10px; border:1px solid #e5e7eb; background:#111827; color:#fff;"></div>
+                <div id="admin-toast"></div>
 
-                <div class="card" style="max-width:720px;">
+                <div class="card max-w-720">
                     <form id="perfilForm" class="form-grid">
-                        <div class="form-group" style="grid-column: 1 / -1;">
+                        <div class="form-group grid-span-all">
                             <label>Avatar</label>
-                            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-                                <img id="pf-avatar-preview" src="" alt="avatar" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:1px solid #e5e7eb; background:#f3f4f6;">
-                                <input type="file" id="pf-avatar-file" accept="image/*" style="display:none;">
+                            <div class="perfil-avatar-row">
+                                <img id="pf-avatar-preview" src="" alt="avatar">
+                                <input type="file" id="pf-avatar-file" accept="image/*">
                                 <button type="button" id="pf-avatar-btn" class="btn-light">Subir imagen</button>
                                 <button type="button" id="pf-avatar-clear" class="btn-outline">Quitar</button>
                             </div>
@@ -47,7 +47,7 @@
                         <div class="form-group">
                             <label>Preferencias</label>
                             <div>
-                                <label style="display:flex; gap:8px; align-items:center;">
+                                <label class="inline-check">
                                     <input type="checkbox" id="pf-pref-collapse"/> Colapsar menú lateral
                                 </label>
                             </div>
@@ -58,7 +58,7 @@
                         </div>
                     </form>
 
-                    <div class="alert" id="pf-restriccion" style="margin-top:12px; display:none;">
+                    <div class="alert" id="pf-restriccion">
                         El nombre y la contraseña solo pueden ser cambiados por el Administrador.
                     </div>
                 </div>

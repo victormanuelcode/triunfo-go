@@ -19,7 +19,7 @@
 
         <div class="content-area">
             <header class="topbar"></header>
-            <div id="admin-toast" style="position:fixed; top:16px; right:16px; z-index:99999; display:none; padding:10px 14px; border-radius:10px; border:1px solid #e5e7eb; background:#111827; color:#fff; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1); max-width:360px;"></div>
+            <div id="admin-toast"></div>
 
             <main class="content-inner">
                 <div class="page-title">
@@ -38,9 +38,9 @@
                         </div>
                         <div class="invoice-form-group">
                             <label for="clienteBusqueda">Buscar Cliente</label>
-                            <div style="position: relative;">
+                            <div class="pos-relative">
                                 <input type="text" id="clienteBusqueda" placeholder="Buscar por nombre o cédula..." autocomplete="off">
-                                <div id="resultadosBusquedaCliente" class="search-results" style="display:none; position: absolute; width: 100%; background: white; border: 1px solid #ddd; border-radius: 8px; z-index: 1000; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
+                                <div id="resultadosBusquedaCliente" class="search-results"></div>
                             </div>
                         </div>
                         <div class="invoice-form-group">
@@ -62,7 +62,7 @@
                         </div>
                         <div class="invoice-form-group">
                             <label for="metodoPagoFactura">Método de pago</label>
-                            <select id="metodoPagoFactura" style="width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid #E5E7EB; font-size: 13px;">
+                            <select id="metodoPagoFactura" class="input-select">
                                 <option value="efectivo" selected>Efectivo</option>
                                 <option value="tarjeta">Tarjeta</option>
                                 <option value="transferencia">Transferencia</option>
@@ -83,7 +83,7 @@
                             <button class="btn-secondary" onclick="abrirSelectorProductos()">Buscar</button>
                         </div>
 
-                        <div class="inventory-grid" id="productos-factura-grid" style="margin-bottom: 12px;">
+                        <div class="inventory-grid mb-12" id="productos-factura-grid">
                             <div class="loading-spinner">Cargando productos...</div>
                         </div>
 
@@ -126,8 +126,8 @@
 
     <div id="bannerFactura" class="banner-success">
         <div>
-            <div style="font-weight:600; font-size:14px;">Factura generada correctamente</div>
-            <div style="font-size:12px; opacity:0.9;">Selecciona una acción para compartir o descargar</div>
+            <div class="toast-title">Factura generada correctamente</div>
+            <div class="toast-subtitle">Selecciona una acción para compartir o descargar</div>
         </div>
         <div class="banner-success-actions">
             <button class="btn-light" onclick="accionFacturaBanner('pdf')">Descargar PDF</button>

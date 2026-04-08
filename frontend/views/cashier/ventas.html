@@ -27,7 +27,7 @@
         </div>
     </header>
 
-    <div id="pos-toast" style="position:fixed; top:16px; right:16px; z-index:99999; display:none; padding:10px 14px; border-radius:10px; border:1px solid #e5e7eb; background:#111827; color:#fff; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1); max-width:320px;"></div>
+    <div id="pos-toast"></div>
 
     <div class="pos-container">
         <!-- Columna Izquierda (60%): Catálogo -->
@@ -36,7 +36,7 @@
                 <input type="text" id="buscador" placeholder="🔍 Buscar producto por nombre, código..." onkeyup="filtrarProductos()">
             </div>
             <div class="catalog-grid" id="productos-catalogo">
-                <div style="text-align:center; padding:20px; width:100%; grid-column: 1/-1;">Cargando productos...</div>
+                <div class="pos-loading">Cargando productos...</div>
             </div>
         </div>
 
@@ -49,7 +49,7 @@
                         <select id="cliente-select" class="client-select">
                             <option value="">Cliente General</option>
                         </select>
-                        <a href="../admin/clientes.html" target="_blank" style="color:var(--primary-color); font-size:1.2rem; padding:4px;" title="Nuevo Cliente">+</a>
+                        <a href="../admin/clientes.html" target="_blank" class="client-add-link" title="Nuevo Cliente">+</a>
                     </div>
                 </div>
             </div>
@@ -58,10 +58,10 @@
                 <table class="cart-table" id="tabla-carrito">
                     <thead>
                         <tr>
-                            <th style="width: 50px;">Img</th>
+                            <th class="cart-th-img">Img</th>
                             <th>Producto</th>
-                            <th style="text-align:right;">Subtotal</th>
-                            <th style="width: 40px;"></th>
+                            <th class="text-right">Subtotal</th>
+                            <th class="cart-th-remove"></th>
                         </tr>
                     </thead>
                     <tbody id="carrito-body">
@@ -71,16 +71,16 @@
             </div>
 
             <div class="cart-footer">
-                <div id="banner-caja-cerrada" style="display:none; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; border-radius:12px; padding:12px; margin-bottom:12px;">
-                    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
-                        <div style="display:flex; gap:10px;">
-                            <div style="width:34px; height:34px; border-radius:10px; background:#ffedd5; display:flex; align-items:center; justify-content:center; flex:0 0 34px;">⚠️</div>
+                <div id="banner-caja-cerrada" class="banner-caja-cerrada">
+                    <div class="banner-caja-cerrada__row">
+                        <div class="banner-caja-cerrada__left">
+                            <div class="banner-caja-cerrada__icon">⚠️</div>
                             <div>
-                                <div style="font-weight:700;">Caja cerrada</div>
-                                <div style="font-size:12px; margin-top:2px;">Debes abrir caja para completar ventas y calcular totales por lotes.</div>
+                                <div class="banner-caja-cerrada__title">Caja cerrada</div>
+                                <div class="banner-caja-cerrada__subtitle">Debes abrir caja para completar ventas y calcular totales por lotes.</div>
                             </div>
                         </div>
-                        <button type="button" class="btn-qty" style="padding:6px 10px;" onclick="mostrarModalAperturaCaja()">Abrir caja</button>
+                        <button type="button" class="btn-qty btn-qty--md" onclick="mostrarModalAperturaCaja()">Abrir caja</button>
                     </div>
                 </div>
 
@@ -95,12 +95,12 @@
                     </div>
                 </div>
 
-                <div id="quote-breakdown" style="display:none; background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:12px; margin-top:12px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px;">
-                        <div style="font-weight:700; color:#111827;">Desglose por lotes</div>
-                        <button class="btn-qty" style="padding:2px 10px; font-size:0.8rem;" onclick="toggleQuoteBreakdown()">Ocultar</button>
+                <div id="quote-breakdown" class="quote-breakdown">
+                    <div class="quote-breakdown__header">
+                        <div class="quote-breakdown__title">Desglose por lotes</div>
+                        <button class="btn-qty btn-qty--xs" onclick="toggleQuoteBreakdown()">Ocultar</button>
                     </div>
-                    <div id="quote-breakdown-body" style="display:flex; flex-direction:column; gap:6px;"></div>
+                    <div id="quote-breakdown-body" class="quote-breakdown__body"></div>
                 </div>
 
                 <div class="payment-methods">
@@ -131,70 +131,70 @@
 
                 <button class="btn-complete-sale" id="btn-completar-venta" onclick="procesarVenta()">
                     <span>Completar Venta</span>
-                    <svg style="width:20px;height:20px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                 </button>
             </div>
         </div>
     </div>
 
     <!-- Modals (Mantenidos) -->
-    <div id="modal-apertura-caja" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
-        <div class="modal-content" style="background:white; padding:30px; border-radius:8px; width:400px; text-align:center; position:relative;">
-            <span onclick="cerrarModalApertura()" style="position:absolute; top:10px; right:15px; cursor:pointer; font-size:24px; font-weight:bold;">&times;</span>
+    <div id="modal-apertura-caja" class="modal modal-caja">
+        <div class="modal-content modal-caja__content modal-caja__content--center">
+            <span onclick="cerrarModalApertura()" class="modal-x">&times;</span>
             <h2>Apertura de Caja</h2>
             <p>Debes abrir caja para comenzar a vender.</p>
-            <div class="form-group" style="margin: 20px 0;">
+            <div class="form-group modal-caja__group">
                 <label>Monto Inicial (Base):</label>
-                <input type="number" id="monto-apertura" class="form-control" value="0" min="0" style="width:100%; padding:10px; margin-top:5px; font-size:1.2em;">
+                <input type="number" id="monto-apertura" class="form-control modal-caja__input" value="0" min="0">
             </div>
-            <button onclick="abrirCaja()" class="btn-primary" style="width:100%; padding:10px; font-size:1.1em;">Abrir Caja</button>
+            <button onclick="abrirCaja()" class="btn-primary w-full modal-caja__btn">Abrir Caja</button>
         </div>
     </div>
 
-    <div id="modal-cierre-caja" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
-        <div class="modal-content" style="background:white; padding:30px; border-radius:8px; width:400px; position:relative;">
-            <span onclick="cerrarModalCierre()" style="position:absolute; top:10px; right:15px; cursor:pointer; font-size:24px; font-weight:bold;">&times;</span>
-            <h2 style="text-align:center;">Cierre de Caja</h2>
+    <div id="modal-cierre-caja" class="modal modal-caja">
+        <div class="modal-content modal-caja__content">
+            <span onclick="cerrarModalCierre()" class="modal-x">&times;</span>
+            <h2 class="text-center">Cierre de Caja</h2>
             
-            <div style="background:#f8f9fa; padding:15px; margin:15px 0; border-radius:5px;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+            <div class="cierre-box">
+                <div class="cierre-row">
                     <span>Monto Inicial:</span>
                     <strong id="cierre-inicial">$0</strong>
                 </div>
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-top: 1px solid #ddd; padding-top: 5px;">
+                <div class="cierre-row cierre-row--top">
                     <span>Ventas Efectivo:</span>
                     <span id="cierre-efectivo">$0</span>
                 </div>
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <div class="cierre-row">
                     <span>Ventas Tarjeta:</span>
                     <span id="cierre-tarjeta">$0</span>
                 </div>
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <div class="cierre-row">
                     <span>Ventas Transferencia:</span>
                     <span id="cierre-transferencia">$0</span>
                 </div>
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">
+                <div class="cierre-row cierre-row--bottom">
                     <span>Total Ventas:</span>
                     <strong id="cierre-ventas">$0</strong>
                 </div>
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size: 1.2em; color: var(--primary-color);">
+                <div class="cierre-row cierre-row--highlight">
                     <span>Total Esperado en Caja:</span>
                     <strong id="cierre-esperado">$0</strong>
                 </div>
             </div>
 
-            <div class="form-group" style="margin: 20px 0;">
+            <div class="form-group modal-caja__group">
                 <label>Monto Real en Caja (Efectivo):</label>
-                <input type="number" id="monto-cierre" class="form-control" placeholder="Cuente el dinero físico..." style="width:100%; padding:10px; margin-top:5px; font-size:1.2em;">
-                <small style="color:#666; display:block; margin-top:5px;">Ingrese solo el dinero en efectivo que hay en la caja.</small>
+                <input type="number" id="monto-cierre" class="form-control modal-caja__input" placeholder="Cuente el dinero físico...">
+                <small class="cierre-hint">Ingrese solo el dinero en efectivo que hay en la caja.</small>
             </div>
             
-            <button onclick="procesarCierreCaja()" class="btn-primary" style="width:100%; padding:10px; font-size:1.1em; background-color: #d32f2f;">Cerrar Caja y Salir</button>
+            <button onclick="procesarCierreCaja()" class="btn-primary w-full modal-caja__btn modal-caja__btn--danger">Cerrar Caja y Salir</button>
         </div>
     </div>
 
     <!-- Modal de Éxito de Venta -->
-    <div id="modal-exito-venta" class="modal-overlay" style="display:none;">
+    <div id="modal-exito-venta" class="modal-overlay">
         <div class="success-card">
             <div class="success-header">
                 <div class="check-icon">
@@ -235,34 +235,34 @@
         </div>
     </div>
 
-    <div id="modal-lotes" class="modal-overlay" style="display:none;">
-        <div style="background:#ffffff; border-radius:16px; width:720px; max-width:92%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.12), 0 10px 10px -5px rgba(0,0,0,0.06); overflow:hidden;">
-            <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--border-color);">
-                <div style="min-width:0;">
-                    <div style="font-weight:800; color:#111827;">Seleccionar lote</div>
-                    <div id="modal-lotes-subtitle" style="font-size:12px; color: var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">---</div>
+    <div id="modal-lotes" class="modal-overlay">
+        <div class="lotes-modal-card">
+            <div class="lotes-modal-header">
+                <div class="lotes-modal-header__left">
+                    <div class="lotes-modal-title">Seleccionar lote</div>
+                    <div id="modal-lotes-subtitle" class="lotes-modal-subtitle">---</div>
                 </div>
-                <button type="button" class="btn-qty" style="padding:6px 10px;" onclick="cerrarModalLotes()">Cerrar</button>
+                <button type="button" class="btn-qty btn-qty--md" onclick="cerrarModalLotes()">Cerrar</button>
             </div>
 
-            <div style="padding:16px 18px;">
-                <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;">
-                    <input id="modal-lotes-search" type="text" placeholder="Buscar por número o id..." style="flex:1; min-width:220px; padding:10px 12px; border:1px solid var(--border-color); border-radius:10px; outline:none;">
-                    <button type="button" class="btn-qty" style="padding:8px 10px;" onclick="seleccionarLoteModal(null)">Usar FIFO</button>
+            <div class="lotes-modal-body">
+                <div class="lotes-modal-controls">
+                    <input id="modal-lotes-search" type="text" placeholder="Buscar por número o id..." class="lotes-modal-search">
+                    <button type="button" class="btn-qty btn-qty--lg" onclick="seleccionarLoteModal(null)">Usar FIFO</button>
                 </div>
 
-                <div style="margin-top:12px; border:1px solid var(--border-color); border-radius:12px; overflow:hidden;">
-                    <table style="width:100%; border-collapse:collapse;">
-                        <thead style="background:#F9FAFB;">
+                <div class="lotes-modal-table-wrap">
+                    <table class="lotes-modal-table">
+                        <thead class="lotes-modal-thead">
                             <tr>
-                                <th style="text-align:left; padding:10px 12px; font-size:12px; color:#6b7280;">Lote</th>
-                                <th style="text-align:right; padding:10px 12px; font-size:12px; color:#6b7280;">Disponible</th>
-                                <th style="text-align:right; padding:10px 12px; font-size:12px; color:#6b7280;">Precio</th>
-                                <th style="width:120px;"></th>
+                                <th class="lotes-th-left">Lote</th>
+                                <th class="lotes-th-right">Disponible</th>
+                                <th class="lotes-th-right">Precio</th>
+                                <th class="lotes-th-action"></th>
                             </tr>
                         </thead>
                         <tbody id="modal-lotes-body">
-                            <tr><td colspan="4" style="padding:14px; text-align:center; color:#6b7280;">Cargando...</td></tr>
+                            <tr><td colspan="4" class="lotes-loading">Cargando...</td></tr>
                         </tbody>
                     </table>
                 </div>

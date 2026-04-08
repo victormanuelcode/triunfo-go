@@ -8,7 +8,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../css/styles.css">
-    <link rel="stylesheet" href="../../css/admin_crud.css">
     </head>
 <body>
     <script src="../../js/auth.js"></script>
@@ -34,14 +33,17 @@
                             <div class="card-admin-title">Listado de Proveedores</div>
                             <div class="card-admin-subtitle">Administra la información de tus proveedores</div>
                         </div>
-                        <div>
-                            <input type="text" id="buscador" placeholder="Buscar por nombre o NIT..." class="search-box" onkeyup="filtrarProveedores()">
-                            <button class="btn-add" id="btnNuevoProveedor" style="margin-left: 10px;">Nuevo Proveedor</button>
+                        <div class="inventory-actions">
+                            <div class="filter-input-wrapper">
+                                <span class="search-icon">🔍</span>
+                                <input type="text" id="buscador" placeholder="Buscar por nombre o NIT..." onkeyup="filtrarProveedores()">
+                            </div>
+                            <button class="btn-primary" id="btnNuevoProveedor">Nuevo Proveedor</button>
                         </div>
                     </div>
 
                     <div class="table-container">
-                        <table id="tablaProveedores">
+                        <table id="tablaProveedores" class="data-table">
                             <thead>
                                 <tr>
                                     <th>Nombre</th>
@@ -88,8 +90,8 @@
                     <input type="email" id="email">
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-cancel">Cancelar</button>
-                    <button type="submit" class="btn-save">Guardar</button>
+                    <button type="button" class="btn-secondary btn-cancel">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar</button>
                 </div>
             </form>
         </div>

@@ -136,19 +136,19 @@
 
     <!-- Modal Gestión de Unidades -->
     <div id="unidadesModal" class="modal">
-        <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-content max-w-800">
             <div class="modal-header">
                 <h3>Gestión de Unidades de Medida</h3>
                 <span class="close-modal-unidades">&times;</span>
             </div>
             <div class="modal-body">
-                <div style="margin-bottom: 20px; display: flex; gap: 10px;">
-                    <input type="text" id="nuevaUnidadNombre" placeholder="Nombre (ej. Kilogramo)" style="flex: 1; padding: 8px;">
-                    <input type="text" id="nuevaUnidadAbrev" placeholder="Abrev. (ej. kg)" style="width: 100px; padding: 8px;">
+                <div class="flex gap-10 mb-20">
+                    <input type="text" id="nuevaUnidadNombre" placeholder="Nombre (ej. Kilogramo)" class="flex-1 p-8">
+                    <input type="text" id="nuevaUnidadAbrev" placeholder="Abrev. (ej. kg)" class="w-100 p-8">
                     <button id="btnGuardarUnidad" class="btn-primary">Agregar</button>
                 </div>
                 
-                <table class="table" style="width: 100%;">
+                <table class="table w-full">
                     <thead>
                         <tr>
                             <th>Nombre</th>
@@ -161,7 +161,7 @@
                     </tbody>
                 </table>
             </div>
-            <div class="modal-footer" style="padding: 15px; text-align: right; border-top: 1px solid #eee;">
+            <div class="modal-footer">
                 <button type="button" class="btn-secondary close-modal-unidades-btn">Cerrar</button>
             </div>
         </div>
@@ -169,21 +169,21 @@
 
     <!-- Modal Lotes del Producto -->
     <div id="lotesModal" class="modal">
-        <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-content max-w-900">
             <div class="modal-header">
                 <h3>Lotes del Producto</h3>
                 <span class="close-modal-lotes">&times;</span>
             </div>
             <div class="modal-body">
-                <div style="display:flex; align-items:center; justify-content:space-between; gap: 10px; margin-bottom: 12px;">
+                <div class="flex items-center justify-between gap-10 mb-12">
                     <div>
-                        <div style="font-weight: 600;" id="lotesProductoNombre">---</div>
-                        <div style="color: var(--gris-medio); font-size: 12px;">Trazabilidad y precio por lote</div>
+                        <div class="fw-600" id="lotesProductoNombre">---</div>
+                        <div class="text-muted-xs">Trazabilidad y precio por lote</div>
                     </div>
                     <button class="btn-primary" id="btnNuevaEntradaLote">+ Nueva entrada</button>
                 </div>
 
-                <table class="table" style="width: 100%;">
+                <table class="table w-full">
                     <thead>
                         <tr>
                             <th>ID Lote</th>
@@ -192,15 +192,15 @@
                             <th>Disponible</th>
                             <th>Precio venta</th>
                             <th>Estado</th>
-                            <th style="width: 180px;">Acciones</th>
+                            <th class="w-180">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="tablaLotesBody">
-                        <tr><td colspan="7" style="text-align:center;">Cargando...</td></tr>
+                        <tr><td colspan="7" class="text-center">Cargando...</td></tr>
                     </tbody>
                 </table>
             </div>
-            <div class="modal-footer" style="padding: 15px; text-align: right; border-top: 1px solid #eee;">
+            <div class="modal-footer">
                 <button type="button" class="btn-secondary close-modal-lotes-btn">Cerrar</button>
             </div>
         </div>
@@ -208,7 +208,7 @@
 
     <!-- Modal Editar Lote -->
     <div id="editarLoteModal" class="modal">
-        <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-content max-w-700">
             <div class="modal-header">
                 <h3>Editar lote</h3>
                 <span class="close-modal-editar-lote">&times;</span>
@@ -217,7 +217,7 @@
                 <form id="editarLoteForm">
                     <input type="hidden" id="editLoteId">
                     <div class="form-group">
-                        <label>Producto: <span id="editLoteProductoNombre" style="font-weight: bold;"></span></label>
+                        <label>Producto: <span id="editLoteProductoNombre" class="fw-bold"></span></label>
                     </div>
                     <div class="form-group">
                         <label for="editLoteNumero">Número de lote (opcional)</label>
@@ -248,7 +248,7 @@
 
     <!-- Modal Compra de Producto -->
     <div id="compraProductoModal" class="modal">
-        <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-content max-w-800">
             <div class="modal-header">
                 <h3>Compra de producto</h3>
                 <span class="close-modal-compra">&times;</span>
@@ -264,11 +264,11 @@
 
                     <div class="form-group">
                         <label>Tipo</label>
-                        <div style="display:flex; gap:12px; flex-wrap:wrap;">
-                            <label style="display:flex; gap:8px; align-items:center;">
+                        <div class="flex gap-12 flex-wrap">
+                            <label class="inline-check">
                                 <input type="radio" name="compraTipo" value="existente" checked> Lote existente
                             </label>
-                            <label style="display:flex; gap:8px; align-items:center;">
+                            <label class="inline-check">
                                 <input type="radio" name="compraTipo" value="nuevo"> Nuevo lote
                             </label>
                         </div>
@@ -281,7 +281,7 @@
                                 <option value="">Seleccione un lote</option>
                             </select>
                         </div>
-                        <div style="margin-top:-6px; margin-bottom:10px; color: var(--gris-medio); font-size: 12px;">
+                        <div class="note-tight">
                             Los lotes inactivos no se pueden usar. Inactivar deja el disponible en 0.
                         </div>
                         <div class="form-group">
@@ -298,7 +298,7 @@
                         </div>
                     </div>
 
-                    <div id="compraNuevoBox" style="display:none;">
+                    <div id="compraNuevoBox" class="hidden">
                         <div class="form-group">
                             <label for="compraNuevoNumero">Número de lote (opcional)</label>
                             <input type="text" id="compraNuevoNumero" placeholder="Ej: L-2026-001">
@@ -334,7 +334,7 @@
 
     <!-- Modal Crear Lote (Entrada) -->
     <div id="crearLoteModal" class="modal">
-        <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-content max-w-700">
             <div class="modal-header">
                 <h3>Nueva entrada por lote</h3>
                 <span class="close-modal-crear-lote">&times;</span>
@@ -343,7 +343,7 @@
                 <form id="crearLoteForm">
                     <input type="hidden" id="loteProductoId">
                     <div class="form-group">
-                        <label>Producto: <span id="loteProductoNombre" style="font-weight: bold;"></span></label>
+                        <label>Producto: <span id="loteProductoNombre" class="fw-bold"></span></label>
                     </div>
                     <div class="form-group">
                         <label for="loteNumero">Número de lote (opcional)</label>
@@ -387,10 +387,10 @@
                 <form id="ajusteStockForm">
                     <input type="hidden" id="ajusteProductoId">
                     <div class="form-group">
-                        <label>Producto: <span id="ajusteProductoNombre" style="font-weight: bold;"></span></label>
+                        <label>Producto: <span id="ajusteProductoNombre" class="fw-bold"></span></label>
                     </div>
                     <div class="form-group">
-                        <label>Stock Actual: <span id="ajusteStockActual" style="font-weight: bold;"></span></label>
+                        <label>Stock Actual: <span id="ajusteStockActual" class="fw-bold"></span></label>
                     </div>
                     <div class="form-group">
                         <label for="ajusteTipo">Tipo de Movimiento</label>
