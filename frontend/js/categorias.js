@@ -27,8 +27,8 @@ async function cargarCategorias() {
                         <p class="card-desc">${cat.descripcion || 'Sin descripción'}</p>
                     </div>
                     <div class="card-footer">
-                        <button class="btn-edit" onclick="editarCategoria(${cat.id_categoria})">Editar</button>
-                        <button class="btn-danger" onclick="eliminarCategoria(${cat.id_categoria})">Eliminar</button>
+                        <button class="btn-light btn-sm" type="button" onclick="editarCategoria(${cat.id_categoria})">Editar</button>
+                        <button class="btn-danger-outline btn-sm" type="button" onclick="eliminarCategoria(${cat.id_categoria})">Eliminar</button>
                     </div>
                 </div>
             `;
@@ -37,7 +37,7 @@ async function cargarCategorias() {
 
     } catch (error) {
         console.error('Error:', error);
-        container.innerHTML = '<div class="loading-spinner" style="color:red">Error al cargar datos.</div>';
+        container.innerHTML = '<div class="loading-spinner text-danger">Error al cargar datos.</div>';
     }
 }
 

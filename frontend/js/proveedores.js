@@ -31,7 +31,7 @@ function renderizarTabla(proveedores) {
     tbody.innerHTML = '';
 
     if (proveedores.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No hay proveedores registrados</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay proveedores registrados</td></tr>';
         return;
     }
 
@@ -43,8 +43,10 @@ function renderizarTabla(proveedores) {
             <td>${prov.telefono || '-'}</td>
             <td>${prov.email || '-'}</td>
             <td>
-                <button class="btn-edit" onclick="editarProveedor(${prov.id_proveedor})">Editar</button>
-                <button class="btn-delete" onclick="eliminarProveedor(${prov.id_proveedor})">Eliminar</button>
+                <div class="table-actions">
+                    <button class="btn-light btn-sm" type="button" onclick="editarProveedor(${prov.id_proveedor})">Editar</button>
+                    <button class="btn-danger-outline btn-sm" type="button" onclick="eliminarProveedor(${prov.id_proveedor})">Eliminar</button>
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
@@ -78,7 +80,7 @@ function setupModal() {
 
     const closeModal = () => modal.style.display = 'none';
     spanClose.onclick = closeModal;
-    btnCancel.onclick = closeModal;
+    if (btnCancel) btnCancel.onclick = closeModal;
     window.onclick = (e) => { if (e.target == modal) closeModal(); }
 
     form.onsubmit = async (e) => {

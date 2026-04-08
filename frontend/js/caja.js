@@ -16,22 +16,11 @@ function showCajaToast(message, type = 'info') {
     if (!el) {
         el = document.createElement('div');
         el.id = 'admin-toast';
-        el.style.position = 'fixed';
-        el.style.top = '16px';
-        el.style.right = '16px';
-        el.style.zIndex = '99999';
-        el.style.display = 'none';
-        el.style.padding = '10px 14px';
-        el.style.borderRadius = '10px';
-        el.style.border = '1px solid #e5e7eb';
-        el.style.background = '#111827';
-        el.style.color = '#fff';
-        el.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)';
-        el.style.maxWidth = '360px';
         document.body.appendChild(el);
     }
     el.textContent = message;
-    el.style.background = type === 'success' ? '#065f46' : type === 'error' ? '#991b1b' : type === 'warning' ? '#92400e' : '#111827';
+    el.classList.remove('toast--success', 'toast--error', 'toast--warning', 'toast--info');
+    el.classList.add(type === 'success' ? 'toast--success' : type === 'error' ? 'toast--error' : type === 'warning' ? 'toast--warning' : 'toast--info');
     el.style.display = 'block';
     clearTimeout(el._t);
     el._t = setTimeout(() => { el.style.display = 'none'; }, 3500);
@@ -39,68 +28,65 @@ function showCajaToast(message, type = 'info') {
 
 // HTML de los modales
 const MODAL_APERTURA_HTML = `
-<div id="modalAperturaCaja" class="modal" style="display:none; align-items:center; justify-content:center; background-color: rgba(0,0,0,0.8);">
-    <div class="modal-content" style="max-width: 400px; margin: 0;">
+<div id="modalAperturaCaja" class="modal">
+    <div class="modal-content max-w-400 m-0">
         <div class="modal-header">
             <h2>Apertura de Caja</h2>
         </div>
         <div class="modal-body">
-            <p style="margin-bottom:15px; color:#555;">No hay una sesión de caja activa. Para comenzar a operar, por favor ingrese el monto base.</p>
+            <p class="caja-modal-hint">No hay una sesión de caja activa. Para comenzar a operar, por favor ingrese el monto base.</p>
             <div class="form-group">
-                <label for="montoApertura" style="font-weight:bold;">Monto Inicial (COP):</label>
-                <input type="number" id="montoApertura" class="form-control" value="0" min="0" style="font-size:1.5em; padding:10px; text-align:center; border:2px solid #2E7D32; border-radius:8px;">
+                <label for="montoApertura" class="fw-bold">Monto Inicial (COP):</label>
+                <input type="number" id="montoApertura" class="form-control caja-modal-input" value="0" min="0">
             </div>
-            <div id="errorApertura" style="color:#c0392b; margin-bottom:10px; display:none; text-align:center; font-weight:bold;"></div>
-            <button onclick="confirmarApertura()" class="btn-primary" style="width:100%; padding:12px; font-size:1.1em; margin-top:10px;">Abrir Caja</button>
+            <div id="errorApertura" class="caja-modal-error hidden"></div>
+            <button onclick="confirmarApertura()" class="btn-primary w-full caja-modal-btn">Abrir Caja</button>
         </div>
     </div>
 </div>
 `;
 
 const MODAL_CIERRE_HTML = `
-<div id="modalCierreCaja" class="modal" style="display:none; align-items:center; justify-content:center; background-color: rgba(0,0,0,0.8);">
-    <div class="modal-content" style="max-width: 500px; margin: 0;">
+<div id="modalCierreCaja" class="modal">
+    <div class="modal-content max-w-500 m-0">
         <div class="modal-header">
             <h2>Cierre de Caja</h2>
-            <span class="close-modal" onclick="cerrarModalCierre()" style="font-size:2rem;">&times;</span>
+            <span class="close-modal modal-close-lg" onclick="cerrarModalCierre()">&times;</span>
         </div>
         <div class="modal-body">
-            <div id="loadingResumen" style="text-align:center; padding:20px; color:#666;">
-                <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 10px;"></div>
+            <div id="loadingResumen" class="caja-loading">
+                <div class="spinner"></div>
                 Calculando resumen de ventas...
             </div>
-            <div id="contentResumen" style="display:none;">
-                <div class="alert alert-info" style="background:#e3f2fd; color:#0d47a1; padding:15px; border-radius:8px; margin-bottom:20px; border-left: 5px solid #2196F3;">
-                    <strong style="display:block; margin-bottom:5px;">Resumen del Sistema:</strong>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+            <div id="contentResumen" class="hidden">
+                <div class="alert alert-info caja-alert-info">
+                    <strong class="caja-alert-title">Resumen del Sistema:</strong>
+                    <div class="caja-alert-row">
                         <span>Ventas Totales:</span>
-                        <span id="sysTotalVentas" style="font-weight:bold;">0</span>
+                        <span id="sysTotalVentas" class="fw-bold">0</span>
                     </div>
-                    <div style="font-size:0.9em; color:#555; display:flex; justify-content:space-between;">
+                    <div class="caja-alert-meta">
                         <span>(Efectivo: <span id="sysEfectivo">0</span>)</span>
                         <span>(Otros: <span id="sysOtros">0</span>)</span>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="montoCierre" style="font-weight:bold; color:#2c3e50;">Total Efectivo en Caja (Arqueo):</label>
-                    <input type="number" id="montoCierre" class="form-control" min="0" placeholder="Ingrese el total contado" style="font-size:1.5em; padding:10px; border:2px solid #e74c3c; border-radius:8px; text-align:right;">
-                    <small style="display:block; margin-top:5px; color:#7f8c8d;">Ingrese la suma total de dinero físico (Billetes + Monedas).</small>
+                    <label for="montoCierre" class="fw-bold">Total Efectivo en Caja (Arqueo):</label>
+                    <input type="number" id="montoCierre" class="form-control caja-modal-input caja-modal-input--danger" min="0" placeholder="Ingrese el total contado">
+                    <small class="caja-hint">Ingrese la suma total de dinero físico (Billetes + Monedas).</small>
                 </div>
 
-                <div id="errorCierre" style="color:#c0392b; margin-bottom:10px; display:none; text-align:center; font-weight:bold; background: #fadbd8; padding: 10px; border-radius: 4px;"></div>
+                <div id="errorCierre" class="caja-modal-error caja-modal-error--box hidden"></div>
 
-                <div class="modal-actions" style="display:flex; justify-content:flex-end; gap:10px; margin-top:25px; border-top: 1px solid #eee; padding-top: 20px;">
+                <div class="modal-actions caja-modal-actions">
                     <button onclick="cerrarModalCierre()" class="btn-secondary">Cancelar</button>
-                    <button onclick="confirmarCierre()" class="btn-primary" style="background-color:#c0392b;">Cerrar Caja Definitivamente</button>
+                    <button onclick="confirmarCierre()" class="btn-primary btn-danger">Cerrar Caja Definitivamente</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
-<style>
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-</style>
 `;
 
 // Inyectar modales al DOM

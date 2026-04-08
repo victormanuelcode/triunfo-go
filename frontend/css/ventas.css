@@ -791,3 +791,141 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+.pos-loading {
+    text-align: center;
+    padding: 20px;
+    width: 100%;
+    grid-column: 1 / -1;
+}
+
+.client-add-link {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    padding: 4px;
+}
+
+.cart-th-img { width: 50px; }
+.cart-th-remove { width: 40px; }
+
+#banner-caja-cerrada {
+    display: none;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #9a3412;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+.banner-caja-cerrada__row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.banner-caja-cerrada__left { display: flex; gap: 10px; }
+.banner-caja-cerrada__icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: #ffedd5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 34px;
+}
+.banner-caja-cerrada__title { font-weight: 700; }
+.banner-caja-cerrada__subtitle { font-size: 12px; margin-top: 2px; }
+
+.btn-qty.btn-qty--md { padding: 6px 10px; }
+.btn-qty.btn-qty--lg { padding: 8px 10px; }
+.btn-qty.btn-qty--xs { padding: 2px 10px; font-size: 0.8rem; }
+
+#quote-breakdown {
+    display: none;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 12px;
+}
+.quote-breakdown__header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+.quote-breakdown__title { font-weight: 700; color: #111827; }
+.quote-breakdown__body { display: flex; flex-direction: column; gap: 6px; }
+
+.btn-complete-sale svg { width: 20px; height: 20px; }
+
+.modal-caja {
+    background-color: rgba(0,0,0,0.8);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+}
+.modal-caja__content {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    width: 400px;
+    position: relative;
+    margin: 0;
+}
+.modal-caja__content--center { text-align: center; }
+.modal-x {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    cursor: pointer;
+    font-size: 24px;
+    font-weight: bold;
+}
+.modal-caja__group { margin: 20px 0; }
+.modal-caja__input { width: 100%; padding: 10px; margin-top: 5px; font-size: 1.2em; }
+.modal-caja__btn { padding: 10px; font-size: 1.1em; }
+.modal-caja__btn--danger { background-color: #d32f2f; }
+
+.cierre-box { background: #f8f9fa; padding: 15px; margin: 15px 0; border-radius: 5px; }
+.cierre-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+.cierre-row--top { border-top: 1px solid #ddd; padding-top: 5px; }
+.cierre-row--bottom { border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+.cierre-row--highlight { font-size: 1.2em; color: var(--primary-color); }
+.cierre-hint { color: #666; display: block; margin-top: 5px; }
+
+#modal-exito-venta { display: none; }
+#modal-lotes { display: none; }
+
+.lotes-modal-card {
+    background: #ffffff;
+    border-radius: 16px;
+    width: 720px;
+    max-width: 92%;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.12), 0 10px 10px -5px rgba(0,0,0,0.06);
+    overflow: hidden;
+}
+.lotes-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border-color);
+}
+.lotes-modal-header__left { min-width: 0; }
+.lotes-modal-title { font-weight: 800; color: #111827; }
+.lotes-modal-subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.lotes-modal-body { padding: 16px 18px; }
+.lotes-modal-controls { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.lotes-modal-search {
+    flex: 1;
+    min-width: 220px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    outline: none;
+}
+.lotes-modal-table-wrap { margin-top: 12px; border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; }
+.lotes-modal-table { width: 100%; border-collapse: collapse; }
+.lotes-modal-thead { background: #F9FAFB; }
+.lotes-th-left { text-align: left; padding: 10px 12px; font-size: 12px; color: #6b7280; }
+.lotes-th-right { text-align: right; padding: 10px 12px; font-size: 12px; color: #6b7280; }
+.lotes-th-action { width: 120px; }
+.lotes-loading { padding: 14px; text-align: center; color: #6b7280; }

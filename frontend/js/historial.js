@@ -43,7 +43,7 @@ function renderTablaFacturas(lista) {
     tbody.innerHTML = '';
 
     if (!lista || lista.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No hay facturas registradas</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No hay facturas registradas</td></tr>';
         return;
     }
 
@@ -84,13 +84,13 @@ function renderTablaFacturas(lista) {
                 <div class="table-actions">
                     <button class="btn-icon" title="Ver" onclick="viewDetail(${inv.id_factura})">👁</button>
                     <div class="dropdown">
-                        <button class="btn-icon dropdown-toggle">⋮</button>
+                        <button class="btn-icon dropdown-toggle" type="button" aria-haspopup="true" aria-label="Más opciones">⋮</button>
                         <div class="dropdown-menu">
-                            ${estado !== 'anulada' ? `<button onclick="anularFactura(${inv.id_factura})">Anular</button>` : ''}
-                            <button onclick="accionFactura('pdf', ${inv.id_factura})">Descargar PDF</button>
-                            <button onclick="accionFactura('excel', ${inv.id_factura})">Descargar Excel</button>
-                            <button onclick="accionFactura('print', ${inv.id_factura})">Imprimir</button>
-                            <button onclick="accionFactura('whatsapp', ${inv.id_factura})">WhatsApp</button>
+                            ${estado !== 'anulada' ? `<button type="button" onclick="anularFactura(${inv.id_factura})">Anular</button>` : ''}
+                            <button type="button" onclick="accionFactura('pdf', ${inv.id_factura})">Descargar PDF</button>
+                            <button type="button" onclick="accionFactura('excel', ${inv.id_factura})">Descargar Excel</button>
+                            <button type="button" onclick="accionFactura('print', ${inv.id_factura})">Imprimir</button>
+                            <button type="button" onclick="accionFactura('whatsapp', ${inv.id_factura})">WhatsApp</button>
                         </div>
                     </div>
                 </div>
