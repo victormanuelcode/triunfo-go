@@ -17,9 +17,27 @@ class InventoryMovement {
     public $fecha;
     public $descripcion;
     public $referencia;
+    public $numero_lote_snapshot;
 
     public function __construct($db) {
         $this->conn = $db;
+    }
+
+    private function resolveLotNumberSnapshot() {
+        if (empty($this->lote_id)) {
+            return null;
+        }
+
+        if ($this->numero_lote_snapshot !== null && $this->numero_lote_snapshot !== '') {
+            return (string)$this->numero_lote_snapshot;
+        }
+
+        $stmt = $this->conn->prepare("SELECT numero_lote FROM lotes_producto WHERE id_lote = :lote_id LIMIT 1");
+        $stmt->bindValue(':lote_id', (int)$this->lote_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row && isset($row['numero_lote']) && $row['numero_lote'] !== '' ? (string)$row['numero_lote'] : null;
     }
 
     /**
@@ -32,6 +50,7 @@ class InventoryMovement {
                   SET tipo = :tipo,
                       producto_id = :producto_id,
                       lote_id = :lote_id,
+                      numero_lote_snapshot = :numero_lote_snapshot,
                       cantidad = :cantidad,
                       descripcion = :descripcion,
                       referencia = :referencia";
@@ -41,11 +60,13 @@ class InventoryMovement {
         // Saneamiento de datos
         $this->descripcion = htmlspecialchars(strip_tags($this->descripcion));
         $this->referencia = htmlspecialchars(strip_tags($this->referencia));
+        $this->numero_lote_snapshot = $this->resolveLotNumberSnapshot();
 
         // Vincular parámetros
         $stmt->bindParam(":tipo", $this->tipo);
         $stmt->bindParam(":producto_id", $this->producto_id);
         $stmt->bindValue(":lote_id", $this->lote_id !== null ? (int)$this->lote_id : null, $this->lote_id !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $stmt->bindValue(":numero_lote_snapshot", $this->numero_lote_snapshot !== null ? (string)$this->numero_lote_snapshot : null, $this->numero_lote_snapshot !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
         $stmt->bindParam(":cantidad", $this->cantidad);
         $stmt->bindParam(":descripcion", $this->descripcion);
         $stmt->bindParam(":referencia", $this->referencia);
@@ -67,7 +88,8 @@ class InventoryMovement {
      */
     public function getAll($from = null, $to = null, $type = null, $search = null) {
         $query = "SELECT m.*, p.nombre as producto_nombre, p.imagen as producto_imagen, 
-                         c.nombre as categoria_nombre, f.id_factura, l.numero_lote
+                         c.nombre as categoria_nombre, f.id_factura,
+                         COALESCE(m.numero_lote_snapshot, l.numero_lote) as numero_lote
                   FROM " . $this->table_name . " m
                   LEFT JOIN productos p ON m.producto_id = p.id_producto
                   LEFT JOIN lotes_producto l ON m.lote_id = l.id_lote

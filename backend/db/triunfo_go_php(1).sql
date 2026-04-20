@@ -100,6 +100,9 @@ CREATE TABLE `detalle_factura` (
   `id_detalle` int(11) NOT NULL,
   `factura_id` int(11) NOT NULL,
   `producto_id` int(11) NOT NULL,
+  `lote_id` int(11) DEFAULT NULL,
+  `lote_numero_snapshot` varchar(50) DEFAULT NULL,
+  `costo_unitario_snapshot` decimal(10,2) NOT NULL DEFAULT 0.00,
   `cantidad` int(11) NOT NULL,
   `precio_unitario` decimal(10,2) NOT NULL,
   `subtotal` decimal(10,2) NOT NULL
@@ -109,15 +112,14 @@ CREATE TABLE `detalle_factura` (
 -- Volcado de datos para la tabla `detalle_factura`
 --
 
-INSERT INTO `detalle_factura` (`id_detalle`, `factura_id`, `producto_id`, `cantidad`, `precio_unitario`, `subtotal`) VALUES
-(1, 1, 1, 1, 5000.00, 5000.00),
-(2, 2, 3, 16, 6000.00, 96000.00),
-(3, 3, 3, 1, 6000.00, 6000.00),
-(4, 4, 3, 1, 6000.00, 6000.00),
-(5, 5, 3, 1, 6000.00, 6000.00),
-(6, 6, 3, 1, 6000.00, 6000.00),
-(7, 7, 3, 1, 6000.00, 6000.00),
-(8, 8, 1, 2, 2500.00, 5000.00);
+INSERT INTO `detalle_factura` (`id_detalle`, `factura_id`, `producto_id`, `lote_id`, `lote_numero_snapshot`, `costo_unitario_snapshot`, `cantidad`, `precio_unitario`, `subtotal`) VALUES
+(1, 1, 1, 3, 'L-BASE-003', 0.00, 1, 5000.00, 5000.00),
+(2, 2, 3, 2, 'L-BASE-002', 2000.00, 16, 6000.00, 96000.00),
+(3, 3, 3, 3, 'L-BASE-003', 0.00, 1, 6000.00, 6000.00),
+(4, 4, 3, 3, 'L-BASE-003', 0.00, 1, 6000.00, 6000.00),
+(5, 5, 3, 3, 'L-BASE-003', 0.00, 1, 6000.00, 6000.00),
+(6, 6, 3, 2, 'L-BASE-002', 2000.00, 1, 6000.00, 6000.00),
+(7, 7, 3, 1, 'L-BASE-001', 0.00, 1, 6000.00, 6000.00);
 
 -- --------------------------------------------------------
 
@@ -191,6 +193,8 @@ CREATE TABLE `movimientos_inventario` (
   `id_movimiento` int(11) NOT NULL,
   `tipo` enum('entrada','salida') NOT NULL,
   `producto_id` int(11) NOT NULL,
+  `lote_id` int(11) DEFAULT NULL,
+  `numero_lote_snapshot` varchar(50) DEFAULT NULL,
   `cantidad` int(11) NOT NULL,
   `fecha` datetime DEFAULT current_timestamp(),
   `descripcion` varchar(255) DEFAULT NULL,
@@ -202,18 +206,18 @@ CREATE TABLE `movimientos_inventario` (
 -- Volcado de datos para la tabla `movimientos_inventario`
 --
 
-INSERT INTO `movimientos_inventario` (`id_movimiento`, `tipo`, `producto_id`, `cantidad`, `fecha`, `descripcion`, `referencia`, `creado_en`) VALUES
-(1, 'entrada', 3, 40, '2026-02-09 06:49:10', 'Stock Inicial', 'CREACION', '2026-02-09 11:49:10'),
-(2, 'salida', 1, 49, '2026-02-09 06:53:16', 'Baja de Producto (Eliminado)', 'BAJA', '2026-02-09 11:53:16'),
-(3, 'salida', 3, 16, '2026-02-09 08:40:16', 'Venta Factura FAC-1770644416', 'FAC-1770644416', '2026-02-09 13:40:16'),
-(4, 'entrada', 4, 30, '2026-02-09 10:01:26', 'Stock Inicial', 'CREACION', '2026-02-09 15:01:26'),
-(5, 'salida', 3, 1, '2026-02-09 10:06:11', 'Venta Factura FAC-1770649571', 'FAC-1770649571', '2026-02-09 15:06:11'),
-(6, 'salida', 3, 1, '2026-02-09 11:12:16', 'Venta Factura FAC-1770653536', 'FAC-1770653536', '2026-02-09 16:12:16'),
-(7, 'salida', 3, 1, '2026-02-11 11:35:30', 'Venta Factura FAC-1770827730', 'FAC-1770827730', '2026-02-11 16:35:30'),
-(8, 'salida', 3, 1, '2026-02-11 18:37:04', 'Venta Factura FAC-1770853024', 'FAC-1770853024', '2026-02-11 23:37:04'),
-(9, 'salida', 3, 1, '2026-02-11 18:43:27', 'Venta Factura FAC-1770853407', 'FAC-1770853407', '2026-02-11 23:43:27'),
-(10, 'salida', 1, 2, '2026-02-12 10:36:55', 'Venta Factura FAC-1770910615', 'FAC-1770910615', '2026-02-12 15:36:55'),
-(11, 'entrada', 5, 92, '2026-02-16 08:35:55', 'Stock Inicial', 'CREACION', '2026-02-16 13:35:55');
+INSERT INTO `movimientos_inventario` (`id_movimiento`, `tipo`, `producto_id`, `lote_id`, `numero_lote_snapshot`, `cantidad`, `fecha`, `descripcion`, `referencia`, `creado_en`) VALUES
+(1, 'entrada', 3, 3, 'L-BASE-003', 40, '2026-02-09 06:49:10', 'Stock Inicial', 'CREACION', '2026-02-09 11:49:10'),
+(2, 'salida', 1, 2, 'L-BASE-002', 49, '2026-02-09 06:53:16', 'Baja de Producto (Eliminado)', 'BAJA', '2026-02-09 11:53:16'),
+(3, 'salida', 3, 3, 'L-BASE-003', 16, '2026-02-09 08:40:16', 'Venta Factura FAC-1770644416', 'FAC-1770644416', '2026-02-09 13:40:16'),
+(4, 'entrada', 4, 4, NULL, 30, '2026-02-09 10:01:26', 'Stock Inicial', 'CREACION', '2026-02-09 15:01:26'),
+(5, 'salida', 3, 5, '7785', 1, '2026-02-09 10:06:11', 'Venta Factura FAC-1770649571', 'FAC-1770649571', '2026-02-09 15:06:11'),
+(6, 'salida', 3, 6, '5555', 1, '2026-02-09 11:12:16', 'Venta Factura FAC-1770653536', 'FAC-1770653536', '2026-02-09 16:12:16'),
+(7, 'salida', 3, 7, 'L-20260328-7', 1, '2026-02-11 11:35:30', 'Venta Factura FAC-1770827730', 'FAC-1770827730', '2026-02-11 16:35:30'),
+(8, 'salida', 3, 7, 'L-20260328-7', 1, '2026-02-11 18:37:04', 'Venta Factura FAC-1770853024', 'FAC-1770853024', '2026-02-11 23:37:04'),
+(9, 'salida', 3, 7, 'L-20260328-7', 1, '2026-02-11 18:43:27', 'Venta Factura FAC-1770853407', 'FAC-1770853407', '2026-02-11 23:43:27'),
+(10, 'salida', 1, 8, 'L-20260328-8', 2, '2026-02-12 10:36:55', 'Venta Factura FAC-1770910615', 'FAC-1770910615', '2026-02-12 15:36:55'),
+(11, 'entrada', 5, 8, 'L-20260328-8', 92, '2026-02-16 08:35:55', 'Stock Inicial', 'CREACION', '2026-02-16 13:35:55');
 
 -- --------------------------------------------------------
 
@@ -242,10 +246,11 @@ CREATE TABLE `productos` (
 --
 
 INSERT INTO `productos` (`id_producto`, `nombre`, `descripcion`, `categoria_id`, `unidad_medida_id`, `precio_compra`, `precio_venta`, `stock_actual`, `stock_minimo`, `imagen`, `estado`, `creado_en`, `actualizado_en`) VALUES
-(1, 'papa pastusa', '', 2, NULL, 0.00, 5000.00, -2, 0, NULL, 'inactivo', '2026-02-09 02:22:21', '2026-02-12 15:36:55'),
-(3, 'papa llanera', '', 2, 1, 0.00, 6000.00, 19, 0, 'uploads/products/6989ebd918ebd.jpeg', 'activo', '2026-02-09 11:49:10', '2026-02-11 23:43:27'),
-(4, 'aguacate', '', 3, 1, 0.00, 9000.00, 30, 0, 'uploads/products/6989f6c6b0ad4.jpeg', 'activo', '2026-02-09 15:01:26', '2026-02-16 13:31:19'),
-(5, 'papa linterna', '', 2, 1, 0.00, 6920.00, 92, 5, 'uploads/products/69931d3b9c3ba.jpg', 'activo', '2026-02-16 13:35:55', '2026-02-16 13:35:55');
+(1, 'papa pastusa', '', 2, NULL, 0.00, 5000.00, 0, 0, NULL, 'inactivo', '2026-03-17 07:47:58', '2026-03-17 07:47:58'),
+(3, 'papa llanera', '', 2, NULL, 0.00, 6000.00, 15, 0, 'uploads/products/6989ebd918ebd.jpeg', 'activo', '2026-03-17 07:47:58', '2026-04-15 08:48:08'),
+(4, 'aguacate', '', 3, NULL, 0.00, 9000.00, 16, 0, 'uploads/products/6989f6c6b0ad4.jpeg', 'activo', '2026-03-17 07:47:58', '2026-04-15 07:56:11'),
+(5, 'papa linterna', '', 2, NULL, 0.00, 6920.00, 75, 5, 'uploads/products/69931d3b9c3ba.jpg', 'activo', '2026-03-17 07:47:58', '2026-04-15 09:12:23'),
+(6, 'Producto QA', 'producto de prueba', 2, 2, 3000.00, 5000.00, 6, 5, NULL, 'activo', '2026-04-15 08:55:00', '2026-04-15 09:48:22');
 
 -- --------------------------------------------------------
 
@@ -273,6 +278,48 @@ INSERT INTO `proveedores` (`id_proveedor`, `nombre`, `nit`, `telefono`, `direcci
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `lotes_producto`
+--
+
+CREATE TABLE `lotes_producto` (
+  `id_lote` int(11) NOT NULL,
+  `producto_id` int(11) NOT NULL,
+  `proveedor_id` int(11) DEFAULT NULL,
+  `numero_lote` varchar(50) DEFAULT NULL,
+  `fecha_creacion` datetime NOT NULL DEFAULT current_timestamp(),
+  `fecha_vencimiento` date DEFAULT NULL,
+  `costo_unitario` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `precio_venta` decimal(10,2) NOT NULL,
+  `cantidad_inicial` int(11) NOT NULL,
+  `cantidad_disponible` int(11) NOT NULL,
+  `estado` enum('activo','agotado','inactivo','bloqueado','cuarentena','vencido') NOT NULL DEFAULT 'activo',
+  `motivo_estado` varchar(255) DEFAULT NULL,
+  `creado_en` timestamp NOT NULL DEFAULT current_timestamp(),
+  `actualizado_en` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `lotes_producto`
+--
+
+INSERT INTO `lotes_producto` (`id_lote`, `producto_id`, `proveedor_id`, `numero_lote`, `fecha_creacion`, `costo_unitario`, `precio_venta`, `cantidad_inicial`, `cantidad_disponible`, `estado`, `creado_en`, `actualizado_en`) VALUES
+(1, 3, 1, 'L-BASE-001', '2026-03-17 07:47:58', 0.00, 6000.00, 19, 0, 'inactivo', '2026-03-17 07:47:58', '2026-04-15 08:48:22'),
+(2, 4, 1, 'L-BASE-002', '2026-03-17 07:47:58', 2000.00, 6000.00, 40, 16, 'activo', '2026-03-17 07:47:58', '2026-04-15 07:56:11'),
+(3, 5, 1, 'L-BASE-003', '2026-03-17 07:47:58', 0.00, 6920.00, 92, 0, 'inactivo', '2026-03-17 07:47:58', '2026-04-15 09:11:30'),
+(4, 5, 1, NULL, '2026-03-24 07:35:50', 300.00, 7000.00, 6, 6, 'activo', '2026-03-24 07:35:50', '2026-03-24 07:35:50'),
+(5, 5, 1, '7785', '2026-03-24 10:04:07', 0.00, 80020.00, 77, 69, 'activo', '2026-03-24 10:04:07', '2026-04-08 11:35:43'),
+(6, 5, 1, '5555', '2026-03-24 11:36:12', 0.00, 90020.00, 8, 0, 'inactivo', '2026-03-24 11:36:12', '2026-04-15 09:12:23'),
+(7, 5, NULL, 'L-20260328-7', '2026-03-27 19:38:24', 0.00, 6920.00, 2, 0, 'inactivo', '2026-03-27 19:38:24', '2026-03-27 19:38:24'),
+(8, 4, NULL, 'L-20260328-8', '2026-03-27 19:41:45', 0.00, 9000.00, 2, 0, 'inactivo', '2026-03-27 19:41:45', '2026-03-27 19:41:46'),
+(9, 5, NULL, 'L-20260328-9', '2026-03-27 19:43:51', 0.00, 6920.00, 2, 0, 'inactivo', '2026-03-27 19:43:51', '2026-03-27 19:43:51'),
+(10, 5, NULL, 'L-20260328-10', '2026-03-27 19:44:57', 0.00, 6920.00, 2, 0, 'inactivo', '2026-03-27 19:44:57', '2026-03-27 19:44:57'),
+(11, 5, NULL, 'L-20260405-11', '2026-04-04 19:38:47', 0.00, 6920.00, 2, 0, 'inactivo', '2026-04-04 19:38:47', '2026-04-04 19:38:47'),
+(12, 3, 1, 'L-20260415-12', '2026-04-15 08:48:08', 4200.00, 6500.00, 15, 15, 'activo', '2026-04-15 08:48:08', '2026-04-15 08:48:08'),
+(13, 6, 1, 'L-20260415-13', '2026-04-15 08:55:00', 4500.00, 7000.00, 20, 6, 'agotado', '2026-04-15 08:55:00', '2026-04-15 09:48:22');
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `proveedor_producto`
 --
 
@@ -288,9 +335,10 @@ CREATE TABLE `proveedor_producto` (
 --
 
 INSERT INTO `proveedor_producto` (`id`, `proveedor_id`, `producto_id`, `creado_en`) VALUES
-(2, 1, 4, '2026-02-16 13:31:19'),
-(4, 1, 3, '2026-02-16 13:31:40'),
-(5, 1, 5, '2026-02-16 13:35:55');
+(1, 1, 4, '2026-03-17 07:47:58'),
+(2, 1, 3, '2026-03-17 07:47:58'),
+(3, 1, 5, '2026-03-17 07:47:58'),
+(4, 1, 6, '2026-04-15 08:55:00');
 
 -- --------------------------------------------------------
 
@@ -351,7 +399,7 @@ CREATE TABLE `unidades_medida` (
 --
 
 INSERT INTO `unidades_medida` (`id_unidad`, `nombre`, `abreviatura`) VALUES
-(1, 'kilogramo', 'kg');
+(2, 'kilogramo', 'kg');
 
 -- --------------------------------------------------------
 
@@ -375,6 +423,36 @@ CREATE TABLE `usuarios` (
 INSERT INTO `usuarios` (`id_usuario`, `nombre`, `usuario`, `contrasena`, `email`, `creado_en`) VALUES
 (1, 'Admin Prueba', 'admin', '$2y$10$xR/qC3vL5XXJhQWgPNOxbeQVZW/runeUu1ckH7/FmsEzkvRr8HEvO', 'admin@prueba.com', '2026-02-09 02:15:20'),
 (2, 'Cajero', 'Cajero', '$2y$10$C0angHCc734aQhSaciVunupsEjs7mr0kLlZOMtePH1h3gSb/F1aGG', 'Cajero@gmail.com', '2026-02-11 23:23:01');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `notificaciones`
+--
+
+CREATE TABLE `notificaciones` (
+  `id` int(11) NOT NULL,
+  `usuario_id` int(11) DEFAULT NULL,
+  `titulo` varchar(150) NOT NULL,
+  `mensaje` varchar(500) NOT NULL,
+  `tipo` enum('info','warning','alert') NOT NULL DEFAULT 'info',
+  `estado` enum('nuevo','leido') NOT NULL DEFAULT 'nuevo',
+  `creado_en` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `notificaciones`
+--
+
+INSERT INTO `notificaciones` (`id`, `usuario_id`, `titulo`, `mensaje`, `tipo`, `estado`, `creado_en`) VALUES
+(1, 2, 'Caja abierta', 'Tu caja ha sido abierta correctamente.', 'info', 'nuevo', '2026-03-27 19:44:57'),
+(2, 2, 'Caja cerrada', 'Has cerrado tu caja. Diferencia: -6.920', 'warning', 'nuevo', '2026-03-27 19:44:58'),
+(3, 2, 'Caja abierta', 'Tu caja ha sido abierta correctamente.', 'info', 'nuevo', '2026-04-04 19:38:46'),
+(4, 2, 'Caja cerrada', 'Has cerrado tu caja. Diferencia: -6.920', 'warning', 'nuevo', '2026-04-04 19:38:48'),
+(5, 1, 'Caja cerrada', 'Has cerrado tu caja. Diferencia: -320.000', 'warning', 'leido', '2026-04-08 14:54:36'),
+(6, 1, 'Caja abierta', 'Tu caja ha sido abierta correctamente.', 'info', 'leido', '2026-04-08 14:54:43'),
+(7, 1, 'Caja cerrada', 'Has cerrado tu caja. Diferencia: -5.000', 'warning', 'leido', '2026-04-08 15:00:20'),
+(8, 1, 'Caja abierta', 'Tu caja ha sido abierta correctamente.', 'info', 'leido', '2026-04-08 15:00:26');
 
 --
 -- Índices para tablas volcadas
@@ -405,7 +483,8 @@ ALTER TABLE `clientes`
 ALTER TABLE `detalle_factura`
   ADD PRIMARY KEY (`id_detalle`),
   ADD KEY `factura_id` (`factura_id`),
-  ADD KEY `producto_id` (`producto_id`);
+  ADD KEY `producto_id` (`producto_id`),
+  ADD KEY `idx_det_lote` (`lote_id`);
 
 --
 -- Indices de la tabla `empresa`
@@ -430,11 +509,28 @@ ALTER TABLE `jwt_blacklist`
   ADD PRIMARY KEY (`jti`);
 
 --
+-- Indices de la tabla `lotes_producto`
+--
+ALTER TABLE `lotes_producto`
+  ADD PRIMARY KEY (`id_lote`),
+  ADD KEY `idx_lotes_producto` (`producto_id`),
+  ADD KEY `idx_lotes_proveedor` (`proveedor_id`),
+  ADD KEY `idx_lotes_fecha` (`fecha_creacion`);
+
+--
 -- Indices de la tabla `movimientos_inventario`
 --
 ALTER TABLE `movimientos_inventario`
   ADD PRIMARY KEY (`id_movimiento`),
-  ADD KEY `producto_id` (`producto_id`);
+  ADD KEY `producto_id` (`producto_id`),
+  ADD KEY `idx_mov_lote` (`lote_id`);
+
+--
+-- Indices de la tabla `notificaciones`
+--
+ALTER TABLE `notificaciones`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_notificaciones_usuario` (`usuario_id`);
 
 --
 -- Indices de la tabla `productos`
@@ -527,16 +623,28 @@ ALTER TABLE `facturas`
   MODIFY `id_factura` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
+-- AUTO_INCREMENT de la tabla `lotes_producto`
+--
+ALTER TABLE `lotes_producto`
+  MODIFY `id_lote` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+
+--
 -- AUTO_INCREMENT de la tabla `movimientos_inventario`
 --
 ALTER TABLE `movimientos_inventario`
-  MODIFY `id_movimiento` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id_movimiento` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+
+--
+-- AUTO_INCREMENT de la tabla `notificaciones`
+--
+ALTER TABLE `notificaciones`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT de la tabla `productos`
 --
 ALTER TABLE `productos`
-  MODIFY `id_producto` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_producto` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT de la tabla `proveedores`
@@ -548,7 +656,7 @@ ALTER TABLE `proveedores`
 -- AUTO_INCREMENT de la tabla `proveedor_producto`
 --
 ALTER TABLE `proveedor_producto`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT de la tabla `roles`
@@ -566,7 +674,7 @@ ALTER TABLE `roles_user`
 -- AUTO_INCREMENT de la tabla `unidades_medida`
 --
 ALTER TABLE `unidades_medida`
-  MODIFY `id_unidad` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_unidad` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `usuarios`
@@ -583,7 +691,8 @@ ALTER TABLE `usuarios`
 --
 ALTER TABLE `detalle_factura`
   ADD CONSTRAINT `detalle_factura_ibfk_1` FOREIGN KEY (`factura_id`) REFERENCES `facturas` (`id_factura`) ON DELETE CASCADE,
-  ADD CONSTRAINT `detalle_factura_ibfk_2` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`id_producto`);
+  ADD CONSTRAINT `detalle_factura_ibfk_2` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`id_producto`),
+  ADD CONSTRAINT `detalle_factura_ibfk_3` FOREIGN KEY (`lote_id`) REFERENCES `lotes_producto` (`id_lote`) ON DELETE SET NULL;
 
 --
 -- Filtros para la tabla `empresa`
@@ -602,7 +711,21 @@ ALTER TABLE `facturas`
 -- Filtros para la tabla `movimientos_inventario`
 --
 ALTER TABLE `movimientos_inventario`
-  ADD CONSTRAINT `movimientos_inventario_ibfk_1` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`id_producto`);
+  ADD CONSTRAINT `movimientos_inventario_ibfk_1` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`id_producto`),
+  ADD CONSTRAINT `movimientos_inventario_ibfk_2` FOREIGN KEY (`lote_id`) REFERENCES `lotes_producto` (`id_lote`) ON DELETE SET NULL;
+
+--
+-- Filtros para la tabla `lotes_producto`
+--
+ALTER TABLE `lotes_producto`
+  ADD CONSTRAINT `lotes_producto_ibfk_1` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`id_producto`) ON DELETE CASCADE,
+  ADD CONSTRAINT `lotes_producto_ibfk_2` FOREIGN KEY (`proveedor_id`) REFERENCES `proveedores` (`id_proveedor`) ON DELETE SET NULL;
+
+--
+-- Filtros para la tabla `notificaciones`
+--
+ALTER TABLE `notificaciones`
+  ADD CONSTRAINT `notificaciones_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id_usuario`) ON DELETE SET NULL;
 
 --
 -- Filtros para la tabla `productos`

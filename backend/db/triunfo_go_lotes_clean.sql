@@ -151,11 +151,13 @@ CREATE TABLE lotes_producto (
   proveedor_id INT(11) NULL,
   numero_lote VARCHAR(50) NULL,
   fecha_creacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  fecha_vencimiento DATE NULL,
   costo_unitario DECIMAL(10,2) NOT NULL DEFAULT 0,
   precio_venta DECIMAL(10,2) NOT NULL,
   cantidad_inicial INT(11) NOT NULL,
   cantidad_disponible INT(11) NOT NULL,
-  estado ENUM('activo','agotado') NOT NULL DEFAULT 'activo',
+  estado ENUM('activo','agotado','inactivo','bloqueado','cuarentena','vencido') NOT NULL DEFAULT 'activo',
+  motivo_estado VARCHAR(255) NULL,
   creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id_lote),
@@ -171,6 +173,8 @@ CREATE TABLE detalle_factura (
   factura_id INT(11) NOT NULL,
   producto_id INT(11) NOT NULL,
   lote_id INT(11) NULL,
+  lote_numero_snapshot VARCHAR(50) NULL,
+  costo_unitario_snapshot DECIMAL(10,2) NOT NULL DEFAULT 0,
   cantidad INT(11) NOT NULL,
   precio_unitario DECIMAL(10,2) NOT NULL,
   subtotal DECIMAL(10,2) NOT NULL,
@@ -188,6 +192,7 @@ CREATE TABLE movimientos_inventario (
   tipo ENUM('entrada','salida') NOT NULL,
   producto_id INT(11) NOT NULL,
   lote_id INT(11) NULL,
+  numero_lote_snapshot VARCHAR(50) NULL,
   cantidad INT(11) NOT NULL,
   fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
   descripcion VARCHAR(255) DEFAULT NULL,
@@ -220,4 +225,17 @@ CREATE TABLE jwt_blacklist (
   exp INT(10) UNSIGNED NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (jti)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE notificaciones (
+  id INT NOT NULL AUTO_INCREMENT,
+  usuario_id INT(11) NULL,
+  titulo VARCHAR(150) NOT NULL,
+  mensaje VARCHAR(500) NOT NULL,
+  tipo ENUM('info','warning','alert') NOT NULL DEFAULT 'info',
+  estado ENUM('nuevo','leido') NOT NULL DEFAULT 'nuevo',
+  creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_notificaciones_usuario (usuario_id),
+  CONSTRAINT fk_notificaciones_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios (id_usuario) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

@@ -28,6 +28,7 @@ class Invoice {
     public $metodo_pago;
     public $observaciones;
     public $fecha;
+    public $last_error = null;
     public $items = []; // Array de productos a vender
     public $detalles = []; // Array para lectura de detalles
 
@@ -106,6 +107,18 @@ class Invoice {
         return [
             'lines' => $lines,
             'total' => $total
+        ];
+    }
+
+    private function getLotSnapshot($lotModel, $loteId) {
+        $lot = $lotModel->getLotById((int)$loteId);
+        if (!$lot) {
+            throw new Exception("Lote no encontrado para snapshot: {$loteId}.");
+        }
+
+        return [
+            'numero_lote' => isset($lot['numero_lote']) && $lot['numero_lote'] !== '' ? (string)$lot['numero_lote'] : null,
+            'costo_unitario' => isset($lot['costo_unitario']) ? (float)$lot['costo_unitario'] : 0
         ];
     }
 
@@ -214,7 +227,8 @@ class Invoice {
             $this->usuario_nombre = $row['usuario_nombre'];
 
             // 2. Obtener detalles
-            $query_det = "SELECT d.*, p.nombre as producto_nombre, l.numero_lote as lote_numero
+            $query_det = "SELECT d.*, p.nombre as producto_nombre, p.imagen as producto_imagen,
+                                 COALESCE(d.lote_numero_snapshot, l.numero_lote) as lote_numero
                           FROM detalle_factura d
                           LEFT JOIN productos p ON d.producto_id = p.id_producto
                           LEFT JOIN lotes_producto l ON d.lote_id = l.id_lote
@@ -284,9 +298,10 @@ class Invoice {
                 // pero lo ideal es reutilizar. Como estamos dentro de una transacción manual, 
                 // InventoryMovement debería usar la misma conexión.
                 
+                $lotSnapshot = !empty($lote_id) ? $this->getLotSnapshot($lotModel, (int)$lote_id) : ['numero_lote' => null];
                 $queryMov = "INSERT INTO movimientos_inventario 
-                             (tipo, producto_id, lote_id, cantidad, descripcion, referencia, fecha) 
-                             VALUES ('entrada', :pid, :lid, :cant, :desc, :ref, NOW())";
+                             (tipo, producto_id, lote_id, numero_lote_snapshot, cantidad, descripcion, referencia, fecha) 
+                             VALUES ('entrada', :pid, :lid, :lot_num, :cant, :desc, :ref, NOW())";
                 $stmtMov = $this->conn->prepare($queryMov);
                 $tipo = 'entrada';
                 $desc = "Anulación Factura " . $this->numero_factura;
@@ -294,6 +309,7 @@ class Invoice {
                 
                 $stmtMov->bindParam(':pid', $producto_id);
                 $stmtMov->bindValue(':lid', !empty($lote_id) ? (int)$lote_id : null, !empty($lote_id) ? PDO::PARAM_INT : PDO::PARAM_NULL);
+                $stmtMov->bindValue(':lot_num', $lotSnapshot['numero_lote'] ?? null, ($lotSnapshot['numero_lote'] ?? null) !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
                 $stmtMov->bindParam(':cant', $cantidad);
                 $stmtMov->bindParam(':desc', $desc);
                 $stmtMov->bindParam(':ref', $ref);
@@ -327,6 +343,7 @@ class Invoice {
      */
     public function create() {
         try {
+            $this->last_error = null;
             include_once __DIR__ . '/ProductLot.php';
             $lotModel = new ProductLot($this->conn);
 
@@ -380,6 +397,8 @@ class Invoice {
                              SET factura_id=:factura_id, 
                                  producto_id=:producto_id, 
                                  lote_id=:lote_id,
+                                 lote_numero_snapshot=:lote_numero_snapshot,
+                                 costo_unitario_snapshot=:costo_unitario_snapshot,
                                  cantidad=:cantidad, 
                                  precio_unitario=:precio_unitario, 
                                  subtotal=:subtotal";
@@ -395,6 +414,7 @@ class Invoice {
             // c. Registrar Movimiento de Salida
             $query_mov = "INSERT INTO movimientos_inventario 
                           SET tipo='salida', producto_id=:producto_id, lote_id=:lote_id,
+                              numero_lote_snapshot=:numero_lote_snapshot,
                               cantidad=:cantidad, descripcion=:descripcion, 
                               referencia=:referencia";
             $stmt_mov = $this->conn->prepare($query_mov);
@@ -404,6 +424,8 @@ class Invoice {
             $d_factura_id = $this->id_factura;
             $d_producto_id = 0;
             $d_lote_id = null;
+            $d_lote_numero_snapshot = null;
+            $d_costo_unitario_snapshot = 0;
             $d_cantidad = 0;
             $d_precio = 0;
             $d_subtotal = 0;
@@ -412,6 +434,8 @@ class Invoice {
             $stmt_detail->bindParam(":factura_id", $d_factura_id);
             $stmt_detail->bindParam(":producto_id", $d_producto_id);
             $stmt_detail->bindParam(":lote_id", $d_lote_id);
+            $stmt_detail->bindParam(":lote_numero_snapshot", $d_lote_numero_snapshot);
+            $stmt_detail->bindParam(":costo_unitario_snapshot", $d_costo_unitario_snapshot);
             $stmt_detail->bindParam(":cantidad", $d_cantidad);
             $stmt_detail->bindParam(":precio_unitario", $d_precio);
             $stmt_detail->bindParam(":subtotal", $d_subtotal);
@@ -426,12 +450,14 @@ class Invoice {
             // Vincular Movimiento
             $m_producto_id = 0;
             $m_lote_id = null;
+            $m_numero_lote_snapshot = null;
             $m_cantidad = 0;
             $m_descripcion = "Venta Factura " . $this->numero_factura;
             $m_referencia = $this->numero_factura;
 
             $stmt_mov->bindParam(":producto_id", $m_producto_id);
             $stmt_mov->bindParam(":lote_id", $m_lote_id);
+            $stmt_mov->bindParam(":numero_lote_snapshot", $m_numero_lote_snapshot);
             $stmt_mov->bindParam(":cantidad", $m_cantidad);
             $stmt_mov->bindParam(":descripcion", $m_descripcion);
             $stmt_mov->bindParam(":referencia", $m_referencia);
@@ -439,6 +465,9 @@ class Invoice {
             foreach ($sale['lines'] as $line) {
                 $d_producto_id = (int)$line['producto_id'];
                 $d_lote_id = (int)$line['lote_id'];
+                $lotSnapshot = $this->getLotSnapshot($lotModel, $d_lote_id);
+                $d_lote_numero_snapshot = $lotSnapshot['numero_lote'];
+                $d_costo_unitario_snapshot = (float)$lotSnapshot['costo_unitario'];
                 $d_cantidad = (int)$line['cantidad'];
                 $d_precio = (float)$line['precio_unitario'];
                 $d_subtotal = (float)$line['subtotal'];
@@ -448,6 +477,7 @@ class Invoice {
 
                 $m_producto_id = (int)$line['producto_id'];
                 $m_lote_id = (int)$line['lote_id'];
+                $m_numero_lote_snapshot = $lotSnapshot['numero_lote'];
                 $m_cantidad = (int)$line['cantidad'];
 
                 if (!$stmt_detail->execute()) {
@@ -474,7 +504,10 @@ class Invoice {
 
         } catch (Exception $e) {
             // Revertir cambios si algo falla
-            $this->conn->rollBack();
+            if ($this->conn->inTransaction()) {
+                $this->conn->rollBack();
+            }
+            $this->last_error = $e->getMessage();
             error_log($e->getMessage()); // Registrar error
             return false;
         }

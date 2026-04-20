@@ -159,7 +159,10 @@ class ProductController {
 
             if ($this->product->create()) {
                 http_response_code(201);
-                echo json_encode(["message" => "Producto creado exitosamente."]);
+                echo json_encode([
+                    "message" => "Producto creado exitosamente.",
+                    "id_producto" => (int)$this->product->id_producto
+                ]);
             } else {
                 http_response_code(503);
                 echo json_encode(["message" => "No se pudo crear el producto."]);

@@ -223,8 +223,9 @@ class InvoiceController {
                     "total" => $this->invoice->total
                 ]);
             } else {
-                http_response_code(503);
-                echo json_encode(["message" => "No se pudo registrar la venta. Verifique stock o datos."]);
+                $message = $this->invoice->last_error ?: "No se pudo registrar la venta. Verifique stock o datos.";
+                http_response_code(400);
+                echo json_encode(["message" => $message]);
             }
         } else {
             http_response_code(400);

@@ -13,26 +13,6 @@ class Notification {
 
     public function __construct($db) {
         $this->conn = $db;
-        $this->ensureSchema();
-    }
-
-    private function ensureSchema() {
-        try {
-            $sql = "CREATE TABLE IF NOT EXISTS {$this->table} (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                usuario_id INT NULL,
-                titulo VARCHAR(150) NOT NULL,
-                mensaje VARCHAR(500) NOT NULL,
-                tipo ENUM('info','warning','alert') NOT NULL DEFAULT 'info',
-                estado ENUM('nuevo','leido') NOT NULL DEFAULT 'nuevo',
-                creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_usuario (usuario_id),
-                CONSTRAINT fk_notif_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id_usuario) ON DELETE SET NULL
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;";
-            $this->conn->exec($sql);
-        } catch (\Throwable $e) {
-            // Silenciar si no se puede crear; evita romper flujo
-        }
     }
 
     public function create($usuario_id, $titulo, $mensaje, $tipo = 'info') {

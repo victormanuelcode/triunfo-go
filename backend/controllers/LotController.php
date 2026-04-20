@@ -65,6 +65,76 @@ class LotController {
         }
     }
 
+    public function getRegularizationCandidates() {
+        try {
+            /** @var PDOStatement $stmt */
+            $stmt = $this->lot->getRegularizationCandidates();
+            $rows = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $rows[] = $row;
+            }
+            echo json_encode(["data" => $rows]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(["message" => "Error consultando productos para regularización."]);
+        }
+    }
+
+    public function getDetail($loteId) {
+        $loteId = (int)$loteId;
+        if ($loteId <= 0) {
+            http_response_code(400);
+            echo json_encode(["message" => "ID de lote inválido."]);
+            return;
+        }
+
+        try {
+            $detail = $this->lot->getLotDetail($loteId);
+            if (!$detail) {
+                http_response_code(404);
+                echo json_encode(["message" => "Lote no encontrado."]);
+                return;
+            }
+            echo json_encode($detail);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(["message" => "Error consultando detalle del lote."]);
+        }
+    }
+
+    public function regularize() {
+        $data = json_decode(file_get_contents("php://input"), true);
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Formato de datos inválido."]);
+            return;
+        }
+
+        $productoId = isset($data['producto_id']) ? (int)$data['producto_id'] : 0;
+        $precioVenta = isset($data['precio_venta']) && $data['precio_venta'] !== '' ? (float)$data['precio_venta'] : null;
+        $costoUnitario = isset($data['costo_unitario']) && $data['costo_unitario'] !== '' ? (float)$data['costo_unitario'] : 0;
+        $proveedorId = isset($data['proveedor_id']) && $data['proveedor_id'] !== '' ? (int)$data['proveedor_id'] : null;
+        $numeroLote = isset($data['numero_lote']) && $data['numero_lote'] !== '' ? (string)$data['numero_lote'] : null;
+
+        if ($productoId <= 0) {
+            http_response_code(400);
+            echo json_encode(["message" => "producto_id es requerido."]);
+            return;
+        }
+
+        try {
+            $loteId = $this->lot->regularizeProductStock($productoId, $precioVenta, $costoUnitario, $proveedorId, $numeroLote);
+            http_response_code(201);
+            echo json_encode([
+                "message" => "Stock regularizado correctamente.",
+                "id_lote" => $loteId
+            ]);
+        } catch (Exception $e) {
+            http_response_code(400);
+            echo json_encode(["message" => $e->getMessage()]);
+        }
+    }
+
     public function update($loteId) {
         $loteId = (int)$loteId;
         $data = json_decode(file_get_contents("php://input"), true);

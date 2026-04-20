@@ -251,9 +251,21 @@ $router->add('GET', '/products/{id}/lots', function ($id) use ($lotController, $
     $lotController->getByProduct($id);
 });
 
+$router->add('GET', '/lots/regularization/candidates', function () use ($lotController, $auth) {
+    $auth->requireRole([1]);
+    $lotController->getRegularizationCandidates();
+});
+$router->add('GET', '/lots/{id}/detail', function ($id) use ($lotController, $auth) {
+    $auth->validateToken();
+    $lotController->getDetail($id);
+});
 $router->add('POST', '/lots', function () use ($lotController, $auth) {
     $auth->requireRole([1]);
     $lotController->create();
+});
+$router->add('POST', '/lots/regularize', function () use ($lotController, $auth) {
+    $auth->requireRole([1]);
+    $lotController->regularize();
 });
 $router->add('PUT', '/lots/{id}', function ($id) use ($lotController, $auth) {
     $auth->requireRole([1]);

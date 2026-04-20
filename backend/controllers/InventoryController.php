@@ -64,20 +64,26 @@ class InventoryController {
      * @return void
      */
     public function adjust() {
-        // Obtener datos del body
-        $data = json_decode(file_get_contents("php://input"));
+        $rawBody = file_get_contents("php://input");
+        $data = json_decode($rawBody, true);
 
-        if (!isset($data->producto_id) || !isset($data->cantidad) || !isset($data->tipo) || !isset($data->razon) || !isset($data->lote_id)) {
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Formato de datos invalido. Debe enviar JSON valido."]);
+            return;
+        }
+
+        if (!isset($data['producto_id']) || !isset($data['cantidad']) || !isset($data['tipo']) || !isset($data['razon']) || !isset($data['lote_id'])) {
             http_response_code(400);
             echo json_encode(["message" => "Datos incompletos. Se requiere producto_id, lote_id, cantidad, tipo y razon."]);
             return;
         }
 
-        $producto_id = $data->producto_id;
-        $lote_id = (int)$data->lote_id;
-        $cantidad = (int)$data->cantidad;
-        $tipo = $data->tipo; // 'entrada' o 'salida'
-        $razon = $data->razon;
+        $producto_id = (int)$data['producto_id'];
+        $lote_id = (int)$data['lote_id'];
+        $cantidad = (int)$data['cantidad'];
+        $tipo = (string)$data['tipo']; // 'entrada' o 'salida'
+        $razon = trim((string)$data['razon']);
 
         if ($lote_id <= 0) {
             http_response_code(400);
@@ -94,6 +100,12 @@ class InventoryController {
         if ($tipo !== 'entrada' && $tipo !== 'salida') {
             http_response_code(400);
             echo json_encode(["message" => "Tipo de movimiento inválido."]);
+            return;
+        }
+
+        if ($razon === '') {
+            http_response_code(400);
+            echo json_encode(["message" => "La razon del ajuste es obligatoria."]);
             return;
         }
 
@@ -143,8 +155,10 @@ class InventoryController {
             http_response_code(200);
             echo json_encode(["message" => "Ajuste de inventario realizado con éxito."]);
 
-        } catch (Exception $e) {
-            $this->db->rollBack();
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             http_response_code(503);
             echo json_encode(["message" => $e->getMessage()]);
         }
