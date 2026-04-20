@@ -1,480 +1,56 @@
-const API_URL = '/proyecto_final/backend';
-let carrito = [];
-let productosGlobal = [];
-let ultimaVenta = null; // Para guardar los datos de la última venta exitosa
-let sesionCajaId = null;
-let metodoPagoSeleccionado = 'efectivo'; // Default
-let quoteCache = null;
-let quoteCartKey = null;
-let quoteRefreshTimer = null;
-let quoteBreakdownVisible = true;
-let cajaAbiertaUI = false;
-let loteModalProductoId = null;
-let loteModalDisponibles = [];
+const posNS = window.CashierPOS = window.CashierPOS || {};
+posNS.state = posNS.state || {
+    API_URL: '/proyecto_final/backend',
+    carrito: [],
+    productosGlobal: [],
+    ultimaVenta: null,
+    sesionCajaId: null,
+    metodoPagoSeleccionado: 'efectivo',
+    quoteCache: null,
+    quoteCartKey: null,
+    quoteRefreshTimer: null,
+    quoteBreakdownVisible: true,
+    cajaAbiertaUI: false,
+    loteModalProductoId: null,
+    loteModalDisponibles: []
+};
+const API_URL = posNS.state.API_URL;
 
 function showToastPOS(message, type = 'info') {
-    const el = document.getElementById('pos-toast');
-    if (!el) return;
-    el.textContent = message;
-    el.style.background = type === 'success' ? '#065f46' : type === 'error' ? '#991b1b' : type === 'warning' ? '#92400e' : '#111827';
-    el.style.borderColor = '#e5e7eb';
-    el.style.display = 'block';
-    clearTimeout(el._t);
-    el._t = setTimeout(() => { el.style.display = 'none'; }, 3000);
+    return posNS.base.showToastPOS(message, type);
 }
 
 function getAuthHeaders(includeJson = false) {
-    const token = localStorage.getItem('token');
-    const headers = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    if (includeJson) headers['Content-Type'] = 'application/json';
-    return headers;
+    return posNS.base.getAuthHeaders(includeJson);
 }
 
 function getCartKey() {
-    const items = (carrito || [])
-        .map(i => ({ p: Number(i.id_producto), q: Number(i.cantidad), l: i.lote_id ? Number(i.lote_id) : null }))
-        .sort((a, b) => (a.p - b.p) || ((a.l ?? 0) - (b.l ?? 0)));
-    return JSON.stringify(items);
+    return posNS.base.getCartKey();
 }
 
 function scheduleQuoteRefresh() {
-    if (!sesionCajaId) return;
-    if (quoteRefreshTimer) clearTimeout(quoteRefreshTimer);
-    quoteRefreshTimer = setTimeout(() => {
-        quoteRefreshTimer = null;
-        refreshQuote();
-    }, 250);
+    return posNS.cart.scheduleQuoteRefresh();
 }
 
 function toggleQuoteBreakdown() {
-    quoteBreakdownVisible = !quoteBreakdownVisible;
-    renderQuoteBreakdown();
+    return posNS.cart.toggleQuoteBreakdown();
 }
 
 window.toggleQuoteBreakdown = toggleQuoteBreakdown;
-window.cerrarModalLotes = cerrarModalLotes;
-window.seleccionarLoteModal = seleccionarLoteModal;
-
-async function refreshQuote() {
-    const breakdown = document.getElementById('quote-breakdown');
-    const body = document.getElementById('quote-breakdown-body');
-
-    if (!sesionCajaId) {
-        quoteCache = null;
-        quoteCartKey = null;
-        if (breakdown) breakdown.style.display = 'none';
-        if (body) body.innerHTML = '';
-        actualizarCarritoUI();
-        return;
-    }
-
-    const usuarioId = localStorage.getItem('usuario_id');
-    if (!usuarioId || !carrito || carrito.length === 0) {
-        quoteCache = null;
-        quoteCartKey = null;
-        if (breakdown) breakdown.style.display = 'none';
-        if (body) body.innerHTML = '';
-        actualizarCarritoUI();
-        return;
-    }
-
-    const cartKey = getCartKey();
-    try {
-        const itemsQuote = carrito.map(item => ({
-            producto_id: item.id_producto,
-            cantidad: item.cantidad,
-            lote_id: item.lote_id || null
-        }));
-
-        const response = await fetch(`${API_URL}/invoices/quote`, {
-            method: 'POST',
-            headers: getAuthHeaders(true),
-            body: JSON.stringify({ usuario_id: usuarioId, items: itemsQuote })
-        });
-        const json = await response.json();
-        if (!response.ok) {
-            quoteCache = null;
-            quoteCartKey = null;
-            if (breakdown) breakdown.style.display = 'none';
-            if (body) body.innerHTML = '';
-            actualizarCarritoUI();
-            return;
-        }
-
-        if (cartKey !== getCartKey()) return;
-
-        quoteCache = json;
-        quoteCartKey = cartKey;
-        renderQuoteBreakdown();
-        actualizarCarritoUI();
-    } catch (e) {
-        quoteCache = null;
-        quoteCartKey = null;
-        if (breakdown) breakdown.style.display = 'none';
-        if (body) body.innerHTML = '';
-        actualizarCarritoUI();
-    }
-}
-
-function renderQuoteBreakdown() {
-    const container = document.getElementById('quote-breakdown');
-    const body = document.getElementById('quote-breakdown-body');
-    if (!container || !body) return;
-
-    if (!quoteCache || quoteCartKey !== getCartKey() || !Array.isArray(quoteCache.lines) || quoteCache.lines.length === 0) {
-        container.style.display = 'none';
-        body.innerHTML = '';
-        return;
-    }
-
-    if (!quoteBreakdownVisible) {
-        container.style.display = 'block';
-        body.innerHTML = '';
-        const btn = container.querySelector('button');
-        if (btn) btn.textContent = 'Mostrar';
-        return;
-    }
-
-    container.style.display = 'block';
-    const btn = container.querySelector('button');
-    if (btn) btn.textContent = 'Ocultar';
-
-    const nameById = new Map((carrito || []).map(i => [Number(i.id_producto), i.nombre]));
-    const grouped = new Map();
-    quoteCache.lines.forEach(ln => {
-        const key = `${ln.producto_id}|${ln.lote_id}|${ln.precio_unitario}`;
-        if (!grouped.has(key)) {
-            grouped.set(key, { producto_id: Number(ln.producto_id), lote_id: Number(ln.lote_id), precio_unitario: Number(ln.precio_unitario), cantidad: 0, subtotal: 0 });
-        }
-        const row = grouped.get(key);
-        row.cantidad += Number(ln.cantidad);
-        row.subtotal += Number(ln.subtotal);
-    });
-
-    body.innerHTML = '';
-    Array.from(grouped.values())
-        .sort((a, b) => (a.producto_id - b.producto_id) || (a.lote_id - b.lote_id))
-        .forEach(r => {
-            const productName = nameById.get(r.producto_id) || `Producto #${r.producto_id}`;
-            const line = document.createElement('div');
-            line.style.display = 'flex';
-            line.style.justifyContent = 'space-between';
-            line.style.gap = '10px';
-            line.innerHTML = `
-                <div style="display:flex; flex-direction:column;">
-                    <span style="font-weight:600; color:#111827; font-size:0.9rem;">${productName}</span>
-                    <span style="font-size:0.78rem; color:#6b7280;">Lote: #${r.lote_id} · ${r.cantidad} × $${r.precio_unitario.toLocaleString('es-CO')}</span>
-                </div>
-                <div style="font-weight:700; color:#111827;">$${Math.round(r.subtotal).toLocaleString('es-CO')}</div>
-            `;
-            body.appendChild(line);
-        });
-}
+window.cerrarModalLotes = function () { return posNS.cart.cerrarModalLotes(); };
+window.seleccionarLoteModal = function (loteId) { return posNS.cart.seleccionarLoteModal(loteId); };
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Cargar carrito desde localStorage
-    const carritoGuardado = localStorage.getItem('pos_carrito');
-    if (carritoGuardado) {
-        try {
-            carrito = JSON.parse(carritoGuardado);
-            actualizarCarritoUI();
-        } catch (e) {
-            console.error('Error cargando carrito guardado', e);
-            carrito = [];
-        }
-    }
-
-    setCajaAbiertaUIState(false);
-    verificarEstadoCaja();
+    posNS.cart?.init();
+    posNS.box?.init();
+    posNS.checkout?.init();
+    posNS.postsale?.init();
     cargarCatalogo();
     cargarClientes();
     
     // Inicializar UI de pago
     seleccionarMetodoPago('efectivo');
 });
-
-function setCajaAbiertaUIState(estaAbierta) {
-    cajaAbiertaUI = !!estaAbierta;
-    const banner = document.getElementById('banner-caja-cerrada');
-    if (banner) banner.style.display = estaAbierta ? 'none' : 'block';
-
-    const btnCompletar = document.getElementById('btn-completar-venta');
-    if (btnCompletar) {
-        btnCompletar.disabled = !estaAbierta;
-        btnCompletar.style.opacity = estaAbierta ? '1' : '0.6';
-        btnCompletar.style.cursor = estaAbierta ? 'pointer' : 'not-allowed';
-    }
-
-    document.querySelectorAll('.payment-option').forEach(el => {
-        el.style.pointerEvents = estaAbierta ? 'auto' : 'none';
-        el.style.opacity = estaAbierta ? '1' : '0.6';
-    });
-
-    const montoRecibido = document.getElementById('monto-recibido');
-    if (montoRecibido) {
-        montoRecibido.disabled = !estaAbierta;
-        if (!estaAbierta) montoRecibido.value = '';
-    }
-    if (!estaAbierta) {
-        const cambio = document.getElementById('texto-cambio');
-        if (cambio) cambio.innerText = '$0';
-    }
-}
-
-function abrirModalLotes(productoId, productoNombre) {
-    loteModalProductoId = Number(productoId);
-    const modal = document.getElementById('modal-lotes');
-    const subtitle = document.getElementById('modal-lotes-subtitle');
-    const tbody = document.getElementById('modal-lotes-body');
-    const search = document.getElementById('modal-lotes-search');
-
-    if (subtitle) subtitle.textContent = productoNombre ? String(productoNombre) : `Producto #${productoId}`;
-    if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="padding:14px; text-align:center; color:#6b7280;">Cargando...</td></tr>';
-    if (search) {
-        search.value = '';
-        search.oninput = () => renderModalLotes();
-        setTimeout(() => search.focus(), 50);
-    }
-
-    if (modal) modal.style.display = 'flex';
-}
-
-function cerrarModalLotes() {
-    const modal = document.getElementById('modal-lotes');
-    if (modal) modal.style.display = 'none';
-    loteModalProductoId = null;
-    loteModalDisponibles = [];
-}
-
-function renderModalLotes() {
-    const tbody = document.getElementById('modal-lotes-body');
-    const search = document.getElementById('modal-lotes-search');
-    if (!tbody) return;
-
-    const term = (search?.value || '').trim().toLowerCase();
-    const list = (loteModalDisponibles || []).filter(l => {
-        if (!term) return true;
-        const idTxt = String(l.id_lote ?? '').toLowerCase();
-        const numTxt = String(l.numero_lote ?? '').toLowerCase();
-        return idTxt.includes(term) || numTxt.includes(term);
-    });
-
-    tbody.innerHTML = '';
-    if (!list || list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="padding:14px; text-align:center; color:#6b7280;">No hay lotes disponibles.</td></tr>';
-        return;
-    }
-
-    list.forEach(l => {
-        const idLote = Number(l.id_lote);
-        const disponible = Number(l.cantidad_disponible || 0);
-        const precio = Number(l.precio_venta || 0);
-        const numero = l.numero_lote ? String(l.numero_lote) : null;
-        const label = numero ? `${numero} (#${idLote})` : `#${idLote}`;
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td style="padding:10px 12px; border-top:1px solid var(--border-color);">
-                <div style="font-weight:700; color:#111827;">${label}</div>
-            </td>
-            <td style="padding:10px 12px; text-align:right; border-top:1px solid var(--border-color); font-weight:600;">${disponible}</td>
-            <td style="padding:10px 12px; text-align:right; border-top:1px solid var(--border-color); font-weight:700; color: var(--primary-color);">$${precio.toLocaleString('es-CO')}</td>
-            <td style="padding:10px 12px; text-align:right; border-top:1px solid var(--border-color);">
-                <button type="button" class="btn-qty" style="padding:6px 10px;" onclick="seleccionarLoteModal(${idLote})">Elegir</button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-function seleccionarLoteModal(loteId) {
-    const pid = Number(loteModalProductoId);
-    if (!(pid > 0)) return;
-    const item = carrito.find(p => Number(p.id_producto) === pid);
-    if (!item) {
-        cerrarModalLotes();
-        return;
-    }
-
-    if (loteId === null) {
-        item.lote_id = null;
-    } else {
-        const selectedId = Number(loteId);
-        if (!Number.isFinite(selectedId) || selectedId <= 0) return;
-        const found = (loteModalDisponibles || []).find(l => Number(l.id_lote) === selectedId);
-        if (!found) return;
-        item.lote_id = selectedId;
-    }
-
-    guardarCarrito();
-    actualizarCarritoUI();
-    scheduleQuoteRefresh();
-    cerrarModalLotes();
-}
-
-// Función auxiliar para persistir el carrito
-function guardarCarrito() {
-    localStorage.setItem('pos_carrito', JSON.stringify(carrito));
-}
-
-// --- Gestión de Sesión de Caja ---
-async function verificarEstadoCaja() {
-    const usuarioId = localStorage.getItem('usuario_id');
-    if (!usuarioId) return;
-
-    try {
-        const response = await fetch(`${API_URL}/box/status?usuario_id=${usuarioId}`, { headers: getAuthHeaders(false) });
-        const sesion = await response.json();
-
-        if (sesion && sesion.estado === 'abierta') {
-            sesionCajaId = sesion.id_sesion;
-            localStorage.setItem('sesion_actual', JSON.stringify(sesion));
-            actualizarBotonCaja(true);
-            setCajaAbiertaUIState(true);
-            scheduleQuoteRefresh();
-        } else {
-            sesionCajaId = null;
-            actualizarBotonCaja(false);
-            quoteCache = null;
-            quoteCartKey = null;
-            renderQuoteBreakdown();
-            setCajaAbiertaUIState(false);
-        }
-    } catch (error) {
-        console.error('Error verificando caja:', error);
-        setCajaAbiertaUIState(false);
-    }
-}
-
-function actualizarBotonCaja(estaAbierta) {
-    const btnCaja = document.getElementById('btn-gestion-caja');
-    if (btnCaja) {
-        if (estaAbierta) {
-            btnCaja.innerText = "Cerrar Caja";
-            btnCaja.onclick = mostrarModalCierreCaja;
-        } else {
-            btnCaja.innerText = "Abrir Caja";
-            btnCaja.onclick = mostrarModalAperturaCaja;
-        }
-    }
-}
-
-function mostrarModalAperturaCaja() {
-    document.getElementById('modal-apertura-caja').style.display = 'flex';
-}
-
-function cerrarModalApertura() {
-    document.getElementById('modal-apertura-caja').style.display = 'none';
-}
-
-async function abrirCaja() {
-    const monto = document.getElementById('monto-apertura').value;
-    const usuarioId = localStorage.getItem('usuario_id');
-
-    if (monto === '') {
-        showToastPOS('Ingrese un monto inicial (0 si está vacía).', 'warning');
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_URL}/box/open`, {
-            method: 'POST',
-            headers: getAuthHeaders(true),
-            body: JSON.stringify({
-                usuario_id: usuarioId,
-                monto_apertura: monto
-            })
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            showToastPOS('Caja abierta correctamente.', 'success');
-            cerrarModalApertura();
-            verificarEstadoCaja();
-        } else {
-            showToastPOS('Error: ' + result.message, 'error');
-        }
-    } catch (error) {
-        console.error(error);
-        showToastPOS('Error de conexión al abrir caja.', 'error');
-    }
-}
-
-function mostrarModalCierreCaja() {
-    if (!sesionCajaId) {
-        showToastPOS('No hay caja abierta.', 'warning');
-        return;
-    }
-
-    const sesion = JSON.parse(localStorage.getItem('sesion_actual') || '{}');
-    
-    // Actualizar total ventas consultando API
-    fetch(`${API_URL}/box/status?usuario_id=${localStorage.getItem('usuario_id')}`, { headers: getAuthHeaders(false) })
-        .then(res => res.json())
-        .then(data => {
-            if (data) {
-                const inicial = parseFloat(data.monto_apertura || 0);
-                const ventas = parseFloat(data.total_ventas || 0);
-                const efectivo = parseFloat(data.total_efectivo || 0);
-                const tarjeta = parseFloat(data.total_tarjeta || 0);
-                const transf = parseFloat(data.total_transferencia || 0);
-                
-                // Total esperado en caja física = Inicial + Ventas Efectivo
-                const esperadoEnCaja = inicial + efectivo;
-
-                const format = (val) => '$' + val.toLocaleString('es-CO', { minimumFractionDigits: 0 });
-
-                document.getElementById('cierre-inicial').innerText = format(inicial);
-                document.getElementById('cierre-ventas').innerText = format(ventas);
-                document.getElementById('cierre-efectivo').innerText = format(efectivo);
-                document.getElementById('cierre-tarjeta').innerText = format(tarjeta);
-                document.getElementById('cierre-transferencia').innerText = format(transf);
-                document.getElementById('cierre-esperado').innerText = format(esperadoEnCaja);
-
-                document.getElementById('modal-cierre-caja').style.display = 'flex';
-            }
-        });
-}
-
-function cerrarModalCierre() {
-    document.getElementById('modal-cierre-caja').style.display = 'none';
-}
-
-async function procesarCierreCaja() {
-    const montoCierre = document.getElementById('monto-cierre').value;
-
-    if (montoCierre === '') {
-        showToastPOS('Ingrese el monto real en caja.', 'warning');
-        return;
-    }
-
-    if (!confirm('¿Seguro que desea cerrar la caja? Esta acción no se puede deshacer.')) return;
-
-    try {
-        const response = await fetch(`${API_URL}/box/close`, {
-            method: 'POST',
-            headers: getAuthHeaders(true),
-            body: JSON.stringify({
-                id_sesion: sesionCajaId,
-                monto_cierre: montoCierre
-            })
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            showToastPOS('Caja cerrada correctamente. Se cerrará la sesión.', 'success');
-            logout();
-        } else {
-            showToastPOS('Error: ' + result.message, 'error');
-        }
-    } catch (error) {
-        console.error(error);
-        showToastPOS('Error al cerrar caja.', 'error');
-    }
-}
 
 // --- Gestión de Clientes y Catálogo ---
 async function cargarClientes() {
@@ -502,13 +78,14 @@ async function cargarCatalogo() {
         const json = await response.json();
         
         // Manejar estructura paginada o array directo
-        productosGlobal = Array.isArray(json) ? json : (json.data || []);
-        renderizarCatalogo(productosGlobal);
+        posNS.state.productosGlobal = Array.isArray(json) ? json : (json.data || []);
+        renderizarCatalogo(posNS.state.productosGlobal);
     } catch (error) {
         console.error('Error:', error);
         container.innerHTML = '<p style="text-align:center; color:red">Error de conexión</p>';
     }
 }
+window.cargarCatalogo = cargarCatalogo;
 
 function renderizarCatalogo(productos) {
     const container = document.getElementById('productos-catalogo');
@@ -564,159 +141,33 @@ function renderizarCatalogo(productos) {
 }
 
 function filtrarProductos() {
-    const texto = document.getElementById('buscador').value.toLowerCase();
-    const filtrados = productosGlobal.filter(p => {
-        const nombre = (p.nombre || '').toLowerCase();
-        const codigo = (p.codigo || '').toLowerCase(); // Si existe código
-        return nombre.includes(texto) || codigo.includes(texto);
-    });
-    renderizarCatalogo(filtrados);
+    return posNS.cart.filtrarProductos();
 }
 
 // --- Lógica del Carrito ---
 function agregarAlCarrito(producto) {
-    const existente = carrito.find(item => item.id_producto === producto.id_producto);
-
-    if (existente) {
-        if (existente.cantidad < producto.stock_actual) {
-            existente.cantidad++;
-        } else {
-            alert('Stock máximo alcanzado para este producto.');
-            return;
-        }
-    } else {
-        carrito.push({
-            id_producto: producto.id_producto,
-            nombre: producto.nombre,
-            precio: parseFloat(producto.precio_venta),
-            cantidad: 1,
-            max_stock: producto.stock_actual,
-            imagen: producto.imagen,
-            lote_id: null
-        });
-    }
-    guardarCarrito();
-    actualizarCarritoUI();
-    scheduleQuoteRefresh();
+    return posNS.cart.agregarAlCarrito(producto);
 }
 
 function cambiarCantidad(id, delta) {
-    const item = carrito.find(p => p.id_producto === id);
-    if (!item) return;
-
-    const nuevaCantidad = item.cantidad + delta;
-
-    if (nuevaCantidad > 0 && nuevaCantidad <= item.max_stock) {
-        item.cantidad = nuevaCantidad;
-    } else if (nuevaCantidad <= 0) {
-        eliminarDelCarrito(id);
-        return;
-    } else {
-        alert('No hay suficiente stock disponible.');
-        return;
-    }
-    guardarCarrito();
-    actualizarCarritoUI();
-    scheduleQuoteRefresh();
+    return posNS.cart.cambiarCantidad(id, delta);
 }
 
 function eliminarDelCarrito(id) {
-    carrito = carrito.filter(p => p.id_producto !== id);
-    guardarCarrito();
-    actualizarCarritoUI();
-    scheduleQuoteRefresh();
+    return posNS.cart.eliminarDelCarrito(id);
 }
 
 async function seleccionarLotePreferido(productoId) {
-    const item = carrito.find(p => p.id_producto === productoId);
-    if (!item) return;
-
-    try {
-        const response = await fetch(`${API_URL}/products/${productoId}/lots`, { headers: getAuthHeaders(false) });
-        const json = await response.json();
-        const lots = Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
-        const disponibles = lots.filter(l => Number(l.cantidad_disponible || 0) > 0 && (l.estado || 'activo') === 'activo');
-
-        loteModalDisponibles = disponibles;
-        abrirModalLotes(productoId, item.nombre);
-        renderModalLotes();
-    } catch (e) {
-        console.error(e);
-        showToastPOS('Error consultando lotes.', 'error');
-    }
+    return posNS.cart.seleccionarLotePreferido(productoId);
 }
 
 function actualizarCarritoUI() {
-    const tbody = document.getElementById('carrito-body');
-    const subtotalSpan = document.getElementById('summary-subtotal');
-    const totalSpan = document.getElementById('summary-total');
-
-    tbody.innerHTML = '';
-    let total = 0;
-
-    if (carrito.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">Carrito vacío</td></tr>';
-        subtotalSpan.innerText = '$0';
-        totalSpan.innerText = '$0';
-        document.getElementById('monto-recibido').value = '';
-        document.getElementById('texto-cambio').innerText = '$0';
-        return;
-    }
-
-    carrito.forEach(item => {
-        const subtotalItem = item.precio * item.cantidad;
-        total += subtotalItem;
-
-        // Imagen miniatura
-        let imgHtml = '';
-        if (item.imagen && item.imagen.trim() !== '') {
-            const imgSrc = item.imagen.startsWith('http') ? item.imagen : `../../${item.imagen}`;
-            imgHtml = `<img src="${imgSrc}" class="cart-thumb" onerror="this.src='../../assets/no-image.png'">`;
-        } else {
-            imgHtml = `<div class="cart-thumb" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;">📦</div>`;
-        }
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${imgHtml}</td>
-            <td>
-                <div style="font-weight:600; font-size:0.9rem;">${item.nombre}</div>
-                <div style="color:#666; font-size:0.8rem;">$${item.precio.toLocaleString('es-CO')}</div>
-                <div style="display:flex; align-items:center; gap:8px; margin-top:4px; font-size:0.75rem; color:#666;">
-                    <span>${item.lote_id ? `Lote: #${item.lote_id}` : 'Lote: FIFO'}</span>
-                    <button class="btn-qty" style="padding:2px 8px; font-size:0.75rem;" onclick="event.stopPropagation(); seleccionarLotePreferido(${item.id_producto})">Cambiar</button>
-                </div>
-                <div class="cart-qty-control" style="margin-top:4px;">
-                    <button class="btn-qty" onclick="cambiarCantidad(${item.id_producto}, -1)">-</button>
-                    <div class="cart-qty-val">${item.cantidad}</div>
-                    <button class="btn-qty" onclick="cambiarCantidad(${item.id_producto}, 1)">+</button>
-                </div>
-            </td>
-            <td style="text-align:right; font-weight:600;">$${subtotalItem.toLocaleString('es-CO')}</td>
-            <td style="text-align:center;">
-                <button class="btn-delete-item" onclick="eliminarDelCarrito(${item.id_producto})">
-                    <svg style="width:18px;height:18px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                </button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    if (quoteCache && quoteCartKey === getCartKey() && Number(quoteCache.total || 0) > 0) {
-        total = Number(quoteCache.total || 0);
-        renderQuoteBreakdown();
-    }
-
-    subtotalSpan.innerText = '$' + total.toLocaleString('es-CO', { maximumFractionDigits: 0 });
-    totalSpan.innerText = '$' + total.toLocaleString('es-CO', { maximumFractionDigits: 0 });
-
-    // Recalcular cambio si hay monto ingresado
-    calcularCambio(total);
+    return posNS.cart.actualizarCarritoUI();
 }
 
 // --- Gestión de Pagos ---
 function seleccionarMetodoPago(metodo) {
-    metodoPagoSeleccionado = metodo;
+    posNS.state.metodoPagoSeleccionado = metodo;
     
     // Actualizar UI visual
     document.querySelectorAll('.payment-option').forEach(el => el.classList.remove('selected'));
@@ -735,13 +186,13 @@ function seleccionarMetodoPago(metodo) {
 }
 
 function calcularCambio(totalActual = null) {
-    if (metodoPagoSeleccionado !== 'efectivo') return;
+    if (posNS.state.metodoPagoSeleccionado !== 'efectivo') return;
 
     // Obtener total si no se pasa como arg
     let total = totalActual;
     if (total === null) {
         // Recalcular total desde carrito
-        total = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+        total = posNS.state.carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
     }
 
     const recibido = parseFloat(document.getElementById('monto-recibido').value) || 0;
@@ -757,177 +208,3 @@ function calcularCambio(totalActual = null) {
     }
 }
 
-// --- Procesar Venta ---
-async function procesarVenta() {
-    if (carrito.length === 0) {
-        showToastPOS('El carrito está vacío.', 'warning');
-        return;
-    }
-
-    if (!sesionCajaId) {
-        showToastPOS('Debe ABRIR CAJA antes de realizar una venta.', 'warning');
-        mostrarModalAperturaCaja();
-        return;
-    }
-
-    const usuarioId = localStorage.getItem('usuario_id');
-    if (!usuarioId) {
-        alert('Sesión inválida. Inicie sesión nuevamente.');
-        return;
-    }
-
-    let quote = null;
-    try {
-        const itemsQuote = carrito.map(item => ({
-            producto_id: item.id_producto,
-            cantidad: item.cantidad,
-            lote_id: item.lote_id || null
-        }));
-        const responseQuote = await fetch(`${API_URL}/invoices/quote`, {
-            method: 'POST',
-            headers: getAuthHeaders(true),
-            body: JSON.stringify({
-                usuario_id: usuarioId,
-                items: itemsQuote
-            })
-        });
-        quote = await responseQuote.json();
-        if (!responseQuote.ok) {
-            showToastPOS('Error al calcular total: ' + (quote.message || 'Desconocido'), 'error');
-            return;
-        }
-    } catch (error) {
-        console.error(error);
-        showToastPOS('Error de conexión al calcular total.', 'error');
-        return;
-    }
-
-    const totalVenta = parseFloat(quote.total || 0);
-    if (!(totalVenta > 0)) {
-        showToastPOS('No se pudo calcular el total de la venta.', 'error');
-        return;
-    }
-    
-    // Validaciones de Pago
-    if (metodoPagoSeleccionado === 'efectivo') {
-        const recibido = parseFloat(document.getElementById('monto-recibido').value) || 0;
-        if (recibido < totalVenta) {
-            showToastPOS('El monto recibido es insuficiente.', 'warning');
-            document.getElementById('monto-recibido').focus();
-            return;
-        }
-    }
-
-    if (!confirm('¿Confirmar venta por $' + totalVenta.toLocaleString('es-CO') + '?')) return;
-
-    const grouped = new Map();
-    (quote.lines || []).forEach(line => {
-        const pid = Number(line.producto_id);
-        if (!grouped.has(pid)) grouped.set(pid, []);
-        grouped.get(pid).push({ lote_id: Number(line.lote_id), cantidad: Number(line.cantidad) });
-    });
-    const itemsVenta = Array.from(grouped.entries()).map(([producto_id, lotes]) => ({ producto_id, lotes }));
-
-    const clienteId = document.getElementById('cliente-select').value;
-    const data = {
-        items: itemsVenta,
-        total: totalVenta,
-        metodo_pago: metodoPagoSeleccionado,
-        cliente_id: clienteId || null,
-        usuario_id: usuarioId,
-        sesion_id: sesionCajaId
-    };
-
-    try {
-        const response = await fetch(`${API_URL}/invoices`, {
-            method: 'POST',
-            headers: getAuthHeaders(true),
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            // Éxito
-            ultimaVenta = {
-                id_factura: result.id_factura,
-                numero_factura: result.numero_factura,
-                total: parseFloat(result.total || totalVenta),
-                cliente_nombre: document.getElementById('cliente-select').options[document.getElementById('cliente-select').selectedIndex].text,
-                fecha: new Date().toLocaleString(),
-                metodo_pago: metodoPagoSeleccionado
-            };
-
-            mostrarModalExito();
-            limpiarDespuesDeVenta();
-        } else {
-            alert('Error al procesar venta: ' + result.message);
-        }
-    } catch (error) {
-        console.error(error);
-        alert('Error de conexión.');
-    }
-}
-
-function limpiarDespuesDeVenta() {
-    carrito = [];
-    localStorage.removeItem('pos_carrito');
-    quoteCache = null;
-    quoteCartKey = null;
-    actualizarCarritoUI();
-    document.getElementById('monto-recibido').value = '';
-    document.getElementById('texto-cambio').innerText = '$0';
-    cargarCatalogo(); // Actualizar stock visual
-}
-
-// --- Funciones del Modal de Éxito ---
-function mostrarModalExito() {
-    if (!ultimaVenta) return;
-    document.getElementById('success-invoice-number').innerText = ultimaVenta.numero_factura;
-    document.getElementById('success-client').innerText = ultimaVenta.cliente_nombre;
-    document.getElementById('success-total').innerText = '$' + ultimaVenta.total.toLocaleString('es-CO');
-    const modal = document.getElementById('modal-exito-venta');
-    modal.style.display = 'flex';
-}
-
-function nuevaVenta() {
-    document.getElementById('modal-exito-venta').style.display = 'none';
-    ultimaVenta = null;
-    document.getElementById('buscador').focus();
-}
-
-function imprimirTicketDirecto() {
-    if (ultimaVenta && ultimaVenta.id_factura) {
-        // Ajustar ruta si es necesario
-        window.open(`ticket.html?id=${ultimaVenta.id_factura}`, '_blank', 'width=350,height=500');
-    }
-}
-
-function descargarPDF() {
-    imprimirTicketDirecto();
-}
-
-function descargarExcel() {
-    if (!ultimaVenta) return;
-    const csvContent = "data:text/csv;charset=utf-8,"
-        + "Factura,Cliente,Fecha,Total,MetodoPago\n"
-        + `${ultimaVenta.numero_factura},${ultimaVenta.cliente_nombre},${ultimaVenta.fecha},${ultimaVenta.total},${ultimaVenta.metodo_pago}`;
-    
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `venta_${ultimaVenta.numero_factura}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-function enviarWhatsApp() {
-    if (!ultimaVenta) return;
-    const telefono = prompt("Ingrese el número de WhatsApp del cliente (ej: 573001234567):");
-    if (telefono) {
-        const mensaje = `Hola! Gracias por tu compra en TRIUNFO GO. Tu factura es ${ultimaVenta.numero_factura} por un total de $${ultimaVenta.total.toLocaleString('es-CO')}.`;
-        const url = `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`;
-        window.open(url, '_blank');
-    }
-}

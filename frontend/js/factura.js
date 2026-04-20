@@ -72,6 +72,7 @@ function renderFactura(factura) {
     factura.detalles.forEach(item => {
         const tr = document.createElement('tr');
         const subtotalItem = item.precio_unitario * item.cantidad;
+        const loteNumero = item.lote_numero_snapshot || item.lote_numero || (item.lote_id ? ('#' + item.lote_id) : '');
 
         // Mejorar manejo de imagen para evitar bucles infinitos
         let imgHtml = '';
@@ -86,7 +87,7 @@ function renderFactura(factura) {
                     <td>${imgHtml}</td>
                     <td>
                         <div style="font-weight: 600;">${item.producto_nombre}</div>
-                        <div style="font-size: 11px; color: #6b7280;">${item.lote_id ? (`Lote: ${item.lote_numero ? item.lote_numero : ('#' + item.lote_id)}`) : ''}</div>
+                        <div style="font-size: 11px; color: #6b7280;">${item.lote_id ? (`Lote: ${loteNumero}`) : ''}</div>
                     </td>
                     <td class="col-right">${formatMoney(item.precio_unitario)}</td>
                     <td class="col-center">${item.cantidad}</td>

@@ -1,17 +1,38 @@
 document.addEventListener('DOMContentLoaded', () => {
-    cargarConfiguracion();
-
     const form = document.getElementById('empresaForm');
-    
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await guardarConfiguracion();
+    if (form) {
+        cargarConfiguracion();
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await guardarConfiguracion();
+        });
+    }
+
+    document.querySelectorAll('.config-tab').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const panelId = btn.getAttribute('data-panel');
+            document.querySelectorAll('.config-tab').forEach((b) => {
+                b.classList.toggle('active', b === btn);
+                b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+            });
+            document.querySelectorAll('.config-panel').forEach((p) => {
+                p.classList.toggle('hidden', p.id !== 'panel-' + panelId);
+            });
+        });
     });
+
+    if (window.UITheme && typeof UITheme.bindThemeRadios === 'function') {
+        const mount = document.getElementById('panel-apariencia') || document;
+        UITheme.bindThemeRadios(mount);
+    }
 });
 
 const API_URL = '/proyecto_final/backend';
 
 async function cargarConfiguracion() {
+    const nombreInput = document.getElementById('nombre');
+    if (!nombreInput) return;
+
     try {
         const response = await fetch(`${API_URL}/company`);
         const data = await response.json();
@@ -45,7 +66,7 @@ async function guardarConfiguracion() {
 
         if (response.ok) {
             alert(result.message);
-            cargarConfiguracion(); // Recargar para ver cambios (especialmente logo)
+            cargarConfiguracion();
         } else {
             alert('Error: ' + result.message);
         }

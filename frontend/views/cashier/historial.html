@@ -3,52 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historial de Ventas - Cajero</title>
+    <title>Mis ventas - TRIUNFO GO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../css/styles.css">
     <link rel="stylesheet" href="../../css/cashier_history.css">
 </head>
 <body>
     <script src="../../js/auth.js"></script>
+    <script src="../../js/layout_cashier.js"></script>
 
-    <header class="main-header">
-        <div class="header-content">
-            <div class="logo">TRIUNFO GO - Historial</div>
-            <nav class="main-nav">
-                <a href="ventas.html" class="btn-back">← Volver a Ventas</a>
-            </nav>
-        </div>
-    </header>
+    <div class="layout-root">
+        <aside class="sidebar"></aside>
 
-    <div class="history-container">
-        <div class="header-actions">
-            <h2>Mis Ventas Recientes</h2>
-            <div class="search-box">
-                <input type="text" id="buscador" placeholder="Buscar por número o cliente..." class="search-input">
-            </div>
-        </div>
+        <div class="content-area">
+            <header class="topbar"></header>
 
-        <div class="table-responsive">
-            <table id="tabla-ventas">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Fecha</th>
-                        <th>Cliente</th>
-                        <th>Total</th>
-                        <th>Método</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td colspan="6" class="text-center">Cargando ventas...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        
-        <div class="pagination" id="pagination">
-            <!-- Paginación dinámica -->
+            <main class="content-inner">
+                <div class="page-title">
+                    <div>
+                        <h1>Mis ventas</h1>
+                        <p class="page-subtitle">Facturas registradas con tu usuario</p>
+                    </div>
+                </div>
+
+                <div class="history-container">
+                    <div class="header-actions">
+                        <div class="header-actions__search">
+                            <input type="text" id="buscador" placeholder="Buscar por número o cliente..." class="search-input">
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table id="tabla-ventas">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Fecha</th>
+                                    <th>Cliente</th>
+                                    <th>Total</th>
+                                    <th>Método</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="6" class="text-center">Cargando ventas...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pagination" id="pagination"></div>
+                </div>
+            </main>
         </div>
     </div>
 

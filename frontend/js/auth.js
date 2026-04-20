@@ -1,5 +1,21 @@
-
 // auth.js - Manejo centralizado de autenticación y sesiones en Frontend
+
+(function applyUiThemeAndStylesheet() {
+    try {
+        const t = localStorage.getItem('ui_theme');
+        document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+    } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
+    try {
+        if (document.querySelector('link[data-app-theme-css]')) return;
+        const l = document.createElement('link');
+        l.rel = 'stylesheet';
+        l.setAttribute('data-app-theme-css', '1');
+        l.href = window.location.origin + '/proyecto_final/frontend/css/theme.css';
+        document.head.appendChild(l);
+    } catch (_) {}
+})();
 
 const AUTH_LOGIN_URL = '/proyecto_final/frontend/views/auth/login.html';
 const ROLE_ADMIN = '1';
@@ -311,7 +327,7 @@ function checkRolePermissions() {
 
     if (userRole === ROLE_CASHIER && path.includes('/admin/')) {
         alert('Acceso no autorizado para su perfil.');
-        window.location.href = '/proyecto_final/frontend/views/cashier/ventas.html';
+        window.location.href = '/proyecto_final/frontend/views/cashier/dashboard.html';
     }
 
     // Si es Admin (1) y trata de entrar a vistas de cajero, redirigir a POS de Admin

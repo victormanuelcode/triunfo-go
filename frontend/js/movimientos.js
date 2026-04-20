@@ -256,8 +256,9 @@ function renderizarTabla() {
             ? `<img src="${m.producto_imagen}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 8px; margin-right: 12px; border: 1px solid #e5e7eb;">` 
             : '<div style="width: 40px; height: 40px; background-color: #f3f4f6; border-radius: 8px; margin-right: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid #e5e7eb;"><i class="fas fa-box text-muted"></i></div>';
 
+        const loteNumero = m.numero_lote_snapshot || m.numero_lote || (m.lote_id ? ('#' + m.lote_id) : '');
         const loteTexto = m.lote_id
-            ? `Lote: ${m.numero_lote ? m.numero_lote : ('#' + m.lote_id)}`
+            ? `Lote: ${loteNumero}`
             : 'Lote: -';
 
         tr.innerHTML = `
@@ -326,7 +327,7 @@ function renderizarTabla() {
                                 <span style="color: #6b7280;">ID Producto:</span>
                                 <span style="font-family: monospace; color: #111827;">${m.producto_id}</span>
                                 <span style="color: #6b7280;">Lote:</span>
-                                <span style="font-family: monospace; color: #111827;">${m.lote_id ? (m.numero_lote ? m.numero_lote : ('#' + m.lote_id)) : '-'}</span>
+                                <span style="font-family: monospace; color: #111827;">${m.lote_id ? loteNumero : '-'}</span>
                                 <span style="color: #6b7280;">Registrado:</span>
                                 <span style="color: #111827;">${new Date(m.fecha).toLocaleString()}</span>
                             </div>
@@ -501,6 +502,21 @@ function renderLotesSelect(selectEl, lots) {
     });
 }
 
+async function parseJsonResponseSafe(response) {
+    const rawText = await response.text();
+    const text = (rawText || '').trim();
+
+    if (!text) {
+        return { payload: null, rawText: '' };
+    }
+
+    try {
+        return { payload: JSON.parse(text), rawText: text };
+    } catch (_) {
+        return { payload: null, rawText: text };
+    }
+}
+
 async function guardarMovimiento() {
     const productoId = document.getElementById('movimiento-producto').value;
     const loteId = document.getElementById('movimiento-lote')?.value;
@@ -531,9 +547,15 @@ async function guardarMovimiento() {
             body: JSON.stringify(data)
         });
 
-        const result = await response.json();
+        const { payload, rawText } = await parseJsonResponseSafe(response);
 
-        if (!response.ok) throw new Error(result.message || 'Error al guardar');
+        if (!response.ok) {
+            throw new Error(payload?.message || rawText || 'Error al guardar');
+        }
+
+        if (!payload) {
+            throw new Error('El servidor devolvió una respuesta inválida al registrar el movimiento.');
+        }
 
         alert('Movimiento registrado con éxito');
         cerrarModalMovimiento();

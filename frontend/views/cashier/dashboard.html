@@ -3,87 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Cajero - Triunfo Go</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>Inicio cajero - TRIUNFO GO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../css/styles.css">
-    <link rel="stylesheet" href="../../css/cashier_dashboard.css">
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Header con Bienvenida -->
-        <div class="welcome-section">
-            <div class="welcome-text">
-                <h1 id="userWelcome">Hola, Cajero 👋</h1>
-                <p id="currentDate">Martes, 17 de Febrero 2026</p>
-            </div>
-            <div class="status-badge" id="boxStatusBadge">
-                <div class="status-dot"></div>
-                <span id="boxStatusText">Caja Cerrada</span>
-            </div>
-        </div>
+    <script src="../../js/auth.js"></script>
+    <script src="../../js/layout_cashier.js"></script>
 
-        <!-- Estadísticas Rápidas -->
-        <div class="stats-overview">
-            <div class="stat-box">
-                <div class="stat-icon-wrapper bg-blue">
-                    <i class="fas fa-receipt"></i>
-                </div>
-                <div class="stat-content">
-                    <h3 id="salesCount">0</h3>
-                    <p>Ventas Hoy</p>
-                </div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-icon-wrapper bg-green">
-                    <i class="fas fa-coins"></i>
-                </div>
-                <div class="stat-content">
-                    <h3 id="totalSales">$0.00</h3>
-                    <p>Total Recaudado</p>
-                </div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-icon-wrapper bg-orange">
-                    <i class="fas fa-box-open"></i>
-                </div>
-                <div class="stat-content">
-                    <h3 id="lowStockCount">0</h3>
-                    <p>Productos Stock Bajo</p>
-                </div>
-            </div>
-        </div>
+    <div class="layout-root">
+        <aside class="sidebar"></aside>
 
-        <h2 class="cashier-actions-title">Acciones Principales</h2>
+        <div class="content-area">
+            <header class="topbar"></header>
 
-        <!-- Acciones Rápidas -->
-        <div class="quick-actions">
-            <a href="ventas.html" class="action-card">
-                <div class="action-icon"><i class="fas fa-cash-register"></i></div>
-                <div class="action-title">Punto de Venta</div>
-                <div class="action-desc">Registrar nueva venta</div>
-            </a>
-            
-            <a href="#" class="action-card" onclick="toggleBox()">
-                <div class="action-icon"><i class="fas fa-lock"></i></div>
-                <div class="action-title" id="boxActionTitle">Abrir Caja</div>
-                <div class="action-desc">Gestionar turno</div>
-            </a>
+            <main class="content-inner">
+                <div class="page-title page-title--split">
+                    <div>
+                        <h1>Bienvenido</h1>
+                        <p class="page-subtitle" id="cashierSubtitle">Resumen de tu turno y accesos rápidos</p>
+                    </div>
+                    <div class="page-title-meta">
+                        <span class="badge-status badge-secondary" id="boxStatusPill">Caja: —</span>
+                    </div>
+                </div>
 
-            <a href="#" class="action-card" onclick="showProfile()">
-                <div class="action-icon"><i class="fas fa-user-circle"></i></div>
-                <div class="action-title">Mi Perfil</div>
-                <div class="action-desc">Ver datos personales</div>
-            </a>
+                <article class="card compact-card mb-24">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Acciones rápidas</div>
+                            <div class="card-subtitle">Lo que usas con más frecuencia en caja</div>
+                        </div>
+                    </div>
+                    <div class="quick-actions compact">
+                        <a href="ventas.html" class="quick-action-btn action-sale">
+                            <div class="quick-action-icon">
+                                <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                            </div>
+                            <span>Punto de venta</span>
+                        </a>
+                        <a href="historial.html" class="quick-action-btn action-history">
+                            <div class="quick-action-icon">
+                                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                            </div>
+                            <span>Mis ventas</span>
+                        </a>
+                        <a href="#" class="quick-action-btn action-product" id="btnCajaDashboard" onclick="mostrarCierreCaja(); return false;">
+                            <div class="quick-action-icon">
+                                <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2"></circle></svg>
+                            </div>
+                            <span>Estado de caja</span>
+                        </a>
+                        <a href="../common/perfil.html" class="quick-action-btn action-report">
+                            <div class="quick-action-icon">
+                                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            </div>
+                            <span>Mi perfil</span>
+                        </a>
+                    </div>
+                </article>
 
-            <a href="#" class="action-card" onclick="logout()">
-                <div class="action-icon text-danger"><i class="fas fa-sign-out-alt"></i></div>
-                <div class="action-title">Cerrar Sesión</div>
-                <div class="action-desc">Salir del sistema</div>
-            </a>
+                <section class="metrics-grid">
+                    <article class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Ventas hoy</span>
+                            <div class="metric-icon">
+                                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                            </div>
+                        </div>
+                        <div class="metric-value" id="metricVentasHoy">0</div>
+                        <div class="metric-footer">
+                            <span>Facturas registradas hoy (tu usuario)</span>
+                        </div>
+                    </article>
+
+                    <article class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Total hoy</span>
+                            <div class="metric-icon">
+                                <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                            </div>
+                        </div>
+                        <div class="metric-value" id="metricTotalHoy">$0</div>
+                        <div class="metric-footer">
+                            <span>Suma de totales de facturas del día</span>
+                        </div>
+                    </article>
+
+                    <article class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Turno (caja abierta)</span>
+                            <div class="metric-icon">
+                                <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"></rect><path d="M6 12h.01M18 12h.01"></path></svg>
+                            </div>
+                        </div>
+                        <div class="metric-value" id="metricTurno">$0</div>
+                        <div class="metric-footer">
+                            <span>Ventas acumuladas en la sesión actual</span>
+                        </div>
+                    </article>
+
+                    <article class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Stock bajo</span>
+                            <div class="metric-icon">
+                                <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            </div>
+                        </div>
+                        <div class="metric-value" id="metricStockBajo">0</div>
+                        <div class="metric-footer">
+                            <span>Productos en o bajo stock mínimo (muestra)</span>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="content-grid">
+                    <article class="card">
+                        <div class="card-header-row">
+                            <div>
+                                <div class="card-title">Últimas ventas</div>
+                                <div class="card-subtitle">Tus facturas más recientes</div>
+                            </div>
+                            <a href="historial.html" class="btn-light">Ver todas</a>
+                        </div>
+                        <div class="dashboard-table-container">
+                            <table class="dashboard-table" id="tablaUltimasVentas">
+                                <thead>
+                                    <tr>
+                                        <th>Nº</th>
+                                        <th>Fecha</th>
+                                        <th>Cliente</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="4" class="text-center">Cargando...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </article>
+                </section>
+            </main>
         </div>
     </div>
 
-    <script src="../../js/auth.js"></script>
     <script src="../../js/dashboard_cashier.js"></script>
 </body>
 </html>

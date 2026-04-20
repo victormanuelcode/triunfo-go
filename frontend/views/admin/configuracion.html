@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configuración de Empresa - TRIUNFO GO</title>
+    <title>Configuración - TRIUNFO GO</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -28,58 +28,92 @@
                 <div class="page-title">
                     <div>
                         <h1>Configuración</h1>
-                        <p class="page-subtitle">Datos generales de la empresa y personalización</p>
+                        <p class="page-subtitle">Datos de la empresa y apariencia del sistema</p>
                     </div>
                 </div>
 
-                <section class="card-admin">
-                    <div class="card-admin-header">
-                        <div>
-                            <div class="card-admin-title">Configuración de Empresa</div>
-                            <div class="card-admin-subtitle">Actualiza la información que se mostrará en las facturas</div>
-                        </div>
-                    </div>
+                <nav class="config-tabs" role="tablist" aria-label="Secciones de configuración">
+                    <button type="button" class="config-tab active" data-panel="empresa" role="tab" aria-selected="true">Datos de la empresa</button>
+                    <button type="button" class="config-tab" data-panel="apariencia" role="tab" aria-selected="false">Apariencia</button>
+                </nav>
 
-                    <div class="config-container max-w-800 mx-auto">
-                        <form id="empresaForm">
-                            <div class="form-group">
-                                <label for="nombre">Nombre de la Empresa</label>
-                                <input type="text" id="nombre" name="nombre" required>
+                <div id="panel-empresa" class="config-panel" role="tabpanel">
+                    <section class="card-admin">
+                        <div class="card-admin-header">
+                            <div>
+                                <div class="card-admin-title">Configuración de empresa</div>
+                                <div class="card-admin-subtitle">Información que se muestra en facturas y documentos</div>
                             </div>
-                            <div class="form-group">
-                                <label for="nit">NIT / RUC</label>
-                                <input type="text" id="nit" name="nit">
+                        </div>
+
+                        <div class="config-container max-w-800 mx-auto">
+                            <form id="empresaForm">
+                                <div class="form-group">
+                                    <label for="nombre">Nombre de la Empresa</label>
+                                    <input type="text" id="nombre" name="nombre" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="nit">NIT / RUC</label>
+                                    <input type="text" id="nit" name="nit">
+                                </div>
+                                <div class="form-group">
+                                    <label for="direccion">Dirección</label>
+                                    <input type="text" id="direccion" name="direccion">
+                                </div>
+                                <div class="form-group">
+                                    <label for="telefono">Teléfono</label>
+                                    <input type="text" id="telefono" name="telefono">
+                                </div>
+                                <div class="form-group">
+                                    <label for="lema">Lema / Slogan</label>
+                                    <input type="text" id="lema" name="lema">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="logo">Logo de la Empresa</label>
+                                    <input type="file" id="logo" name="logo" accept="image/*">
+                                    <div id="logoPreview" class="mt-10">
+                                    </div>
+                                </div>
+
+                                <div class="form-actions mt-32 text-right">
+                                    <button type="submit" class="btn-primary">Guardar cambios</button>
+                                </div>
+                            </form>
+                        </div>
+                    </section>
+                </div>
+
+                <div id="panel-apariencia" class="config-panel hidden" role="tabpanel">
+                    <section class="card-admin">
+                        <div class="card-admin-header">
+                            <div>
+                                <div class="card-admin-title">Apariencia</div>
+                                <div class="card-admin-subtitle">Tema de la interfaz para administradores (se guarda en este navegador)</div>
                             </div>
+                        </div>
+
+                        <div class="config-container max-w-800 mx-auto">
+                            <p class="theme-hint">Elige entre tema claro u oscuro. La preferencia se aplica en todas las pantallas del sistema al iniciar sesión en este mismo navegador.</p>
                             <div class="form-group">
-                                <label for="direccion">Dirección</label>
-                                <input type="text" id="direccion" name="direccion">
-                            </div>
-                            <div class="form-group">
-                                <label for="telefono">Teléfono</label>
-                                <input type="text" id="telefono" name="telefono">
-                            </div>
-                            <div class="form-group">
-                                <label for="lema">Lema / Slogan</label>
-                                <input type="text" id="lema" name="lema">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="logo">Logo de la Empresa</label>
-                                <input type="file" id="logo" name="logo" accept="image/*">
-                                <div id="logoPreview" class="mt-10">
+                                <label>Tema de la interfaz</label>
+                                <div class="theme-options">
+                                    <label class="inline-check">
+                                        <input type="radio" name="ui-theme" value="light"> Claro
+                                    </label>
+                                    <label class="inline-check">
+                                        <input type="radio" name="ui-theme" value="dark"> Oscuro
+                                    </label>
                                 </div>
                             </div>
-
-                            <div class="form-actions mt-32 text-right">
-                                <button type="submit" class="btn-primary">Guardar Cambios</button>
-                            </div>
-                        </form>
-                    </div>
-                </section>
+                        </div>
+                    </section>
+                </div>
             </main>
         </div>
     </div>
 
+    <script src="../../js/theme-ui.js"></script>
     <script src="../../js/configuracion.js"></script>
     <script>
         (function () {

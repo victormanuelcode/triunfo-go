@@ -21,8 +21,9 @@ function authHeaders() {
 }
 
 function normalizePerfilLayout() {
-  const rol = String(localStorage.getItem('usuario_rol') || '');
-  if (rol === '1') return;
+  const rol = String(localStorage.getItem('usuario_rol') || '').trim();
+  // Admin y cajero usan layout con sidebar/topbar (layout_route → layout_admin / layout_cajero).
+  if (rol === '1' || rol === '2') return;
   document.body.classList.add('perfil-standalone');
   const root = document.querySelector('.layout-root');
   if (root) root.classList.remove('layout-root');
@@ -113,7 +114,9 @@ async function guardarPerfil(e) {
       localStorage.setItem('usuario_email', email);
     } catch (_) {}
     if (pref.sidebarCollapsed !== undefined) {
-      localStorage.setItem('admin_layout_collapsed', pref.sidebarCollapsed ? '1' : '0');
+      const r = String(localStorage.getItem('usuario_rol') || '').trim();
+      const collapseKey = r === '2' ? 'cashier_layout_collapsed' : 'admin_layout_collapsed';
+      localStorage.setItem(collapseKey, pref.sidebarCollapsed ? '1' : '0');
     }
   } catch (e) {
     showAdminToast(e.message, 'error');

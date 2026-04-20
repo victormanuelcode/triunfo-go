@@ -11,25 +11,19 @@
     <link rel="stylesheet" href="../../css/ventas.css">
 </head>
 <body>
-    <!-- Auth Guard -->
     <script src="../../js/auth.js"></script>
+    <script src="../../js/layout_cashier.js"></script>
 
-    <header class="main-header">
-        <div class="header-content">
-            <div class="logo">TRIUNFO GO</div>
-            <nav class="main-nav">
-                <a href="ventas.html" class="active">Caja</a>
-                <a href="#" id="btn-gestion-caja" onclick="mostrarModalAperturaCaja()">Estado Caja</a>
-                <a href="historial.html">Historial</a>
-                <a href="../common/perfil.html">Perfil</a>
-                <a href="#" id="logoutBtn" onclick="logout()">Salir</a>
-            </nav>
-        </div>
-    </header>
+    <div class="layout-root">
+        <aside class="sidebar"></aside>
 
-    <div id="pos-toast"></div>
+        <div class="content-area">
+            <header class="topbar"></header>
 
-    <div class="pos-container">
+            <main class="content-inner content-inner--pos">
+                <div id="pos-toast"></div>
+
+                <div class="pos-container">
         <!-- Columna Izquierda (60%): Catálogo -->
         <div class="catalog-section">
             <div class="search-bar">
@@ -135,6 +129,9 @@
                 </button>
             </div>
         </div>
+                </div>
+            </main>
+        </div>
     </div>
 
     <!-- Modals (Mantenidos) -->
@@ -213,16 +210,14 @@
 
             <div class="options-container">
                 <div class="action-buttons">
-                    <button class="btn-option" onclick="descargarPDF()">
-                        <span>📄 PDF</span>
+                    <button type="button" class="btn-option" onclick="imprimirTicketDirecto()">
+                        <span>📄 Ver factura</span>
                     </button>
-                    <button class="btn-option" onclick="descargarExcel()">
+                    <button type="button" class="btn-option" onclick="descargarExcel()">
                         <span>📊 Excel</span>
                     </button>
-                    <button class="btn-option" onclick="imprimirTicketDirecto()">
-                        <span>🖨️ Imprimir</span>
-                    </button>
                 </div>
+                <p class="success-factura-hint">La factura es la misma vista que en administración (imprimir y PDF desde esa pantalla).</p>
                 
                 <button class="btn-whatsapp" onclick="enviarWhatsApp()">
                     <span>📱 Enviar por WhatsApp</span>
@@ -270,6 +265,11 @@
         </div>
     </div>
 
+    <script src="../../js/cashier/pos/base.js"></script>
+    <script src="../../js/cashier/pos/cart.js"></script>
+    <script src="../../js/cashier/pos/box.js"></script>
+    <script src="../../js/cashier/pos/checkout.js"></script>
+    <script src="../../js/cashier/pos/postsale.js"></script>
     <script src="../../js/ventas.js"></script>
 </body>
 </html>

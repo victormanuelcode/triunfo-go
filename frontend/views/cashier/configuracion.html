@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajustes - TRIUNFO GO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../css/styles.css">
+</head>
+<body>
+    <script src="../../js/auth.js"></script>
+    <script src="../../js/layout_cashier.js"></script>
+
+    <div class="layout-root">
+        <aside class="sidebar"></aside>
+
+        <div class="content-area">
+            <header class="topbar"></header>
+
+            <main class="content-inner">
+                <div class="page-title">
+                    <div>
+                        <h1>Ajustes</h1>
+                        <p class="page-subtitle">Personaliza la apariencia de tu sesión de cajero</p>
+                    </div>
+                </div>
+
+                <section class="card-admin">
+                    <div class="card-admin-header">
+                        <div>
+                            <div class="card-admin-title">Apariencia</div>
+                            <div class="card-admin-subtitle">Tema claro u oscuro (se guarda en este navegador)</div>
+                        </div>
+                    </div>
+
+                    <div class="config-container max-w-800 mx-auto">
+                        <p class="theme-hint">La misma preferencia de tema aplica al iniciar sesión como cajero en este equipo. Para cambiar datos personales usa <a href="../common/perfil.html">Mi perfil</a>.</p>
+                        <div class="form-group" id="panel-apariencia-cajero">
+                            <label>Tema de la interfaz</label>
+                            <div class="theme-options">
+                                <label class="inline-check">
+                                    <input type="radio" name="ui-theme" value="light"> Claro
+                                </label>
+                                <label class="inline-check">
+                                    <input type="radio" name="ui-theme" value="dark"> Oscuro
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script src="../../js/theme-ui.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.UITheme && typeof UITheme.bindThemeRadios === 'function') {
+                UITheme.bindThemeRadios(document.getElementById('panel-apariencia-cajero'));
+            }
+        });
+    </script>
+</body>
+</html>

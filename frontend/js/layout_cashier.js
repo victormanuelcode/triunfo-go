@@ -1,9 +1,9 @@
-// layout_admin.js - Inyección de layout reutilizable para vistas del Admin
+// layout_cashier.js - Layout reutilizable para vistas del cajero (misma base que admin)
 (function () {
     const PARTIALS_BASE = `${window.location.origin}/proyecto_final/frontend/partials/`;
-    const SIDEBAR_URL = PARTIALS_BASE + 'admin_sidebar.html';
+    const SIDEBAR_URL = PARTIALS_BASE + 'cashier_sidebar.html';
     const TOPBAR_URL = PARTIALS_BASE + 'admin_topbar.html';
-    const LAYOUT_COLLAPSED_KEY = 'admin_layout_collapsed';
+    const LAYOUT_COLLAPSED_KEY = 'cashier_layout_collapsed';
 
     let layoutStarted = false;
 
@@ -18,7 +18,7 @@
     function setActiveNav(asideEl) {
         try {
             const path = window.location.pathname;
-            const current = path.split('/').pop(); // archivo.html
+            const current = path.split('/').pop();
             asideEl.querySelectorAll('.sidebar-nav a[data-route]').forEach(a => {
                 a.classList.toggle('active', a.getAttribute('data-route') === current);
             });
@@ -30,7 +30,6 @@
         if (!mount) return null;
         try {
             const html = await fetchPartial(SIDEBAR_URL);
-            // Reemplazar el aside completo para mantener consistencia de estructura
             const temp = document.createElement('div');
             temp.innerHTML = html.trim();
             const asideNew = temp.firstElementChild;
@@ -38,8 +37,7 @@
             setActiveNav(asideNew);
             return asideNew;
         } catch (e) {
-            console.error('Error cargando sidebar admin:', e);
-            // Fallback mínimo para no dejar la vista sin navegación
+            console.error('Error cargando sidebar cajero:', e);
             mount.innerHTML = '<div style="padding:12px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;">No se pudo cargar el menú lateral.</div>';
             return mount;
         }
@@ -56,7 +54,7 @@
             mount.replaceWith(topbarNew);
             return topbarNew;
         } catch (e) {
-            console.error('Error cargando topbar admin:', e);
+            console.error('Error cargando topbar cajero:', e);
             mount.innerHTML = '<div style="padding:8px 12px;background:#fff;border-bottom:1px solid #eee;">Topbar no disponible</div>';
             return mount;
         }
@@ -165,6 +163,28 @@
         applyAvatarToEl(document.getElementById('adminAvatarTop'), url);
     }
 
+    function applySidebarUserText() {
+        let nombre = localStorage.getItem('usuario_nombre');
+        if (!nombre) {
+            try {
+                const raw = localStorage.getItem('usuario_datos');
+                if (raw) nombre = JSON.parse(raw).nombre;
+            } catch (_) {}
+        }
+        nombre = nombre || 'Cajero';
+        const nameEl = document.getElementById('adminName');
+        if (nameEl) nameEl.textContent = nombre;
+
+        const url = getStoredAvatarUrl();
+        if (!url) {
+            const inicial = String(nombre).trim().charAt(0).toUpperCase() || 'C';
+            const a = document.getElementById('adminAvatar');
+            const t = document.getElementById('adminAvatarTop');
+            if (a) a.textContent = inicial;
+            if (t) t.textContent = inicial;
+        }
+    }
+
     async function startLayout() {
         if (layoutStarted) return;
         layoutStarted = true;
@@ -180,33 +200,26 @@
         updateSidebarOverlay();
         window.addEventListener('resize', updateSidebarOverlay);
         applyUserAvatarFromStorage();
+        applySidebarUserText();
         
         // Make topbar search function globally available
         window.handleTopbarSearch = function(event) {
             const searchTerm = event.target.value.toLowerCase();
             
-            // If on products page, trigger product search
-            if (typeof window.filtrarProductosInventario === 'function') {
+            // If on sales/ventas page, trigger product search
+            if (typeof window.filtrarProductos === 'function') {
                 const buscador = document.getElementById('buscador');
                 if (buscador) {
                     buscador.value = searchTerm;
-                    window.filtrarProductosInventario();
+                    window.filtrarProductos();
                 }
             }
-            // If on clients page, trigger client search
-            else if (typeof window.filtrarClientes === 'function') {
+            // If on history page, trigger history search
+            else if (typeof window.filtrarHistorial === 'function') {
                 const buscador = document.getElementById('buscador');
                 if (buscador) {
                     buscador.value = searchTerm;
-                    window.filtrarClientes();
-                }
-            }
-            // If on suppliers page, trigger supplier search
-            else if (typeof window.filtrarProveedores === 'function') {
-                const buscador = document.getElementById('buscador');
-                if (buscador) {
-                    buscador.value = searchTerm;
-                    window.filtrarProveedores();
+                    window.filtrarHistorial();
                 }
             }
         };

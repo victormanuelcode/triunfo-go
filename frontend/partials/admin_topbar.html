@@ -3,7 +3,7 @@
         <button class="layout-toggle-btn" id="layoutToggleBtn" type="button" aria-label="Ocultar/mostrar menú">☰</button>
         <div class="search-box">
             <span class="search-icon">🔍</span>
-            <input type="text" placeholder="Buscar en el sistema...">
+            <input type="text" id="topbarSearch" placeholder="Buscar en el sistema..." onkeyup="handleTopbarSearch(event)">
         </div>
     </div>
     <div class="topbar-actions">

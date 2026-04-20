@@ -529,7 +529,15 @@ body {
     display: flex;
     justify-content: space-between;
     gap: 10px;
-    margin-bottom: 16px;
+    margin-bottom: 8px;
+}
+
+.success-factura-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 0 0 16px;
+    line-height: 1.45;
+    text-align: center;
 }
 
 .btn-option {
@@ -929,3 +937,20 @@ body {
 .lotes-th-right { text-align: right; padding: 10px 12px; font-size: 12px; color: #6b7280; }
 .lotes-th-action { width: 120px; }
 .lotes-loading { padding: 14px; text-align: center; color: #6b7280; }
+
+/* POS dentro del layout admin/cajero (sidebar + topbar) */
+.content-inner--pos {
+    padding: 0;
+    max-width: none;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.content-inner--pos .pos-container {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+}

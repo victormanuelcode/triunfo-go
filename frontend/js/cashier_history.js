@@ -84,8 +84,7 @@ function renderTabla(lista) {
             <td>${total}</td>
             <td>${metodo}</td>
             <td style="display:flex; gap:6px; flex-wrap:wrap;">
-                <button class="btn-print" onclick="imprimirTicket(${v.id_factura})">Ticket</button>
-                <button class="btn-print" onclick="verFactura(${v.id_factura})" style="background-color:#2563eb;">Factura</button>
+                <button type="button" class="btn-print" onclick="verFactura(${v.id_factura})" style="background-color:#2563eb;">Ver factura</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -120,10 +119,7 @@ function renderPaginacion() {
     container.appendChild(next);
 }
 
-window.imprimirTicket = function (id) {
-    window.open(`ticket.html?id=${id}`, '_blank');
-};
-
+/** Misma vista que admin: `views/admin/factura.html` */
 window.verFactura = function (id) {
     window.open(`../admin/factura.html?id=${id}`, '_blank');
 };
