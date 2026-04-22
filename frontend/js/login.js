@@ -1,5 +1,14 @@
-// URL Base de la API
-const URL_API = '/proyecto_final/backend';
+function getAppBaseFromPathname(pathname) {
+    const p = String(pathname || '/');
+    const idxFrontend = p.indexOf('/frontend/');
+    if (idxFrontend >= 0) return p.slice(0, idxFrontend) || '';
+    const idxBackend = p.indexOf('/backend/');
+    if (idxBackend >= 0) return p.slice(0, idxBackend) || '';
+    return '';
+}
+
+// URL Base de la API (auto-detect al clonar en otra carpeta)
+const URL_API = (window.location.origin || '') + (getAppBaseFromPathname(window.location.pathname) + '/backend/index.php');
 
 document.addEventListener('DOMContentLoaded', () => {
     // Limpiar sesión al entrar al login
@@ -67,7 +76,14 @@ async function manejarInicioSesion(evento) {
             body: JSON.stringify(credenciales)
         });
 
-        const datos = await respuesta.json();
+        let datos = null;
+        const contentType = respuesta.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            datos = await respuesta.json();
+        } else {
+            const txt = await respuesta.text();
+            throw new Error(txt || 'Respuesta no-JSON del servidor');
+        }
 
         if (respuesta.ok) {
             // Login exitoso

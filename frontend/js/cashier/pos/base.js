@@ -1,7 +1,7 @@
 (function () {
     const ns = window.CashierPOS = window.CashierPOS || {};
     ns.state = ns.state || {
-        API_URL: '/proyecto_final/backend',
+        API_URL: (window.TRIUNFOGO?.API_BASE || ((window.location.origin || '') + ((window.TRIUNFOGO?.APP_BASE || '') + '/backend/index.php'))),
         carrito: [],
         productosGlobal: [],
         ultimaVenta: null,

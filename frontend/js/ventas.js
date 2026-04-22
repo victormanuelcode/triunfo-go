@@ -1,6 +1,6 @@
 const posNS = window.CashierPOS = window.CashierPOS || {};
 posNS.state = posNS.state || {
-    API_URL: '/proyecto_final/backend',
+    API_URL: (window.TRIUNFOGO?.API_BASE || ((window.location.origin || '') + ((window.TRIUNFOGO?.APP_BASE || '') + '/backend/index.php'))),
     carrito: [],
     productosGlobal: [],
     ultimaVenta: null,

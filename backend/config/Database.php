@@ -12,16 +12,30 @@ class Database {
     private string $password;
     private ?string $port = null;
 
+    private function env(string $key, ?string $default = null): ?string {
+        if (isset($_ENV[$key]) && $_ENV[$key] !== '') {
+            return (string) $_ENV[$key];
+        }
+        if (isset($_SERVER[$key]) && $_SERVER[$key] !== '') {
+            return (string) $_SERVER[$key];
+        }
+        $value = getenv($key);
+        if ($value !== false && $value !== '') {
+            return (string) $value;
+        }
+        return $default;
+    }
+
     /**
      * Constructor de la clase.
      * Inicializa las propiedades de conexión desde las variables de entorno.
      */
     public function __construct() {
-        $this->host = $_ENV['DB_HOST'] ?? 'localhost';
-        $this->db_name = $_ENV['DB_NAME'] ?? '';
-        $this->username = $_ENV['DB_USER'] ?? 'root';
-        $this->password = $_ENV['DB_PASS'] ?? '';
-        $this->port = $_ENV['DB_PORT'] ?? null; // opcional, por defecto 3306
+        $this->host = $this->env('DB_HOST', 'localhost') ?? 'localhost';
+        $this->db_name = $this->env('DB_NAME', '') ?? '';
+        $this->username = $this->env('DB_USER', 'root') ?? 'root';
+        $this->password = $this->env('DB_PASS', '') ?? '';
+        $this->port = $this->env('DB_PORT', null); // opcional, por defecto 3306
     }
 
     /**

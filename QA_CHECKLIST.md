@@ -4,9 +4,9 @@ Este checklist sirve para validar que las funciones principales siguen funcionan
 
 ### 1) Instalación y entorno
 - [x] Apache y MySQL activos (XAMPP).
-- [x] `/proyecto_final/backend/test-db` responde conexión exitosa.
+- [x] `/triunfo-go/backend/test-db` responde conexión exitosa.
 - [x] `backend/vendor/` existe (Composer instalado).
-- [x] Login abre: `/proyecto_final/frontend/views/auth/login.html`.
+- [x] Login abre: `/triunfo-go/frontend/views/auth/login.html`.
 
 ### 2) Autenticación y roles
 - [x] Login Admin funciona y entra a `frontend/views/admin/dashboard.html`.

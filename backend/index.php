@@ -10,7 +10,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-require_once __DIR__ . '/vendor/autoload.php';
+// Dependencias (Composer)
+$autoload = __DIR__ . '/vendor/autoload.php';
+if (!file_exists($autoload)) {
+    http_response_code(500);
+    header("Content-Type: application/json; charset=UTF-8");
+    echo json_encode([
+        "message" => "Dependencias no instaladas. Ejecute: (cd backend && composer install)"
+    ]);
+    exit();
+}
+
+require_once $autoload;
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
@@ -58,10 +69,25 @@ $lotController = new LotController($db);
 $notificationController = new NotificationController($db);
 
 $request_uri = $_SERVER['REQUEST_URI'];
-$base_path = '/proyecto_final/backend';
+
+// Base path del backend (auto-detect) para que funcione al clonar en otra carpeta.
+// Ej: /proyecto_final/backend o /triunfo-go/backend
+$scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+$base_path = $scriptDir; // normalmente termina en /backend
+if ($base_path === '' || $base_path === '.') {
+    $base_path = '/backend';
+}
 
 if (strpos($request_uri, $base_path) === 0) {
     $request_uri = substr($request_uri, strlen($base_path));
+}
+
+// Si Apache no aplica rewrite, las rutas llegan como /index.php/login.
+if (strpos($request_uri, '/index.php') === 0) {
+    $request_uri = substr($request_uri, strlen('/index.php'));
+    if ($request_uri === '') {
+        $request_uri = '/';
+    }
 }
 
 // Definir rutas

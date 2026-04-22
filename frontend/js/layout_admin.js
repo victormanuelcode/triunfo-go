@@ -1,6 +1,7 @@
 // layout_admin.js - Inyección de layout reutilizable para vistas del Admin
 (function () {
-    const PARTIALS_BASE = `${window.location.origin}/proyecto_final/frontend/partials/`;
+    const APP_BASE = (window.TRIUNFOGO?.APP_BASE != null ? String(window.TRIUNFOGO.APP_BASE) : '');
+    const PARTIALS_BASE = `${window.location.origin}${APP_BASE}/frontend/partials/`;
     const SIDEBAR_URL = PARTIALS_BASE + 'admin_sidebar.html';
     const TOPBAR_URL = PARTIALS_BASE + 'admin_topbar.html';
     const LAYOUT_COLLAPSED_KEY = 'admin_layout_collapsed';
@@ -212,11 +213,11 @@
         };
 
         const scriptCaja = document.createElement('script');
-        scriptCaja.src = '../../js/caja.js';
+        scriptCaja.src = `${window.location.origin}${APP_BASE}/frontend/js/caja.js`;
         document.body.appendChild(scriptCaja);
 
         const scriptNotif = document.createElement('script');
-        scriptNotif.src = '../../js/notifications.js';
+        scriptNotif.src = `${window.location.origin}${APP_BASE}/frontend/js/notifications.js`;
         scriptNotif.onload = () => {
             try { window.initNotifications && window.initNotifications(); } catch (_) {}
         };

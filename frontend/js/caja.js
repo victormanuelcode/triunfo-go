@@ -4,9 +4,10 @@
  * Se integra automáticamente en el layout del admin.
  */
 
-const CAJA_API_STATUS = '/proyecto_final/backend/box/status';
-const CAJA_API_OPEN = '/proyecto_final/backend/box/open';
-const CAJA_API_CLOSE = '/proyecto_final/backend/box/close';
+const __API_BASE = (window.TRIUNFOGO?.API_BASE || ((window.location.origin || '') + ((window.TRIUNFOGO?.APP_BASE || '') + '/backend/index.php')));
+const CAJA_API_STATUS = `${__API_BASE}/box/status`;
+const CAJA_API_OPEN = `${__API_BASE}/box/open`;
+const CAJA_API_CLOSE = `${__API_BASE}/box/close`;
 
 // Estado local de la caja
 window.cajaSesion = null;

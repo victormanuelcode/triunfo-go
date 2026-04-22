@@ -12,12 +12,31 @@
         const l = document.createElement('link');
         l.rel = 'stylesheet';
         l.setAttribute('data-app-theme-css', '1');
-        l.href = window.location.origin + '/proyecto_final/frontend/css/theme.css';
+        // Auto-detect base path (ej: /proyecto_final o /triunfo-go)
+        const p = String(window.location.pathname || '/');
+        const idx = p.indexOf('/frontend/');
+        const appBase = idx >= 0 ? (p.slice(0, idx) || '') : '';
+        l.href = (window.location.origin || '') + appBase + '/frontend/css/theme.css';
         document.head.appendChild(l);
     } catch (_) {}
 })();
 
-const AUTH_LOGIN_URL = '/proyecto_final/frontend/views/auth/login.html';
+function getAppBaseFromPathname(pathname) {
+    const p = String(pathname || '/');
+    const idxFrontend = p.indexOf('/frontend/');
+    if (idxFrontend >= 0) return p.slice(0, idxFrontend) || '';
+    const idxBackend = p.indexOf('/backend/');
+    if (idxBackend >= 0) return p.slice(0, idxBackend) || '';
+    return '';
+}
+
+const APP_BASE = getAppBaseFromPathname(window.location.pathname);
+const API_BASE = (window.location.origin || '') + (APP_BASE + '/backend/index.php');
+window.TRIUNFOGO = window.TRIUNFOGO || {};
+window.TRIUNFOGO.APP_BASE = APP_BASE;
+window.TRIUNFOGO.API_BASE = API_BASE;
+
+const AUTH_LOGIN_URL = (APP_BASE + '/frontend/views/auth/login.html');
 const ROLE_ADMIN = '1';
 const ROLE_CASHIER = '2';
 
@@ -88,7 +107,8 @@ const originalFetch = window.fetch;
 window.fetch = async function (url, options = {}) {
     // Si la URL es hacia nuestra API backend
     // Ajuste para permitir que funcione tanto con rutas relativas como absolutas
-    if (url.includes('proyecto_final/backend') && !url.includes('/login')) {
+    const apiBasePath = (window.TRIUNFOGO?.API_BASE ? String(window.TRIUNFOGO.API_BASE) : '');
+    if (apiBasePath && String(url).startsWith(apiBasePath) && !String(url).includes('/login')) {
         const token = localStorage.getItem('token');
 
         if (token) {
@@ -106,7 +126,7 @@ window.fetch = async function (url, options = {}) {
     const response = await originalFetch(url, options);
 
     // Verificar si el token expiró (401 Unauthorized)
-    if (response.status === 401 && !url.includes('/login')) {
+    if (response.status === 401 && !String(url).includes('/login')) {
         console.warn('Sesión expirada o inválida.');
         alert('Su sesión ha expirado. Por favor ingrese nuevamente.');
         logout(false); // Logout sin confirmación
@@ -327,19 +347,19 @@ function checkRolePermissions() {
 
     if (userRole === ROLE_CASHIER && path.includes('/admin/')) {
         alert('Acceso no autorizado para su perfil.');
-        window.location.href = '/proyecto_final/frontend/views/cashier/dashboard.html';
+        window.location.href = `${APP_BASE}/frontend/views/cashier/dashboard.html`;
     }
 
     // Si es Admin (1) y trata de entrar a vistas de cajero, redirigir a POS de Admin
     if (userRole === ROLE_ADMIN && path.includes('/cashier/')) {
         alert('Acceso de Admin redirigido a su Punto de Venta.');
-        window.location.href = '/proyecto_final/frontend/views/admin/dashboard.html';
+        window.location.href = `${APP_BASE}/frontend/views/admin/dashboard.html`;
     }
 }
 
 function logout(confirmar = true) {
     if (!confirmar || confirm('¿Está seguro que desea cerrar sesión?')) {
-        const logoutUrl = `${window.location.origin}/proyecto_final/backend/logout`;
+        const logoutUrl = `${(window.TRIUNFOGO?.API_BASE ? window.TRIUNFOGO.API_BASE : (window.location.origin || '') + APP_BASE + '/backend')}/logout`;
         const token = localStorage.getItem('token');
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
         originalFetch(logoutUrl, { method: 'POST', headers }).finally(() => {

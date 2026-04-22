@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-const API_URL = '/proyecto_final/backend';
+const API_URL = (window.TRIUNFOGO?.API_BASE || ((window.location.origin || '') + ((window.TRIUNFOGO?.APP_BASE || '') + '/backend/index.php')));
 
 async function cargarConfiguracion() {
     const nombreInput = document.getElementById('nombre');

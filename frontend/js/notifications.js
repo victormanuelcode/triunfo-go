@@ -5,7 +5,7 @@ let notifBound = false;
 let notifStarted = false;
 
 function getApiBase() {
-  return `${window.location.origin}/proyecto_final/backend`;
+  return (window.TRIUNFOGO?.API_BASE || `${(window.location.origin || '')}${(window.TRIUNFOGO?.APP_BASE || '')}/backend/index.php`);
 }
 
 function notifHeaders() {

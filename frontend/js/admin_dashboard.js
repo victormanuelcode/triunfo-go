@@ -1,4 +1,4 @@
-const API_URL_ADMIN = '/proyecto_final/backend';
+const API_URL_ADMIN = (window.TRIUNFOGO?.API_BASE || ((window.location.origin || '') + ((window.TRIUNFOGO?.APP_BASE || '') + '/backend/index.php')));
 
 document.addEventListener('DOMContentLoaded', () => {
     loadAdminDashboard();

@@ -1,7 +1,7 @@
 (function () {
     const ns = window.AdminInventory = window.AdminInventory || {};
     ns.state = ns.state || {
-        API_URL: window.location.origin + '/proyecto_final/backend',
+        API_URL: (window.TRIUNFOGO?.API_BASE || ((window.location.origin || '') + ((window.TRIUNFOGO?.APP_BASE || '') + '/backend/index.php'))),
         productosAdminGlobal: [],
         productoLotesActualId: null,
         regularizacionCandidates: [],

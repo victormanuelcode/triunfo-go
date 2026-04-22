@@ -57,7 +57,12 @@ class UserController {
             echo json_encode(["message" => "No se pudo guardar el archivo."]);
             return;
         }
-        $url = '/proyecto_final/backend/uploads/avatars/' . $name;
+        $scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/'); // ej: /triunfo-go/backend
+        $appBase = preg_replace('#/backend$#', '', $scriptDir);
+        if ($appBase === '' || $appBase === '.') {
+            $appBase = '';
+        }
+        $url = $appBase . '/backend/uploads/avatars/' . $name;
 
         $old = new User($this->db);
         $old->id_usuario = $id;
@@ -391,8 +396,16 @@ class UserController {
                     echo json_encode(["message" => "Error de configuración del servidor (JWT_SECRET)."]);
                     return;
                 }
-                $issuer_claim = "http://localhost/proyecto_final";
-                $audience_claim = "http://localhost/proyecto_final";
+                $scheme = $_SERVER['REQUEST_SCHEME'] ?? (($_SERVER['HTTPS'] ?? '') ? 'https' : 'http');
+                $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+                $scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+                $appBase = preg_replace('#/backend$#', '', $scriptDir);
+                if ($appBase === '' || $appBase === '.') {
+                    $appBase = '';
+                }
+                $origin = $scheme . '://' . $host;
+                $issuer_claim = $origin . $appBase;
+                $audience_claim = $origin . $appBase;
                 $issuedat_claim = time(); // Issued at
                 $expire_claim = $issuedat_claim + 28800; // Expira en 8 horas (jornada laboral)
                 $jti = bin2hex(random_bytes(16));

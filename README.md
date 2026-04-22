@@ -54,7 +54,7 @@ Nombre de la BD: `triunfo_go_php`
 ---
 
 ## 🔌 Backend (API REST)
-URL Base: `http://localhost/proyecto_final/backend`
+URL Base: `http://localhost/triunfo-go/backend`
 
 > Todos los endpoints (excepto `/login`, `/test-db` y `/`) requieren **token JWT** en el header:  
 > `Authorization: Bearer {token}`
@@ -84,7 +84,7 @@ Mensaje de bienvenida a la API.
 Verifica la conexión a la base de datos.  
 **Uso:**  
 ```bash
-curl http://localhost/proyecto_final/backend/test-db
+curl http://localhost/triunfo-go/backend/test-db
 ```
 
 ---
@@ -506,7 +506,7 @@ Cierra la sesión de caja actual.
 4. **Configuración:**
    - Ajustar credenciales en `backend/.env` (DB_HOST, DB_NAME, DB_USER, DB_PASS, JWT_SECRET).
 5. **Ejecución:**
-   - Login: `http://localhost/proyecto_final/frontend/views/auth/login.html`.
+   - Login: `http://localhost/triunfo-go/frontend/views/auth/login.html`.
 
 ---
 
