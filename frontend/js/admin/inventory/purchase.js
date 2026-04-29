@@ -22,12 +22,32 @@
         const compraTipoGroup = document.getElementById('compraTipoGroup');
         const nuevoCategoriaSelect = document.getElementById('compraNuevoProductoCategoriaId');
         const nuevoUnidadSelect = document.getElementById('compraNuevoProductoUnidadId');
+        const nuevoTipoVentaSelect = document.getElementById('compraNuevoProductoTipoVenta');
+        const nuevoFraccionPesoBox = document.getElementById('compraNuevoFraccionPesoBox');
+        const nuevoFraccionGramosInput = document.getElementById('compraNuevoFraccionGramos');
+        const nuevoEquivalenciaPesoTexto = document.getElementById('compraNuevoEquivalenciaPesoTexto');
         const compraTipoPolicyNotice = document.getElementById('compraLotePolicyNotice');
         const existenteBox = document.getElementById('compraExistenteBox');
         const nuevoBox = document.getElementById('compraNuevoBox');
 
         function getRegistroModo() {
             return document.querySelector('input[name="compraRegistroModo"]:checked')?.value || 'existente';
+        }
+
+        function gramosToKg(gramos) {
+            const g = Number(gramos || 0);
+            if (!Number.isFinite(g) || g <= 0) return 0.001;
+            return Number((g / 1000).toFixed(6));
+        }
+
+        function actualizarUICompraPeso() {
+            if (!nuevoTipoVentaSelect || !nuevoFraccionPesoBox || !nuevoFraccionGramosInput || !nuevoEquivalenciaPesoTexto) return;
+            const esPeso = true;
+            nuevoTipoVentaSelect.value = 'peso';
+            nuevoFraccionPesoBox.style.display = '';
+            const gramos = Math.max(1, Number(nuevoFraccionGramosInput.value || 1));
+            nuevoFraccionGramosInput.value = String(gramos);
+            nuevoEquivalenciaPesoTexto.textContent = `${gramos} g = ${(gramosToKg(gramos)).toFixed(3)} kg`;
         }
 
         async function cargarProveedoresCompra() {
@@ -100,6 +120,13 @@
                 if (precioNuevo && precio > 0) precioNuevo.value = String(precio);
             });
         }
+        if (nuevoTipoVentaSelect) {
+            nuevoTipoVentaSelect.addEventListener('change', actualizarUICompraPeso);
+        }
+        if (nuevoFraccionGramosInput) {
+            nuevoFraccionGramosInput.addEventListener('input', actualizarUICompraPeso);
+            nuevoFraccionGramosInput.addEventListener('change', actualizarUICompraPeso);
+        }
 
         async function crearProductoDesdeCompra(payload) {
             const resp = await fetch(`${API_URL}/products`, {
@@ -136,6 +163,8 @@
                         const cantidad = Number(document.getElementById('compraNuevoCantidad').value || 0);
                         const precioVenta = Number(document.getElementById('compraNuevoPrecioVenta').value || 0);
                         const costoUnitario = Number(document.getElementById('compraNuevoCostoUnitario').value || 0);
+                        const tipoVenta = 'peso';
+                        const fraccionMinima = gramosToKg(nuevoFraccionGramosInput?.value || 1);
 
                         if (!nombre || !(categoriaId > 0) || !(unidadId > 0) || !(cantidad > 0) || !(precioVenta > 0)) {
                             alert('Complete nombre, categoría, unidad, cantidad y precio de venta para registrar el producto.');
@@ -150,6 +179,9 @@
                             proveedor_id: proveedorId || '',
                             precio_compra: costoUnitario,
                             precio_venta: precioVenta,
+                            tipo_venta: tipoVenta,
+                            unidad_base: 'kg',
+                            fraccion_minima: fraccionMinima,
                             stock_actual: 0,
                             estado: 'activo'
                         });
@@ -215,6 +247,9 @@
             await cargarProductosCompra();
             await cargarProveedoresCompra();
             syncCompraNuevoProductoSelects();
+            if (nuevoTipoVentaSelect) nuevoTipoVentaSelect.value = 'unidad';
+            if (nuevoFraccionGramosInput) nuevoFraccionGramosInput.value = '1';
+            actualizarUICompraPeso();
             setRegistroModo('existente');
             setTipo('nuevo');
             modal.style.display = 'block';

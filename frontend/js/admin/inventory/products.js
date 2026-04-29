@@ -11,6 +11,38 @@
         return `${baseBackendURL}/${normalizedPath}`;
     }
 
+    function gramosToKg(gramos) {
+        const g = Number(gramos || 0);
+        if (!Number.isFinite(g) || g <= 0) return 0.001;
+        return Number((g / 1000).toFixed(6));
+    }
+
+    function kgToGramos(kg) {
+        const k = Number(kg || 0);
+        if (!Number.isFinite(k) || k <= 0) return 1;
+        return Math.max(1, Math.round(k * 1000));
+    }
+
+    function actualizarUIVentaPeso() {
+        const tipoVentaEl = document.getElementById('tipo_venta');
+        const gramosEl = document.getElementById('fraccion_gramos');
+        const grupoPesoEl = document.getElementById('grupoFraccionPeso');
+        const equivalenciaEl = document.getElementById('equivalenciaPesoTexto');
+        const precioHelpEl = document.getElementById('precioVentaHelp');
+        if (!tipoVentaEl || !gramosEl || !grupoPesoEl || !equivalenciaEl || !precioHelpEl) return;
+
+        const esPeso = tipoVentaEl.value === 'peso';
+        grupoPesoEl.style.display = esPeso ? '' : 'none';
+        precioHelpEl.textContent = esPeso
+            ? 'Precio de venta por kilogramo (kg).'
+            : 'Precio de venta por unidad.';
+
+        const gramos = Math.max(1, Number(gramosEl.value || 1));
+        gramosEl.value = String(gramos);
+        const kg = gramosToKg(gramos);
+        equivalenciaEl.textContent = `${gramos} g = ${kg.toFixed(3)} kg`;
+    }
+
     async function cargarCategoriasSelect() {
         const select = document.getElementById('categoria_id');
         const filterSelect = document.getElementById('filtroCategoria');
@@ -75,6 +107,9 @@
                 const stockTxt = esPeso ? `${stockVal.toFixed(3)} kg` : `${stockVal}`;
                 const priceVal = Number(prod.precio_venta || 0);
                 const priceTxt = esPeso ? `$${priceVal.toLocaleString('es-CO')} /kg` : `$${priceVal.toLocaleString('es-CO')}`;
+                const fraccionKg = Number(prod.fraccion_minima || 0.001);
+                const fraccionGramos = kgToGramos(fraccionKg);
+                const metaPeso = esPeso ? `<p class="card-desc">Equivalencia: ${fraccionGramos} g (${fraccionKg.toFixed(3)} kg)</p>` : '';
                 const card = `
                     <div class="card-producto">
                         <div class="card-img-wrapper">
@@ -87,6 +122,7 @@
                             <h3 class="card-title">${prod.nombre}</h3>
                             <p class="card-desc">${prod.descripcion || 'Sin descripción'}</p>
                             <p class="price-tag">${priceTxt}</p>
+                            ${metaPeso}
                         </div>
                         <div class="card-footer card-footer--wrap">
                             <button class="btn-primary btn-sm" type="button" onclick="verLotesProducto(${prod.id_producto})">Ver lotes</button>
@@ -110,6 +146,8 @@
         const btnCancel = document.getElementsByClassName('close-modal-btn')[0];
         const form = document.getElementById('productoForm');
         if (!modal || !form) return;
+        const tipoVentaEl = document.getElementById('tipo_venta');
+        const gramosEl = document.getElementById('fraccion_gramos');
 
         if (btnNuevo) {
             btnNuevo.onclick = function () {
@@ -141,6 +179,8 @@
             const proveedor_id = document.getElementById('proveedor_id').value;
             const precio = document.getElementById('precio_venta').value;
             const stock = document.getElementById('stock_actual').value;
+            const tipoVenta = (tipoVentaEl?.value === 'peso') ? 'peso' : 'unidad';
+            const fraccionKg = tipoVenta === 'peso' ? gramosToKg(gramosEl?.value || 1) : 1;
             const imagenInput = document.getElementById('imagen');
 
             const hasImage = imagenInput.files.length > 0;
@@ -156,6 +196,9 @@
                 formData.append('proveedor_id', proveedor_id);
                 formData.append('precio_venta', precio);
                 formData.append('stock_actual', stock);
+                formData.append('tipo_venta', tipoVenta);
+                formData.append('unidad_base', tipoVenta === 'peso' ? 'kg' : 'unidad');
+                formData.append('fraccion_minima', String(fraccionKg));
                 formData.append('estado', 'activo');
                 formData.append('imagen', imagenInput.files[0]);
                 options = { method: 'POST', body: formData };
@@ -168,6 +211,9 @@
                     proveedor_id,
                     precio_venta: precio,
                     stock_actual: stock,
+                    tipo_venta: tipoVenta,
+                    unidad_base: tipoVenta === 'peso' ? 'kg' : 'unidad',
+                    fraccion_minima: fraccionKg,
                     estado: 'activo'
                 };
                 options = {
@@ -218,6 +264,9 @@
             document.getElementById('proveedor_id').value = prod.proveedor_id || '';
             document.getElementById('precio_venta').value = prod.precio_venta;
             document.getElementById('stock_actual').value = prod.stock_actual;
+            if (tipoVentaEl) tipoVentaEl.value = (prod.tipo_venta === 'peso') ? 'peso' : 'unidad';
+            if (gramosEl) gramosEl.value = String(kgToGramos(prod.fraccion_minima || 0.001));
+            actualizarUIVentaPeso();
             document.getElementById('imagen').value = '';
             document.getElementById('productoModal').style.display = 'block';
         } catch (error) {
@@ -279,6 +328,9 @@
             const stockTxt = esPeso ? `${stockVal.toFixed(3)} kg` : `${stockVal}`;
             const priceVal = Number(prod.precio_venta || 0);
             const priceTxt = esPeso ? `$${priceVal.toLocaleString('es-CO')} /kg` : `$${priceVal.toLocaleString('es-CO')}`;
+            const fraccionKg = Number(prod.fraccion_minima || 0.001);
+            const fraccionGramos = kgToGramos(fraccionKg);
+            const metaPeso = esPeso ? `<p class="card-desc">Equivalencia: ${fraccionGramos} g (${fraccionKg.toFixed(3)} kg)</p>` : '';
             const card = `
                 <div class="card-producto">
                     <div class="card-img-wrapper">
@@ -291,6 +343,7 @@
                         <h3 class="card-title">${prod.nombre}</h3>
                         <p class="card-desc">${prod.descripcion || 'Sin descripción'}</p>
                         <p class="price-tag">${priceTxt}</p>
+                        ${metaPeso}
                     </div>
                     <div class="card-footer card-footer--wrap">
                         <button class="btn-primary btn-sm" type="button" onclick="verLotesProducto(${prod.id_producto})">Ver lotes</button>
@@ -308,6 +361,16 @@
         cargarCategoriasSelect();
         cargarProveedoresSelect();
         setupModal();
+        const tipoVentaEl = document.getElementById('tipo_venta');
+        const gramosEl = document.getElementById('fraccion_gramos');
+        if (tipoVentaEl) {
+            tipoVentaEl.addEventListener('change', actualizarUIVentaPeso);
+        }
+        if (gramosEl) {
+            gramosEl.addEventListener('input', actualizarUIVentaPeso);
+            gramosEl.addEventListener('change', actualizarUIVentaPeso);
+        }
+        actualizarUIVentaPeso();
         
         // Add event listeners for filters
         const filtroCategoria = document.getElementById('filtroCategoria');

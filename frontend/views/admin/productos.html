@@ -116,6 +116,19 @@
                     <div class="form-group">
                         <label for="precio_venta">Precio Venta</label>
                         <input type="number" id="precio_venta" required>
+                        <small class="form-help" id="precioVentaHelp">Precio de venta por unidad.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="tipo_venta">Tipo de venta</label>
+                        <select id="tipo_venta">
+                            <option value="unidad">Por unidad</option>
+                            <option value="peso">Por peso</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="grupoFraccionPeso" style="display:none;">
+                        <label for="fraccion_gramos">Fracción mínima (gramos)</label>
+                        <input type="number" id="fraccion_gramos" min="1" step="1" value="1">
+                        <small class="form-help">Equivalencia: <span id="equivalenciaPesoTexto">1 g = 0.001 kg</span>. El precio se maneja por kilogramo.</small>
                     </div>
                     <div class="form-group">
                         <label for="stock_actual">Stock Inicial</label>
@@ -409,6 +422,18 @@
                                 <option value="">Seleccione una unidad</option>
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label for="compraNuevoProductoTipoVenta">Tipo de venta</label>
+                            <select id="compraNuevoProductoTipoVenta">
+                                <option value="peso">Por peso (kg/g)</option>
+                            </select>
+                            <small class="form-help">En compras de producto nuevo se maneja solo por peso.</small>
+                        </div>
+                        <div class="form-group" id="compraNuevoFraccionPesoBox" style="display:none;">
+                            <label for="compraNuevoFraccionGramos">Fracción mínima (gramos)</label>
+                            <input type="number" id="compraNuevoFraccionGramos" min="1" step="1" value="1">
+                            <small class="form-help">Equivalencia: <span id="compraNuevoEquivalenciaPesoTexto">1 g = 0.001 kg</span>. El precio de venta se registra por kilogramo.</small>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -427,11 +452,12 @@
                             El sistema generará el número del lote automáticamente al guardar la compra.
                         </div>
                         <div class="form-group">
-                            <label for="compraNuevoCantidad">Cantidad</label>
-                            <input type="number" id="compraNuevoCantidad" min="1">
+                            <label for="compraNuevoCantidad">Peso de compra (kg)</label>
+                            <input type="number" id="compraNuevoCantidad" min="0.001" step="0.001">
+                            <small class="form-help">Ejemplo: 0.250 = 250 g.</small>
                         </div>
                         <div class="form-group">
-                            <label for="compraNuevoPrecioVenta">Precio venta (por lote)</label>
+                            <label for="compraNuevoPrecioVenta">Precio venta (por kg)</label>
                             <input type="number" id="compraNuevoPrecioVenta" min="1">
                         </div>
                         <div class="form-group">

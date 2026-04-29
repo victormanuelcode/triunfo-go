@@ -240,7 +240,7 @@ function renderTopProductsChart(products) {
         data: {
             labels: labels,
             datasets: [{
-                label: 'Cantidad vendida',
+                label: 'Cantidad vendida (kg)',
                 data: totals,
                 backgroundColor: 'rgba(16, 185, 129, 0.6)',
                 borderColor: 'rgba(16, 185, 129, 1)',
@@ -278,11 +278,12 @@ function renderTopProductsTable(products) {
     }
 
     products.forEach(p => {
+        const cantidadTxt = formatCantidadSegunTipo(p.total_vendido, p);
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${p.nombre || '-'}</td>
             <td>${p.descripcion || '-'}</td>
-            <td>${p.total_vendido || 0}</td>
+            <td>${cantidadTxt}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -301,18 +302,23 @@ function renderLowStock(products) {
     }
 
     products.forEach(p => {
+        const stockActualTxt = formatCantidadSegunTipo(p.stock_actual, p);
+        const stockMinTxt = formatCantidadSegunTipo(p.stock_minimo, p);
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${p.nombre || '-'}</td>
-            <td>${p.stock_actual || 0}</td>
-            <td>${p.stock_minimo || 0}</td>
+            <td>${stockActualTxt}</td>
+            <td>${stockMinTxt}</td>
             <td><span class="badge-stock-low">Stock bajo</span></td>
         `;
         tbody.appendChild(tr);
     });
 }
 
-function exportarReportes(tipo) {
+async function exportarReportes(tipo) {
+    // Asegura que la exportación use los filtros actuales del formulario.
+    await cargarDashboardReportes();
+
     if (!datosReportes) {
         alert('No hay datos para exportar.');
         return;
@@ -336,6 +342,9 @@ function exportarPdfEstructurado(data) {
     const periodo = construirTextoPeriodo();
     const usuario = localStorage.getItem('usuario_nombre') || 'Administrador';
     const logoSrc = resolveLogoSrc();
+    const reportType = getCurrentReportType();
+    const showSalesSection = reportType === 'general' || reportType === 'ventas';
+    const showProductsSection = reportType === 'general' || reportType === 'productos';
     const kpis = data.kpis || {};
     const salesRows = Array.isArray(data.sales_last_days) ? data.sales_last_days : [];
     const topProducts = Array.isArray(data.top_products) ? data.top_products : [];
@@ -363,8 +372,8 @@ function exportarPdfEstructurado(data) {
     <meta charset="UTF-8">
     <title>Reporte TRIUNFO GO</title>
     <style>
-        @page { size: A4 portrait; margin: 14mm; }
-        @page landscapePage { size: A4 landscape; margin: 12mm; }
+        @page { size: A4 portrait; margin: 18mm; }
+        @page landscapePage { size: A4 landscape; margin: 16mm; }
         body { font-family: Arial, sans-serif; color: #111827; margin: 0; }
         h1, h2, h3 { margin: 0 0 10px; }
         .meta { margin-bottom: 16px; color: #374151; font-size: 13px; }
@@ -376,7 +385,7 @@ function exportarPdfEstructurado(data) {
         .kpi { border: 1px solid #d1d5db; border-radius: 8px; padding: 10px; }
         .kpi .label { font-size: 12px; color: #6b7280; }
         .kpi .value { font-size: 18px; font-weight: 700; margin-top: 4px; }
-        .page { page-break-after: always; padding-bottom: 18mm; }
+        .page { page-break-after: always; padding: 2mm 1mm 18mm; }
         .page:last-of-type { page-break-after: auto; }
         .page.landscape { page: landscapePage; }
         .section { margin-top: 8px; page-break-inside: avoid; }
@@ -431,6 +440,7 @@ function exportarPdfEstructurado(data) {
         </div>
     </div>
 
+    ${showSalesSection ? `
     <div class="page">
         <div class="section">
             <h2>Ventas por dia</h2>
@@ -445,7 +455,9 @@ function exportarPdfEstructurado(data) {
             </table>
         </div>
     </div>
+    ` : ''}
 
+    ${showProductsSection ? `
     <div class="page ${landscapeTopProducts ? 'landscape' : ''}">
         <div class="section">
             <h2>Productos mas vendidos</h2>
@@ -454,13 +466,15 @@ function exportarPdfEstructurado(data) {
                 <thead><tr><th>Producto</th><th>Descripcion</th><th>Cantidad vendida</th></tr></thead>
                 <tbody>
                     ${topProducts.length
-                        ? topProducts.map(p => `<tr><td>${escapeHtml(p.nombre || '-')}</td><td>${escapeHtml(p.descripcion || '-')}</td><td>${Number(p.total_vendido || 0)}</td></tr>`).join('')
+                        ? topProducts.map(p => `<tr><td>${escapeHtml(p.nombre || '-')}</td><td>${escapeHtml(p.descripcion || '-')}</td><td>${escapeHtml(formatCantidadSegunTipo(p.total_vendido, p))}</td></tr>`).join('')
                         : '<tr><td colspan="3" class="empty">Sin datos de productos.</td></tr>'}
                 </tbody>
             </table>
         </div>
     </div>
+    ` : ''}
 
+    ${showProductsSection ? `
     <div class="page ${landscapeLowStock ? 'landscape' : ''}">
         <div class="section">
             <h2>Alertas de stock bajo</h2>
@@ -468,12 +482,13 @@ function exportarPdfEstructurado(data) {
                 <thead><tr><th>Producto</th><th>Stock actual</th><th>Stock minimo</th><th>Estado</th></tr></thead>
                 <tbody>
                     ${lowStock.length
-                        ? lowStock.map(p => `<tr><td>${escapeHtml(p.nombre || '-')}</td><td>${Number(p.stock_actual || 0)}</td><td>${Number(p.stock_minimo || 0)}</td><td>Stock bajo</td></tr>`).join('')
+                        ? lowStock.map(p => `<tr><td>${escapeHtml(p.nombre || '-')}</td><td>${escapeHtml(formatCantidadSegunTipo(p.stock_actual, p))}</td><td>${escapeHtml(formatCantidadSegunTipo(p.stock_minimo, p))}</td><td>Stock bajo</td></tr>`).join('')
                         : '<tr><td colspan="4" class="empty">Sin alertas de stock.</td></tr>'}
                 </tbody>
             </table>
         </div>
     </div>
+    ` : ''}
 
     <div class="footer">
         <div>Usuario: ${escapeHtml(usuario)} | Fecha: ${escapeHtml(now.toLocaleString('es-CO'))}</div>
@@ -537,6 +552,20 @@ function resolveLogoSrc() {
     return src;
 }
 
+function getCurrentReportType() {
+    return document.getElementById('reportTypeFilter')?.value || 'general';
+}
+
+function isProductoPeso(item) {
+    return ((item?.tipo_venta || '').toString().toLowerCase() === 'peso')
+        || ((item?.unidad_base || '').toString().toLowerCase() === 'kg');
+}
+
+function formatCantidadSegunTipo(value, item) {
+    const num = Number(value || 0);
+    return `${num.toFixed(3)} kg`;
+}
+
 function exportarExcel(data) {
     // Exportar ventas diarias
     let csvContent = "data:text/csv;charset=utf-8,";
@@ -561,7 +590,7 @@ function exportarExcel(data) {
     csvContent += "\nTop Productos\n";
     csvContent += "Producto,Cantidad Vendida\n";
     data.top_products.forEach(row => {
-        csvContent += `${row.nombre},${row.total_vendido}\n`;
+        csvContent += `${row.nombre},${formatCantidadSegunTipo(row.total_vendido, row)}\n`;
     });
 
     const encodedUri = encodeURI(csvContent);

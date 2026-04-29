@@ -82,7 +82,7 @@ class Report {
     public function getTopProducts($fechaInicio = null, $fechaFin = null) {
         try {
             $buildAndRun = function (bool $withEstado) use ($fechaInicio, $fechaFin) {
-                $query = "SELECT p.nombre, p.descripcion, SUM(d.cantidad) as total_vendido 
+                $query = "SELECT p.nombre, p.descripcion, p.tipo_venta, p.unidad_base, SUM(d.cantidad) as total_vendido 
                           FROM detalle_factura d 
                           JOIN productos p ON d.producto_id = p.id_producto 
                           JOIN facturas f ON d.factura_id = f.id_factura ";
@@ -129,7 +129,7 @@ class Report {
         } catch (Exception $e) {
             error_log("Error en getTopProducts: " . $e->getMessage());
             // Retornar un statement vacío
-            $stmt = $this->conn->prepare("SELECT NULL as nombre, NULL as descripcion, NULL as total_vendido WHERE 0");
+            $stmt = $this->conn->prepare("SELECT NULL as nombre, NULL as descripcion, NULL as tipo_venta, NULL as unidad_base, NULL as total_vendido WHERE 0");
             $stmt->execute();
             return $stmt;
         }
@@ -142,7 +142,7 @@ class Report {
      */
     public function getLowStock() {
         try {
-            $query = "SELECT nombre, stock_actual, stock_minimo 
+            $query = "SELECT nombre, stock_actual, stock_minimo, tipo_venta, unidad_base 
                       FROM productos 
                       WHERE stock_actual <= stock_minimo AND estado = 'activo'";
             
@@ -151,7 +151,7 @@ class Report {
             return $stmt;
         } catch (Exception $e) {
             error_log("Error en getLowStock: " . $e->getMessage());
-            $stmt = $this->conn->prepare("SELECT NULL as nombre, NULL as stock_actual, NULL as stock_minimo WHERE 0");
+            $stmt = $this->conn->prepare("SELECT NULL as nombre, NULL as stock_actual, NULL as stock_minimo, NULL as tipo_venta, NULL as unidad_base WHERE 0");
             $stmt->execute();
             return $stmt;
         }
