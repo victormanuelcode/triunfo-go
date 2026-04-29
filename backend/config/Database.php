@@ -32,7 +32,7 @@ class Database {
      */
     public function __construct() {
         $this->host = $this->env('DB_HOST', 'localhost') ?? 'localhost';
-        $this->db_name = $this->env('DB_NAME', '') ?? '';
+        $this->db_name = $this->env('DB_NAME', 'triunfo_go_php') ?? 'triunfo_go_php';
         $this->username = $this->env('DB_USER', 'root') ?? 'root';
         $this->password = $this->env('DB_PASS', '') ?? '';
         $this->port = $this->env('DB_PORT', null); // opcional, por defecto 3306
@@ -51,11 +51,16 @@ class Database {
         $portSegment = $this->port ? ";port={$this->port}" : "";
         $dsn = "mysql:host={$this->host}{$portSegment};dbname={$this->db_name};charset=utf8mb4";
 
-        return new PDO($dsn, $this->username, $this->password, [
+        $options = [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES   => false,
-        ]);
+        ];
+        if (defined('PDO::MYSQL_ATTR_INIT_COMMAND')) {
+            $options[PDO::MYSQL_ATTR_INIT_COMMAND] = "SET time_zone = 'SYSTEM'";
+        }
+
+        return new PDO($dsn, $this->username, $this->password, $options);
     }
 }
 ?>

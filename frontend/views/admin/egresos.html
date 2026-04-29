@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Egresos - TRIUNFO GO</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../css/styles.css">
+    <link rel="stylesheet" href="../../css/egresos.css">
+</head>
+<body>
+    <script src="../../js/auth.js"></script>
+    <script src="../../js/layout_admin.js"></script>
+
+    <div class="layout-root egresos-page">
+        <aside class="sidebar"></aside>
+
+        <div class="content-area">
+            <header class="topbar"></header>
+
+            <main class="content-inner">
+                <div class="page-header">
+                    <div>
+                        <h1>Egresos</h1>
+                        <p class="subtitle">Registro y control de gastos (opcionalmente asociados a la caja)</p>
+                    </div>
+                    <button class="btn btn-success d-flex align-items-center gap-2" onclick="abrirModalEgreso()">
+                        <i class="fas fa-plus"></i> Nuevo Egreso
+                    </button>
+                </div>
+
+                <div class="summary-cards mb-4">
+                    <div class="summary-card">
+                        <div class="card-icon bg-blue-soft text-blue">
+                            <i class="fas fa-receipt"></i>
+                        </div>
+                        <div class="card-info">
+                            <span class="card-label">Total egresos</span>
+                            <h3 class="card-value" id="kpi-total-egresos">$0</h3>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-icon bg-green-soft text-green">
+                            <i class="fas fa-calendar-day"></i>
+                        </div>
+                        <div class="card-info">
+                            <span class="card-label">Egresos hoy</span>
+                            <h3 class="card-value" id="kpi-egresos-hoy">$0</h3>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-icon bg-yellow-soft text-yellow">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="card-info">
+                            <span class="card-label">Egresos mes</span>
+                            <h3 class="card-value" id="kpi-egresos-mes">$0</h3>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-icon bg-red-soft text-red">
+                            <i class="fas fa-filter"></i>
+                        </div>
+                        <div class="card-info">
+                            <span class="card-label">Egresos (filtro)</span>
+                            <h3 class="card-value" id="kpi-egresos-filtro">$0</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filters-container">
+                    <div class="filter-group flex-2">
+                        <label>Buscar</label>
+                        <div class="filter-input-wrapper">
+                            <i class="fas fa-search text-muted ms-2 position-absolute"></i>
+                            <input type="text" id="filtro-busqueda" placeholder="Concepto o descripción..." class="pl-32 w-full">
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label>Método</label>
+                        <div class="filter-input-wrapper">
+                            <select id="filtro-metodo">
+                                <option value="">Todos</option>
+                                <option value="efectivo">Efectivo</option>
+                                <option value="transferencia">Transferencia</option>
+                                <option value="tarjeta">Tarjeta</option>
+                                <option value="otros">Otros</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label>Desde</label>
+                        <div class="filter-input-wrapper">
+                            <input type="date" id="filtro-fecha-desde">
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label>Hasta</label>
+                        <div class="filter-input-wrapper">
+                            <input type="date" id="filtro-fecha-hasta">
+                        </div>
+                    </div>
+                    <button class="btn-filter" onclick="aplicarFiltrosEgresos()">
+                        <i class="fas fa-filter me-2"></i> Filtrar
+                    </button>
+                </div>
+
+                <section class="card-admin">
+                    <div class="table-responsive">
+                        <table class="movements-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Fecha</th>
+                                    <th>Concepto</th>
+                                    <th>Método</th>
+                                    <th>Monto</th>
+                                    <th>Usuario</th>
+                                    <th>Caja</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-egresos"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="empty-state" class="empty-state d-none">
+                        <div class="empty-icon"><i class="fas fa-receipt"></i></div>
+                        <h4 class="empty-title">No hay egresos registrados</h4>
+                        <p class="empty-subtitle">Registra un egreso o ajusta los filtros.</p>
+                        <button class="btn-primary mt-16" onclick="abrirModalEgreso()">Registrar primer egreso</button>
+                    </div>
+
+                    <div class="pagination-container">
+                        <div class="pagination-info">
+                            Mostrando <span id="info-inicio">0</span>-<span id="info-fin">0</span> de <span id="info-total">0</span> egresos
+                        </div>
+                        <div class="pagination-controls">
+                            <select id="items-per-page" class="form-select form-select-sm w-70">
+                                <option value="10">10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                            </select>
+                            <button class="btn-page" id="btn-prev" disabled><i class="fas fa-chevron-left"></i></button>
+                            <button class="btn-page" id="btn-next" disabled><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <div class="modal" id="modalEgreso" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="egresoModalTitle">Nuevo Egreso</h5>
+                    <button type="button" class="btn-close" onclick="cerrarModalEgreso()"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="form-egreso">
+                        <input type="hidden" id="egreso-id">
+                        <div class="mb-3">
+                            <label class="form-label">Fecha</label>
+                            <input type="datetime-local" class="form-control" id="egreso-fecha">
+                            <div class="hint-text">Si lo dejas vacío, se registrará con la fecha actual.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Concepto</label>
+                            <input type="text" class="form-control" id="egreso-concepto" placeholder="Ej: Transporte, insumos..." required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" id="egreso-descripcion" rows="3" placeholder="Detalle opcional..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Método de pago</label>
+                            <select class="form-select" id="egreso-metodo">
+                                <option value="efectivo">Efectivo</option>
+                                <option value="transferencia">Transferencia</option>
+                                <option value="tarjeta">Tarjeta</option>
+                                <option value="otros">Otros</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Monto</label>
+                            <input type="number" class="form-control" id="egreso-monto" min="0.01" step="0.01" placeholder="0.00" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Asociar a caja</label>
+                            <select class="form-select" id="egreso-sesion">
+                                <option value="">Automático (caja abierta si existe)</option>
+                                <option value="__none__">Sin caja</option>
+                            </select>
+                            <div class="hint-text">Para auditoría, se recomienda registrar egresos dentro de una caja abierta.</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalEgreso()">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarEgreso()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../js/egresos.js"></script>
+</body>
+</html>
+

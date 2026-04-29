@@ -1,4 +1,6 @@
 const API_URL = (window.TRIUNFOGO?.API_BASE || ((window.location.origin || '') + ((window.TRIUNFOGO?.APP_BASE || '') + '/backend/index.php')));
+const BACKEND_BASE_URL = API_URL.replace('/index.php', '');
+const FACTURA_FALLBACK_IMAGE = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="Arial,sans-serif" font-size="16">Sin imagen</text></svg>')}`;
 
 let itemsFactura = [];
 let productosFacturaGlobal = [];
@@ -8,6 +10,28 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarProductosFactura();
     setupClienteSearch();
 });
+
+function roundQty(value) {
+    return Math.round((Number(value || 0) + Number.EPSILON) * 1000) / 1000;
+}
+
+function isPesoProduct(prodOrItem) {
+    const tipo = (prodOrItem?.tipo_venta || prodOrItem?.producto_tipo_venta || '').toString().toLowerCase();
+    const unidad = (prodOrItem?.unidad_base || prodOrItem?.producto_unidad_base || '').toString().toLowerCase();
+    return tipo === 'peso' || unidad === 'kg' || unidad === 'kilo' || unidad === 'kilogramo';
+}
+
+function getPesoStep(prodOrItem) {
+    const raw = Number(prodOrItem?.fraccion_minima || 0);
+    if (raw > 0) return raw;
+    return 0.001;
+}
+
+function formatCantidadFacturaItem(item) {
+    const qty = Number(item?.cantidad || 0);
+    if (item?.tipo_venta === 'peso') return `${qty.toFixed(3)} kg`;
+    return `${qty}`;
+}
 
 function showAdminToast(message, type = 'info') {
     const el = document.getElementById('admin-toast');
@@ -115,6 +139,57 @@ async function cargarProductosFactura() {
     }
 }
 
+function resolveProductImageUrl(imagePath) {
+    if (!imagePath) return FACTURA_FALLBACK_IMAGE;
+    if (/^https?:\/\//i.test(imagePath) || imagePath.startsWith('data:')) return imagePath;
+    const normalizedPath = String(imagePath).replace(/^\/+/, '');
+    return `${BACKEND_BASE_URL}/${normalizedPath}`;
+}
+
+function renderProductosFactura(lista) {
+    const grid = document.getElementById('productos-factura-grid');
+    if (!grid) return;
+
+    const productos = Array.isArray(lista) ? lista : [];
+    grid.innerHTML = '';
+
+    if (!productos.length) {
+        grid.innerHTML = '<div class="loading-spinner">No se encontraron productos.</div>';
+        return;
+    }
+
+    productos.forEach((prod) => {
+        const stock = Number(prod.stock_actual || 0);
+        const price = Number(prod.precio_venta || 0);
+        const esPeso = isPesoProduct(prod);
+        const stockTxt = esPeso ? `${stock.toFixed(3)} kg` : `${stock}`;
+        const priceTxt = esPeso ? `$${price.toLocaleString('es-CO')} /kg` : `$${price.toLocaleString('es-CO')}`;
+        const card = document.createElement('div');
+        card.className = 'card-producto';
+        card.innerHTML = `
+            <div class="card-img-wrapper">
+                <img src="${resolveProductImageUrl(prod.imagen)}" alt="${prod.nombre || 'Producto'}" data-fallback="${FACTURA_FALLBACK_IMAGE}" onerror="this.onerror=null;this.src=this.dataset.fallback;">
+            </div>
+            <span class="stock-badge ${stock <= 0 ? 'stock-low' : ''}">Stock: ${stockTxt}</span>
+            <div class="card-body">
+                <h3 class="card-title">${prod.nombre || 'Sin nombre'}</h3>
+                <p class="card-desc">${prod.descripcion || 'Sin descripción'}</p>
+                <p class="price-tag">${priceTxt}</p>
+            </div>
+            <div class="card-footer card-footer--wrap">
+                <button class="btn-primary btn-sm" type="button" ${stock <= 0 ? 'disabled' : ''}>Agregar</button>
+            </div>
+        `;
+
+        const addButton = card.querySelector('button');
+        if (addButton && stock > 0) {
+            addButton.addEventListener('click', () => agregarItemFactura(prod));
+        }
+
+        grid.appendChild(card);
+    });
+}
+
 function filtrarProductosFactura() {
     const texto = (document.getElementById('buscadorProductosFactura')?.value || '').toLowerCase();
     let lista = productosFacturaGlobal.slice();
@@ -185,7 +260,11 @@ function renderProductosAvanzado(lista) {
     grid.innerHTML = '';
     
     lista.forEach(prod => {
-        const stock = parseInt(prod.stock_actual || 0);
+        const stock = Number(prod.stock_actual || 0);
+        const esPeso = isPesoProduct(prod);
+        const stockTxt = esPeso ? `${stock.toFixed(3)} kg` : `${parseInt(stock || 0)}`;
+        const price = Number(prod.precio_venta || 0);
+        const priceTxt = esPeso ? `$${price.toLocaleString('es-CO')} /kg` : `$${price.toLocaleString('es-CO')}`;
         const card = document.createElement('div');
         card.style.border = '1px solid #eee';
         card.style.borderRadius = '8px';
@@ -198,9 +277,9 @@ function renderProductosAvanzado(lista) {
             <div style="font-weight: 600; margin-bottom: 5px;">${prod.nombre}</div>
             <div style="font-size: 12px; color: #666; margin-bottom: 5px;">SKU: ${prod.sku || 'N/A'}</div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: bold; color: #16A34A;">$${parseFloat(prod.precio_venta).toLocaleString()}</span>
+                <span style="font-weight: bold; color: #16A34A;">${priceTxt}</span>
                 <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; background: ${stock > 5 ? '#dcfce7' : '#fee2e2'}; color: ${stock > 5 ? '#166534' : '#991b1b'};">
-                    Stock: ${stock}
+                    Stock: ${stockTxt}
                 </span>
             </div>
         `;
@@ -219,24 +298,42 @@ function renderProductosAvanzado(lista) {
 }
 
 function agregarItemFactura(prod) {
-    const stockDisponible = parseInt(prod.stock_actual || 0);
+    const esPeso = isPesoProduct(prod);
+    const stockDisponible = Number(prod.stock_actual || 0);
     const itemExistente = itemsFactura.find(i => i.id_producto === prod.id_producto);
-    const cantidadActual = itemExistente ? itemExistente.cantidad : 0;
+    const cantidadActual = itemExistente ? Number(itemExistente.cantidad || 0) : 0;
 
-    if (cantidadActual + 1 > stockDisponible) {
-        showAdminToast(`No hay suficiente stock disponible. Stock actual: ${stockDisponible}`, 'warning');
+    let cantidadAgregar = 1;
+    if (esPeso) {
+        const step = getPesoStep(prod);
+        const entered = prompt(`Ingrese cantidad en kg para ${prod.nombre} (ej: 0.250):`, String(step.toFixed(3)));
+        if (entered === null) return;
+        const parsed = Number(String(entered).replace(',', '.'));
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+            showAdminToast('Cantidad inválida.', 'warning');
+            return;
+        }
+        cantidadAgregar = roundQty(parsed);
+    }
+
+    if (cantidadActual + cantidadAgregar > stockDisponible + 0.000001) {
+        const stockTxt = esPeso ? `${stockDisponible.toFixed(3)} kg` : `${parseInt(stockDisponible || 0)}`;
+        showAdminToast(`No hay suficiente stock disponible. Stock actual: ${stockTxt}`, 'warning');
         return;
     }
 
     if (itemExistente) {
-        itemExistente.cantidad += 1;
+        itemExistente.cantidad = roundQty(Number(itemExistente.cantidad || 0) + cantidadAgregar);
     } else {
         itemsFactura.push({
             id_producto: prod.id_producto,
             nombre: prod.nombre,
             precio: parseFloat(prod.precio_venta),
-            cantidad: 1,
-            stock_max: stockDisponible // Guardamos el stock máximo para validaciones posteriores
+            cantidad: esPeso ? cantidadAgregar : 1,
+            stock_max: stockDisponible, // Guardamos el stock máximo para validaciones posteriores
+            tipo_venta: esPeso ? 'peso' : 'unidad',
+            unidad_base: prod.unidad_base || (esPeso ? 'kg' : 'unidad'),
+            fraccion_minima: Number(prod.fraccion_minima || (esPeso ? 0.001 : 1))
         });
     }
     renderItemsFactura();
@@ -245,8 +342,13 @@ function agregarItemFactura(prod) {
 function cambiarCantidadItem(index, delta) {
     const item = itemsFactura[index];
     if (!item) return;
-    
-    const nuevaCant = item.cantidad + delta;
+
+    if (item.tipo_venta === 'peso') {
+        // En peso usamos input directo en UI (no +/-)
+        return;
+    }
+
+    const nuevaCant = Number(item.cantidad || 0) + delta;
     
     if (nuevaCant > item.stock_max) {
         showAdminToast(`No puedes agregar más unidades. Stock disponible: ${item.stock_max}`, 'warning');
@@ -266,6 +368,20 @@ function eliminarItemFactura(index) {
     renderItemsFactura();
 }
 
+function actualizarCantidadPesoFactura(index, rawValue) {
+    const item = itemsFactura[index];
+    if (!item || item.tipo_venta !== 'peso') return;
+    const value = Number(String(rawValue || '').replace(',', '.'));
+    if (!Number.isFinite(value) || value <= 0) return;
+    const next = roundQty(value);
+    if (next > Number(item.stock_max || 0) + 0.000001) {
+        showAdminToast(`Stock insuficiente. Disponible: ${Number(item.stock_max || 0).toFixed(3)} kg`, 'warning');
+        return;
+    }
+    item.cantidad = next;
+    renderItemsFactura();
+}
+
 function renderItemsFactura() {
     const tbody = document.querySelector('#tablaItemsFactura tbody');
     tbody.innerHTML = '';
@@ -276,14 +392,22 @@ function renderItemsFactura() {
         itemsFactura.forEach((item, idx) => {
             const subtotal = item.precio * item.cantidad;
             const tr = document.createElement('tr');
+            const precioTxt = item.tipo_venta === 'peso'
+                ? `$${Number(item.precio || 0).toLocaleString('es-CO')} /kg`
+                : `$${Number(item.precio || 0).toLocaleString('es-CO')}`;
+
+            const qtyHtml = item.tipo_venta === 'peso'
+                ? `<input type="number" min="${Number(item.fraccion_minima || 0.001)}" step="${Number(item.fraccion_minima || 0.001)}" value="${roundQty(item.cantidad)}" style="width:110px;" oninput="actualizarCantidadPesoFactura(${idx}, this.value)">
+                   <span style="font-size:12px;color:#6b7280;margin-left:6px;">kg</span>`
+                : `<button class="btn-qty" onclick="cambiarCantidadItem(${idx}, -1)">-</button>
+                   <span>${formatCantidadFacturaItem(item)}</span>
+                   <button class="btn-qty" onclick="cambiarCantidadItem(${idx}, 1)">+</button>`;
             tr.innerHTML = `
                 <td>${item.nombre}</td>
                 <td>
-                    <button class="btn-qty" onclick="cambiarCantidadItem(${idx}, -1)">-</button>
-                    <span>${item.cantidad}</span>
-                    <button class="btn-qty" onclick="cambiarCantidadItem(${idx}, 1)">+</button>
+                    ${qtyHtml}
                 </td>
-                <td>$${item.precio.toLocaleString()}</td>
+                <td>${precioTxt}</td>
                 <td>$${subtotal.toLocaleString()}</td>
                 <td><button class="btn-remove" onclick="eliminarItemFactura(${idx})">&times;</button></td>
             `;

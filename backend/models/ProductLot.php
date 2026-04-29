@@ -8,7 +8,12 @@ class ProductLot {
         $this->conn = $db;
     }
 
+    private function toQty($value) {
+        return round((float)$value, 3);
+    }
+
     public function createLot($producto_id, $cantidad, $precio_venta, $costo_unitario = 0, $proveedor_id = null, $numero_lote = null) {
+        $cantidad = $this->toQty($cantidad);
         if ($cantidad <= 0) {
             throw new Exception("La cantidad del lote debe ser mayor a cero.");
         }
@@ -28,8 +33,8 @@ class ProductLot {
             $stmt->bindValue(':numero_lote', $numero_lote !== null ? (string)$numero_lote : null, $numero_lote !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':costo_unitario', (float)$costo_unitario);
             $stmt->bindValue(':precio_venta', (float)$precio_venta);
-            $stmt->bindValue(':cantidad_inicial', (int)$cantidad, PDO::PARAM_INT);
-            $stmt->bindValue(':cantidad_disponible', (int)$cantidad, PDO::PARAM_INT);
+            $stmt->bindValue(':cantidad_inicial', $cantidad);
+            $stmt->bindValue(':cantidad_disponible', $cantidad);
             if (!$stmt->execute()) {
                 throw new Exception("No se pudo crear el lote.");
             }
@@ -46,7 +51,7 @@ class ProductLot {
             }
 
             $stmtStock = $this->conn->prepare("UPDATE productos SET stock_actual = stock_actual + :cantidad WHERE id_producto = :producto_id");
-            $stmtStock->bindValue(':cantidad', (int)$cantidad, PDO::PARAM_INT);
+            $stmtStock->bindValue(':cantidad', $cantidad);
             $stmtStock->bindValue(':producto_id', (int)$producto_id, PDO::PARAM_INT);
             if (!$stmtStock->execute()) {
                 throw new Exception("No se pudo actualizar el stock del producto.");
@@ -57,7 +62,7 @@ class ProductLot {
             $stmtMov->bindValue(':producto_id', (int)$producto_id, PDO::PARAM_INT);
             $stmtMov->bindValue(':lote_id', (int)$loteId, PDO::PARAM_INT);
             $stmtMov->bindValue(':numero_lote_snapshot', $numero_lote !== null ? (string)$numero_lote : null, $numero_lote !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmtMov->bindValue(':cantidad', (int)$cantidad, PDO::PARAM_INT);
+            $stmtMov->bindValue(':cantidad', $cantidad);
             $stmtMov->bindValue(':descripcion', 'Ingreso por lote');
             $ref = (string)$numero_lote;
             $stmtMov->bindValue(':referencia', $ref);
@@ -118,7 +123,7 @@ class ProductLot {
         }
 
         $lot = $this->appendLotEditabilityMeta($lot);
-        $lot['cantidad_vendida'] = max(0, (int)$lot['cantidad_inicial'] - (int)$lot['cantidad_disponible']);
+        $lot['cantidad_vendida'] = max(0, (float)$lot['cantidad_inicial'] - (float)$lot['cantidad_disponible']);
         $lot['timeline'] = $this->getLotTimeline((int)$lote_id);
         return $lot;
     }
@@ -130,9 +135,25 @@ class ProductLot {
                   LEFT JOIN facturas f ON m.referencia = f.numero_factura
                   WHERE m.lote_id = :id_lote
                   ORDER BY m.fecha ASC, m.id_movimiento ASC";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindValue(':id_lote', (int)$lote_id, PDO::PARAM_INT);
-        $stmt->execute();
+        try {
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindValue(':id_lote', (int)$lote_id, PDO::PARAM_INT);
+            $stmt->execute();
+        } catch (PDOException $e) {
+            if ($e->getCode() === '42S22' && stripos($e->getMessage(), 'estado') !== false) {
+                $query2 = "SELECT m.id_movimiento, m.tipo, m.cantidad, m.fecha, m.descripcion, m.referencia,
+                                  m.numero_lote_snapshot, f.id_factura, f.numero_factura, NULL AS factura_estado
+                           FROM movimientos_inventario m
+                           LEFT JOIN facturas f ON m.referencia = f.numero_factura
+                           WHERE m.lote_id = :id_lote
+                           ORDER BY m.fecha ASC, m.id_movimiento ASC";
+                $stmt = $this->conn->prepare($query2);
+                $stmt->bindValue(':id_lote', (int)$lote_id, PDO::PARAM_INT);
+                $stmt->execute();
+            } else {
+                throw $e;
+            }
+        }
 
         $timeline = [];
         $saldo = 0;
@@ -141,7 +162,7 @@ class ProductLot {
             $descripcion = (string)($row['descripcion'] ?? '');
             $referencia = (string)($row['referencia'] ?? '');
             $facturaId = isset($row['id_factura']) ? (int)$row['id_factura'] : 0;
-            $cantidad = (int)($row['cantidad'] ?? 0);
+            $cantidad = (float)($row['cantidad'] ?? 0);
 
             if ($facturaId > 0 || stripos($descripcion, 'Venta Factura') !== false) {
                 $categoria = 'venta';
@@ -287,7 +308,7 @@ class ProductLot {
             throw new Exception("Producto no encontrado.");
         }
 
-        $stockActual = (int)($product['stock_actual'] ?? 0);
+        $stockActual = $this->toQty($product['stock_actual'] ?? 0);
         if ($stockActual <= 0) {
             throw new Exception("El producto no tiene stock pendiente por regularizar.");
         }
@@ -318,8 +339,8 @@ class ProductLot {
             $stmtInsert->bindValue(':numero_lote', $numero_lote !== null ? (string)$numero_lote : null, $numero_lote !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmtInsert->bindValue(':costo_unitario', $costoFinal);
             $stmtInsert->bindValue(':precio_venta', $precioVentaFinal);
-            $stmtInsert->bindValue(':cantidad_inicial', $stockActual, PDO::PARAM_INT);
-            $stmtInsert->bindValue(':cantidad_disponible', $stockActual, PDO::PARAM_INT);
+            $stmtInsert->bindValue(':cantidad_inicial', $stockActual);
+            $stmtInsert->bindValue(':cantidad_disponible', $stockActual);
             if (!$stmtInsert->execute()) {
                 throw new Exception("No se pudo crear el lote de regularización.");
             }
@@ -338,7 +359,7 @@ class ProductLot {
             $stmtMov->bindValue(':producto_id', $producto_id, PDO::PARAM_INT);
             $stmtMov->bindValue(':lote_id', $loteId, PDO::PARAM_INT);
             $stmtMov->bindValue(':numero_lote_snapshot', $numero_lote !== null ? (string)$numero_lote : null, $numero_lote !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmtMov->bindValue(':cantidad', $stockActual, PDO::PARAM_INT);
+            $stmtMov->bindValue(':cantidad', $stockActual);
             $stmtMov->bindValue(':descripcion', 'Regularización inicial de stock sin lotes');
             $stmtMov->bindValue(':referencia', (string)$numero_lote);
             if (!$stmtMov->execute()) {
@@ -356,6 +377,7 @@ class ProductLot {
     }
 
     public function allocateFifo($producto_id, $cantidad, $excludedLotIds = []) {
+        $cantidad = $this->toQty($cantidad);
         if ($cantidad <= 0) {
             throw new Exception("La cantidad debe ser mayor a cero.");
         }
@@ -370,30 +392,31 @@ class ProductLot {
         $stmt->bindValue(':producto_id', (int)$producto_id, PDO::PARAM_INT);
         $stmt->execute();
 
-        $remaining = (int)$cantidad;
+        $remaining = $cantidad;
         $allocations = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $loteId = (int)$row['id_lote'];
             if (in_array($loteId, $excludedLotIds, true)) continue;
 
-            $available = (int)$row['cantidad_disponible'];
+            $available = (float)$row['cantidad_disponible'];
             if ($available <= 0) continue;
 
             $take = $available >= $remaining ? $remaining : $available;
+            $take = $this->toQty($take);
             $allocations[] = [
                 'lote_id' => $loteId,
                 'cantidad' => $take,
                 'precio_unitario' => (float)$row['precio_venta']
             ];
             $remaining -= $take;
-            if ($remaining <= 0) break;
+            if ($remaining <= 0.0001) break;
         }
 
-        if ($remaining > 0) {
+        if ($remaining > 0.0001) {
             $meta = $this->getProductLotAvailabilityMeta($producto_id);
             if ($meta) {
                 $productName = trim((string)($meta['nombre'] ?? '')) ?: ('ID ' . (int)$producto_id);
-                $stockActual = (int)($meta['stock_actual'] ?? 0);
+                $stockActual = (float)($meta['stock_actual'] ?? 0);
                 $totalLotes = (int)($meta['total_lotes'] ?? 0);
                 $lotesActivos = (int)($meta['lotes_activos_disponibles'] ?? 0);
 
@@ -429,7 +452,8 @@ class ProductLot {
             throw new Exception("El lote {$preferredLotId} no está activo para la venta.");
         }
 
-        $preferredAvailable = (int)($lot['cantidad_disponible'] ?? 0);
+        $cantidad = $this->toQty($cantidad);
+        $preferredAvailable = (float)($lot['cantidad_disponible'] ?? 0);
         if ($preferredAvailable <= 0) {
             $numero = !empty($lot['numero_lote']) ? (string)$lot['numero_lote'] : ('#' . (int)$preferredLotId);
             throw new Exception("El lote {$numero} no tiene unidades disponibles.");
@@ -441,21 +465,22 @@ class ProductLot {
 
         return [[
             'lote_id' => (int)$preferredLotId,
-            'cantidad' => (int)$cantidad,
+            'cantidad' => $cantidad,
             'precio_unitario' => (float)$lot['precio_venta']
         ]];
     }
 
     public function consumeLot($lote_id, $cantidad) {
+        $cantidad = $this->toQty($cantidad);
         $query = "UPDATE {$this->table_name}
                   SET cantidad_disponible = cantidad_disponible - :cantidad,
                       estado = CASE WHEN (cantidad_disponible - :cantidad2) <= 0 THEN 'agotado' ELSE 'activo' END
                   WHERE id_lote = :id_lote
                     AND cantidad_disponible >= :cantidad3";
         $stmt = $this->conn->prepare($query);
-        $stmt->bindValue(':cantidad', (int)$cantidad, PDO::PARAM_INT);
-        $stmt->bindValue(':cantidad2', (int)$cantidad, PDO::PARAM_INT);
-        $stmt->bindValue(':cantidad3', (int)$cantidad, PDO::PARAM_INT);
+        $stmt->bindValue(':cantidad', $cantidad);
+        $stmt->bindValue(':cantidad2', $cantidad);
+        $stmt->bindValue(':cantidad3', $cantidad);
         $stmt->bindValue(':id_lote', (int)$lote_id, PDO::PARAM_INT);
         $stmt->execute();
         if ($stmt->rowCount() < 1) {
@@ -465,12 +490,13 @@ class ProductLot {
     }
 
     public function restoreLot($lote_id, $cantidad) {
+        $cantidad = $this->toQty($cantidad);
         $query = "UPDATE {$this->table_name}
                   SET cantidad_disponible = cantidad_disponible + :cantidad,
                       estado = 'activo'
                   WHERE id_lote = :id_lote";
         $stmt = $this->conn->prepare($query);
-        $stmt->bindValue(':cantidad', (int)$cantidad, PDO::PARAM_INT);
+        $stmt->bindValue(':cantidad', $cantidad);
         $stmt->bindValue(':id_lote', (int)$lote_id, PDO::PARAM_INT);
         $stmt->execute();
         if ($stmt->rowCount() < 1) {
@@ -630,7 +656,7 @@ class ProductLot {
 
     public function restockLot($lote_id, $cantidad, $precio_venta = null, $costo_unitario = null) {
         $lote_id = (int)$lote_id;
-        $cantidad = (int)$cantidad;
+        $cantidad = $this->toQty($cantidad);
         if ($lote_id <= 0 || $cantidad <= 0) {
             throw new Exception("lote_id y cantidad deben ser mayores a cero.");
         }
@@ -648,7 +674,7 @@ class ProductLot {
             $lot = $this->getLotById($lote_id);
             if (!$lot) throw new Exception("Lote no encontrado.");
             $producto_id = (int)$lot['producto_id'];
-            $disponible = (int)($lot['cantidad_disponible'] ?? 0);
+            $disponible = (float)($lot['cantidad_disponible'] ?? 0);
             $estado = (string)($lot['estado'] ?? '');
             if ($estado === 'inactivo') {
                 $this->conn->commit();
@@ -663,7 +689,7 @@ class ProductLot {
 
             if ($disponible > 0) {
                 $stmtStock = $this->conn->prepare("UPDATE productos SET stock_actual = GREATEST(stock_actual - :cantidad, 0) WHERE id_producto = :producto_id");
-                $stmtStock->bindValue(':cantidad', $disponible, PDO::PARAM_INT);
+                $stmtStock->bindValue(':cantidad', $disponible);
                 $stmtStock->bindValue(':producto_id', $producto_id, PDO::PARAM_INT);
                 if (!$stmtStock->execute()) {
                     throw new Exception("No se pudo actualizar el stock del producto.");
@@ -674,7 +700,7 @@ class ProductLot {
                 $stmtMov->bindValue(':producto_id', $producto_id, PDO::PARAM_INT);
                 $stmtMov->bindValue(':lote_id', $lote_id, PDO::PARAM_INT);
                 $stmtMov->bindValue(':numero_lote_snapshot', $lot['numero_lote'] ? (string)$lot['numero_lote'] : null, $lot['numero_lote'] ? PDO::PARAM_STR : PDO::PARAM_NULL);
-                $stmtMov->bindValue(':cantidad', $disponible, PDO::PARAM_INT);
+                $stmtMov->bindValue(':cantidad', $disponible);
                 $stmtMov->bindValue(':descripcion', 'Lote eliminado/inactivado');
                 $ref = $lot['numero_lote'] ? (string)$lot['numero_lote'] : ('LOTE-' . $lote_id);
                 $stmtMov->bindValue(':referencia', $ref);

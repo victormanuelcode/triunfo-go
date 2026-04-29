@@ -12,6 +12,21 @@ const CAJA_API_CLOSE = `${__API_BASE}/box/close`;
 // Estado local de la caja
 window.cajaSesion = null;
 
+async function parseJsonResponseSafe(response) {
+    const rawText = await response.text();
+    const text = (rawText || '').trim();
+
+    if (!text) {
+        return { payload: null, rawText: '' };
+    }
+
+    try {
+        return { payload: JSON.parse(text), rawText: text };
+    } catch (_) {
+        return { payload: null, rawText: text };
+    }
+}
+
 function showCajaToast(message, type = 'info') {
     let el = document.getElementById('admin-toast');
     if (!el) {
@@ -120,7 +135,10 @@ async function verificarEstadoCaja() {
 
     try {
         const res = await fetch(`${CAJA_API_STATUS}?usuario_id=${usuarioId}`);
-        const data = await res.json();
+        const { payload: data, rawText } = await parseJsonResponseSafe(res);
+        if (!res.ok) {
+            throw new Error((data && data.message) ? data.message : (rawText || `HTTP ${res.status}`));
+        }
 
         if (data && data.id_sesion) {
             // Caja Abierta
@@ -197,7 +215,7 @@ async function confirmarApertura() {
                 monto_apertura: monto
             })
         });
-        const data = await res.json();
+        const { payload: data, rawText } = await parseJsonResponseSafe(res);
 
         if (res.ok) {
             document.getElementById('modalAperturaCaja').style.display = 'none';
@@ -205,7 +223,8 @@ async function confirmarApertura() {
             showCajaToast('Caja abierta exitosamente. Ya puede realizar ventas.', 'success');
             verificarEstadoCaja();
         } else {
-            mostrarError('errorApertura', data.message || 'Error al abrir caja');
+            const msg = (data && data.message) ? data.message : (rawText || 'Error al abrir caja');
+            mostrarError('errorApertura', msg);
         }
     } catch (e) {
         mostrarError('errorApertura', 'Error de conexión con el servidor.');
@@ -234,7 +253,10 @@ async function mostrarModalCierre() {
     }
     try {
         const res = await fetch(`${CAJA_API_STATUS}?usuario_id=${usuarioId}`);
-        const data = await res.json();
+        const { payload: data, rawText } = await parseJsonResponseSafe(res);
+        if (!res.ok) {
+            throw new Error((data && data.message) ? data.message : (rawText || `HTTP ${res.status}`));
+        }
         
         if (data && data.id_sesion) {
             cajaSesion = data; // Actualizar local
@@ -286,7 +308,12 @@ async function confirmarCierre() {
             })
         });
 
-        const data = await res.json();
+        const { payload: data, rawText } = await parseJsonResponseSafe(res);
+        if (!res.ok) {
+            const msg = (data && data.message) ? data.message : (rawText || 'Error al cerrar caja');
+            mostrarError('errorCierre', msg);
+            return;
+        }
 
         if (res.ok) {
             cerrarModalCierre();
@@ -303,8 +330,6 @@ async function confirmarCierre() {
             window.cajaSesion = null;
             actualizarBotonCaja(false);
             window.location.reload(); // Recargar para forzar nueva apertura
-        } else {
-            mostrarError('errorCierre', data.message || 'Error al cerrar caja');
         }
 
     } catch (e) {

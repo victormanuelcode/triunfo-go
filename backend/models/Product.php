@@ -23,6 +23,9 @@ class Product {
     public $creado_en;
     public $actualizado_en;
     public $proveedor_id; // Nuevo campo para proveedor
+    public $tipo_venta;
+    public $unidad_base;
+    public $fraccion_minima;
 
     public function __construct($db) {
         $this->conn = $db;
@@ -74,10 +77,11 @@ class Product {
      * @return boolean True si el producto se creó correctamente.
      */
     public function create() {
-        $stockInicial = (int)($this->stock_actual ?? 0);
+        $stockInicial = (float)($this->stock_actual ?? 0);
         $query = "INSERT INTO " . $this->table_name . " 
                   SET nombre=:nombre, descripcion=:descripcion, categoria_id=:categoria_id, 
-                      unidad_medida_id=:unidad_medida_id, precio_compra=:precio_compra, 
+                      unidad_medida_id=:unidad_medida_id, tipo_venta=:tipo_venta, unidad_base=:unidad_base, fraccion_minima=:fraccion_minima,
+                      precio_compra=:precio_compra, 
                       precio_venta=:precio_venta, stock_actual=0, 
                       stock_minimo=:stock_minimo, imagen=:imagen, estado=:estado";
         
@@ -87,12 +91,18 @@ class Product {
         $this->nombre = htmlspecialchars(strip_tags($this->nombre));
         $this->descripcion = htmlspecialchars(strip_tags($this->descripcion));
         $this->estado = htmlspecialchars(strip_tags($this->estado));
+        $this->tipo_venta = ($this->tipo_venta === 'peso') ? 'peso' : 'unidad';
+        $this->unidad_base = $this->unidad_base ? (string)$this->unidad_base : ($this->tipo_venta === 'peso' ? 'kg' : 'unidad');
+        $this->fraccion_minima = max((float)($this->fraccion_minima ?? ($this->tipo_venta === 'peso' ? 0.001 : 1)), $this->tipo_venta === 'peso' ? 0.001 : 1);
         // Los numéricos se manejan directamente
 
         $stmt->bindParam(":nombre", $this->nombre);
         $stmt->bindParam(":descripcion", $this->descripcion);
         $stmt->bindParam(":categoria_id", $this->categoria_id);
         $stmt->bindParam(":unidad_medida_id", $this->unidad_medida_id);
+        $stmt->bindParam(":tipo_venta", $this->tipo_venta);
+        $stmt->bindParam(":unidad_base", $this->unidad_base);
+        $stmt->bindParam(":fraccion_minima", $this->fraccion_minima);
         $stmt->bindParam(":precio_compra", $this->precio_compra);
         $stmt->bindParam(":precio_venta", $this->precio_venta);
         $stmt->bindParam(":stock_minimo", $this->stock_minimo);
@@ -165,6 +175,9 @@ class Product {
             $this->estado = $row['estado'];
             $this->creado_en = $row['creado_en'];
             $this->proveedor_id = $row['proveedor_id']; // Asignar proveedor_id
+            $this->tipo_venta = $row['tipo_venta'] ?? 'unidad';
+            $this->unidad_base = $row['unidad_base'] ?? ($this->tipo_venta === 'peso' ? 'kg' : 'unidad');
+            $this->fraccion_minima = isset($row['fraccion_minima']) ? (float)$row['fraccion_minima'] : ($this->tipo_venta === 'peso' ? 0.001 : 1);
             return true;
         }
         return false;
@@ -174,7 +187,8 @@ class Product {
     public function update() {
         $query = "UPDATE " . $this->table_name . " 
                   SET nombre=:nombre, descripcion=:descripcion, categoria_id=:categoria_id, 
-                      unidad_medida_id=:unidad_medida_id, precio_compra=:precio_compra, 
+                      unidad_medida_id=:unidad_medida_id, tipo_venta=:tipo_venta, unidad_base=:unidad_base, fraccion_minima=:fraccion_minima,
+                      precio_compra=:precio_compra, 
                       precio_venta=:precio_venta, stock_minimo=:stock_minimo, imagen=:imagen, estado=:estado
                   WHERE id_producto=:id_producto";
         
@@ -184,11 +198,17 @@ class Product {
         $this->descripcion = htmlspecialchars(strip_tags($this->descripcion));
         $this->estado = htmlspecialchars(strip_tags($this->estado));
         $this->id_producto = htmlspecialchars(strip_tags($this->id_producto));
+        $this->tipo_venta = ($this->tipo_venta === 'peso') ? 'peso' : 'unidad';
+        $this->unidad_base = $this->unidad_base ? (string)$this->unidad_base : ($this->tipo_venta === 'peso' ? 'kg' : 'unidad');
+        $this->fraccion_minima = max((float)($this->fraccion_minima ?? ($this->tipo_venta === 'peso' ? 0.001 : 1)), $this->tipo_venta === 'peso' ? 0.001 : 1);
 
         $stmt->bindParam(":nombre", $this->nombre);
         $stmt->bindParam(":descripcion", $this->descripcion);
         $stmt->bindParam(":categoria_id", $this->categoria_id);
         $stmt->bindParam(":unidad_medida_id", $this->unidad_medida_id);
+        $stmt->bindParam(":tipo_venta", $this->tipo_venta);
+        $stmt->bindParam(":unidad_base", $this->unidad_base);
+        $stmt->bindParam(":fraccion_minima", $this->fraccion_minima);
         $stmt->bindParam(":precio_compra", $this->precio_compra);
         $stmt->bindParam(":precio_venta", $this->precio_venta);
         // $stmt->bindParam(":stock_actual", $this->stock_actual); // Eliminado para evitar sobreescritura accidental
@@ -240,11 +260,13 @@ class Product {
     /**
      * Actualiza el stock de un producto de manera atómica.
      * 
-     * @param int $cantidad Cantidad a ajustar (positiva).
+     * @param float $cantidad Cantidad a ajustar (positiva).
      * @param string $tipo 'entrada' (suma) o 'salida' (resta).
      * @return boolean True si se actualizó correctamente.
      */
     public function updateStock($cantidad, $tipo) {
+        $cantidad = (float)$cantidad;
+        if ($cantidad <= 0) return false;
         if ($tipo === 'entrada') {
             $query = "UPDATE " . $this->table_name . " SET stock_actual = stock_actual + :cantidad WHERE id_producto = :id";
             $stmt = $this->conn->prepare($query);

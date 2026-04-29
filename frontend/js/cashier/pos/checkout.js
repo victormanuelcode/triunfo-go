@@ -126,13 +126,20 @@
 
         if (!confirm('¿Confirmar venta por $' + totalVenta.toLocaleString('es-CO') + '?')) return;
 
-        const grouped = new Map();
-        (quote.lines || []).forEach(line => {
-            const pid = Number(line.producto_id);
-            if (!grouped.has(pid)) grouped.set(pid, []);
-            grouped.get(pid).push({ lote_id: Number(line.lote_id), cantidad: Number(line.cantidad) });
+        const itemsVenta = (state.carrito || []).map(item => {
+            const pid = Number(item.id_producto);
+            const qty = Number(item.cantidad || 0);
+            if (item.lote_id) {
+                return {
+                    producto_id: pid,
+                    lotes: [{ lote_id: Number(item.lote_id), cantidad: qty }]
+                };
+            }
+            return {
+                producto_id: pid,
+                cantidad: qty
+            };
         });
-        const itemsVenta = Array.from(grouped.entries()).map(([producto_id, lotes]) => ({ producto_id, lotes }));
 
         const clienteSelect = document.getElementById('cliente-select');
         const clienteId = clienteSelect?.value;

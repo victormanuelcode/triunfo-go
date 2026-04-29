@@ -35,6 +35,15 @@
             const temp = document.createElement('div');
             temp.innerHTML = html.trim();
             const asideNew = temp.firstElementChild;
+            // Ajustar hrefs si estamos en common/
+            if (window.location.pathname.includes('/common/')) {
+                asideNew.querySelectorAll('a[href]').forEach(a => {
+                    const href = a.getAttribute('href');
+                    if (href && !href.startsWith('http') && !href.startsWith('#')) {
+                        a.setAttribute('href', '../admin/' + href);
+                    }
+                });
+            }
             mount.replaceWith(asideNew);
             setActiveNav(asideNew);
             return asideNew;

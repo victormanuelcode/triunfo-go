@@ -27,21 +27,38 @@ async function cargarDashboardReportes() {
             url += '?' + params.join('&');
         }
 
-        const response = await fetch(url);
+        const token = localStorage.getItem('token');
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(url, { headers });
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         const data = await response.json();
         datosReportes = data;
 
-        renderKPIs(data.kpis);
-        renderSalesChart(data.sales_last_days);
-        renderTopProductsChart(data.top_products);
-        renderTopProductsTable(data.top_products);
-        renderLowStock(data.low_stock);
+        renderKPIs(data.kpis || {});
+        renderSalesChart(data.sales_last_days || []);
+        renderTopProductsChart(data.top_products || []);
+        renderTopProductsTable(data.top_products || []);
+        renderLowStock(data.low_stock || []);
     } catch (error) {
         console.error('Error cargando dashboard:', error);
-        alert('Error al cargar datos del dashboard');
+        // Mostrar un mensaje amigable pero sin impedir que se vea la página
+        const msg = error.message || 'Error desconocido al cargar los reportes';
+        const contentInner = document.querySelector('.content-inner');
+        if (contentInner) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-error';
+            alertDiv.style.marginBottom = '20px';
+            alertDiv.innerHTML = `<strong>Advertencia:</strong> ${msg}. Asegúrate de que la base de datos está disponible.`;
+            contentInner.insertBefore(alertDiv, contentInner.querySelector('.card-admin'));
+        }
     }
 }
 
@@ -51,6 +68,8 @@ function renderKPIs(kpis) {
 
     const ventasHoyEl = document.getElementById('kpiSalesToday');
     const ventasMesEl = document.getElementById('kpiSalesMonth');
+    const egresosHoyEl = document.getElementById('kpiExpensesToday');
+    const netoPeriodoEl = document.getElementById('kpiNetPeriod');
     const lowStockEl = document.getElementById('kpiLowStock');
 
     if (ventasHoyEl) ventasHoyEl.textContent = formatCurrency(kpis.ventas_hoy);
@@ -65,6 +84,23 @@ function renderKPIs(kpis) {
         }
         ventasMesEl.textContent = formatCurrency(kpis.ventas_mes);
     }
+
+    if (egresosHoyEl) egresosHoyEl.textContent = formatCurrency(kpis.egresos_hoy);
+
+    if (netoPeriodoEl) {
+        const desdeVal = document.getElementById('dateFromFilter')?.value;
+        const labelNeto = netoPeriodoEl.parentElement.querySelector('.kpi-label');
+        if (labelNeto) {
+            labelNeto.textContent = desdeVal ? 'Neto del periodo' : 'Neto mes actual';
+        }
+        // Preferimos neto_mes si viene del backend; fallback a ventas-egresos
+        const neto = (kpis.neto_mes !== undefined && kpis.neto_mes !== null)
+            ? kpis.neto_mes
+            : ((kpis.ventas_mes || 0) - (kpis.egresos_mes || 0));
+        netoPeriodoEl.textContent = formatCurrency(neto);
+        // Colorizar: negativo en rojo
+        netoPeriodoEl.style.color = (Number(neto) < 0) ? '#B91C1C' : '#111827';
+    }
     if (lowStockEl) {
         const count = kpis.productos_bajo_stock || 0;
         lowStockEl.textContent = count;
@@ -76,10 +112,6 @@ function renderKPIs(kpis) {
     }
 }
 
-function parseFechaIso(fechaStr) {
-    return new Date(fechaStr);
-}
-
 function aplicarFiltrosReportes() {
     // Recargar todo el dashboard con los nuevos filtros desde el servidor
     cargarDashboardReportes();
@@ -89,7 +121,6 @@ function aplicarFiltrosReportes() {
     const chartVentas = document.getElementById('chartVentasCard');
     const chartTop = document.getElementById('chartTopProductosCard');
     const tableTop = document.getElementById('tablaTopProductosCard');
-    const tableLow = document.getElementById('tablaLowStockCard'); // Si existiera ID
 
     if (tipo === 'general') {
         if(chartVentas) chartVentas.style.display = '';
@@ -107,39 +138,6 @@ function aplicarFiltrosReportes() {
 }
 
 function limpiarFiltrosReportes() {
-    document.getElementById('reportTypeFilter').value = 'general';
-    document.getElementById('dateFromFilter').value = '';
-    document.getElementById('dateToFilter').value = '';
-    
-    // Restaurar visualización
-    const chartVentas = document.getElementById('chartVentasCard');
-    const chartTop = document.getElementById('chartTopProductosCard');
-    const tableTop = document.getElementById('tablaTopProductosCard');
-    if(chartVentas) chartVentas.style.display = '';
-    if(chartTop) chartTop.style.display = '';
-    if(tableTop) tableTop.style.display = '';
-
-    cargarDashboardReportes();
-}
-
-    if (tipo === 'productos' || tipo === 'general') {
-        renderTopProductsChart(topProducts);
-        document.getElementById('chartTopProductosCard').style.display = '';
-        document.getElementById('tablaTopProductosCard').style.display = '';
-    } else {
-        document.getElementById('chartTopProductosCard').style.display = 'none';
-        document.getElementById('tablaTopProductosCard').style.display = 'none';
-    }
-
-    if (tipo === 'inventario' || tipo === 'general') {
-        renderLowStock(lowStock);
-    } else {
-        const tbodyLow = document.querySelector('#lowStockTable tbody');
-        if (tbodyLow) tbodyLow.innerHTML = '';
-    }
-
-
-function limpiarFiltrosReportes() {
     const tipoEl = document.getElementById('reportTypeFilter');
     const desdeEl = document.getElementById('dateFromFilter');
     const hastaEl = document.getElementById('dateToFilter');
@@ -148,26 +146,23 @@ function limpiarFiltrosReportes() {
     if (desdeEl) desdeEl.value = '';
     if (hastaEl) hastaEl.value = '';
 
-    if (!datosReportes) return;
-
-    renderKPIs(datosReportes.kpis || {});
-    renderSalesChart(datosReportes.sales_last_days || []);
-    renderTopProductsChart(datosReportes.top_products || []);
-    renderTopProductsTable(datosReportes.top_products || []);
-    renderLowStock(datosReportes.low_stock || []);
-
-    const ventasCard = document.getElementById('chartVentasCard');
-    const topChartCard = document.getElementById('chartTopProductosCard');
-    const topTableCard = document.getElementById('tablaTopProductosCard');
-
-    if (ventasCard) ventasCard.style.display = '';
-    if (topChartCard) topChartCard.style.display = '';
-    if (topTableCard) topTableCard.style.display = '';
+    cargarDashboardReportes();
 }
 
 function renderSalesChart(salesData) {
     const canvas = document.getElementById('salesChart');
     if (!canvas) return;
+
+    if (typeof Chart === 'undefined') {
+        canvas.parentElement.innerHTML = '<p style="text-align:center;padding:40px;color:#9ca3af;">No se pudo cargar Chart.js (sin conexión o CDN bloqueado)</p>';
+        return;
+    }
+    
+    if (!salesData || salesData.length === 0) {
+        canvas.parentElement.innerHTML = '<p style="text-align:center;padding:40px;color:#9ca3af;">Sin datos de ventas en este período</p>';
+        return;
+    }
+
     const ctx = canvas.getContext('2d');
 
     const labels = salesData.map(item => item.fecha);
@@ -215,6 +210,17 @@ function renderSalesChart(salesData) {
 function renderTopProductsChart(products) {
     const canvas = document.getElementById('topProductsChart');
     if (!canvas) return;
+
+    if (typeof Chart === 'undefined') {
+        canvas.parentElement.innerHTML = '<p style="text-align:center;padding:40px;color:#9ca3af;">No se pudo cargar Chart.js (sin conexión o CDN bloqueado)</p>';
+        return;
+    }
+    
+    if (!products || products.length === 0) {
+        canvas.parentElement.innerHTML = '<p style="text-align:center;padding:40px;color:#9ca3af;">Sin datos de productos vendidos en este período</p>';
+        return;
+    }
+
     const ctx = canvas.getContext('2d');
 
     const labels = products.map(p => p.nombre);
@@ -259,12 +265,19 @@ function renderTopProductsTable(products) {
     if (!tbody) return;
     tbody.innerHTML = '';
 
+    if (!products || products.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="3" style="text-align:center;color:#9ca3af;">Sin datos disponibles</td>';
+        tbody.appendChild(tr);
+        return;
+    }
+
     products.forEach(p => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${p.nombre}</td>
-            <td>${p.descripcion || ''}</td>
-            <td>${p.total_vendido}</td>
+            <td>${p.nombre || '-'}</td>
+            <td>${p.descripcion || '-'}</td>
+            <td>${p.total_vendido || 0}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -275,12 +288,19 @@ function renderLowStock(products) {
     if (!tbody) return;
     tbody.innerHTML = '';
 
+    if (!products || products.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="4" style="text-align:center;color:#16a34a;font-weight:bold;">✓ Todo el stock está en niveles adecuados</td>';
+        tbody.appendChild(tr);
+        return;
+    }
+
     products.forEach(p => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${p.nombre}</td>
-            <td>${p.stock_actual}</td>
-            <td>${p.stock_minimo}</td>
+            <td>${p.nombre || '-'}</td>
+            <td>${p.stock_actual || 0}</td>
+            <td>${p.stock_minimo || 0}</td>
             <td><span class="badge-stock-low">Stock bajo</span></td>
         `;
         tbody.appendChild(tr);
@@ -309,6 +329,9 @@ function exportarExcel(data) {
     csvContent += "Resumen General\n";
     csvContent += `Ventas Hoy,${data.kpis.ventas_hoy}\n`;
     csvContent += `Ventas Mes,${data.kpis.ventas_mes}\n`;
+    csvContent += `Egresos Hoy,${data.kpis.egresos_hoy}\n`;
+    csvContent += `Egresos Mes,${data.kpis.egresos_mes}\n`;
+    csvContent += `Neto Mes,${data.kpis.neto_mes}\n`;
     csvContent += `Bajo Stock,${data.kpis.productos_bajo_stock}\n\n`;
 
     // Ventas Diarias

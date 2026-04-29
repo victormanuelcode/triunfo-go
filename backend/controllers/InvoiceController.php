@@ -29,37 +29,52 @@ class InvoiceController {
      * @return void Retorna JSON con los datos paginados y metadatos.
      */
     public function getAll() {
-        // Paginación
-        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
-        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-        $usuarioId = isset($_GET['usuario_id']) ? (int)$_GET['usuario_id'] : null;
-        
-        if ($limit < 1) $limit = 10;
-        if ($page < 1) $page = 1;
-        if ($usuarioId !== null && $usuarioId < 1) $usuarioId = null;
+        try {
+            // Paginación
+            $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
+            $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+            $usuarioId = isset($_GET['usuario_id']) ? (int)$_GET['usuario_id'] : null;
+            
+            if ($limit < 1) $limit = 10;
+            if ($page < 1) $page = 1;
+            if ($usuarioId !== null && $usuarioId < 1) $usuarioId = null;
 
-        $offset = ($page - 1) * $limit;
+            $offset = ($page - 1) * $limit;
 
-        $stmt = $this->invoice->read($limit, $offset, $usuarioId);
-        $invoices_arr = [];
-        
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            array_push($invoices_arr, $row);
+            $stmt = $this->invoice->read($limit, $offset, $usuarioId);
+            $invoices_arr = [];
+            
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                array_push($invoices_arr, $row);
+            }
+            
+            // Metadata
+            $total_rows = $this->invoice->count($usuarioId);
+            $total_pages = ceil($total_rows / $limit);
+
+            echo json_encode([
+                "data" => $invoices_arr,
+                "meta" => [
+                    "current_page" => $page,
+                    "limit" => $limit,
+                    "total_items" => $total_rows,
+                    "total_pages" => $total_pages
+                ]
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            error_log("Error en InvoiceController::getAll: " . $e->getMessage());
+            echo json_encode([
+                "data" => [],
+                "meta" => [
+                    "current_page" => 1,
+                    "limit" => 10,
+                    "total_items" => 0,
+                    "total_pages" => 0
+                ],
+                "error" => $e->getMessage()
+            ]);
         }
-        
-        // Metadata
-        $total_rows = $this->invoice->count($usuarioId);
-        $total_pages = ceil($total_rows / $limit);
-
-        echo json_encode([
-            "data" => $invoices_arr,
-            "meta" => [
-                "current_page" => $page,
-                "limit" => $limit,
-                "total_items" => $total_rows,
-                "total_pages" => $total_pages
-            ]
-        ]);
     }
 
     /**
@@ -155,7 +170,7 @@ class InvoiceController {
                             echo json_encode(["message" => "Cada lote debe incluir lote_id y cantidad."]);
                             return;
                         }
-                        $cantSel = (int)$sel['cantidad'];
+                        $cantSel = round((float)$sel['cantidad'], 3);
                         $loteId = (int)$sel['lote_id'];
                         if ($cantSel <= 0 || $loteId <= 0) {
                             http_response_code(400);
@@ -171,7 +186,7 @@ class InvoiceController {
                     echo json_encode(["message" => "Cada ítem debe incluir producto_id y cantidad."]);
                     return;
                 }
-                $cantidad = (int)$item['cantidad'];
+                $cantidad = round((float)$item['cantidad'], 3);
                 $productoId = (int)$item['producto_id'];
                 if ($cantidad <= 0 || $productoId <= 0) {
                     http_response_code(400);
@@ -205,7 +220,7 @@ class InvoiceController {
             $this->invoice->metodo_pago = isset($data['metodo_pago']) ? $data['metodo_pago'] : 'efectivo';
 
             // Validar metodo de pago
-            $metodosValidos = ['efectivo', 'tarjeta', 'transferencia', 'otros'];
+            $metodosValidos = $this->invoice->getAllowedPaymentMethods() ?? ['efectivo', 'tarjeta', 'transferencia', 'otros', 'credito'];
             if (!in_array($this->invoice->metodo_pago, $metodosValidos)) {
                 http_response_code(400);
                 echo json_encode(["message" => "Método de pago inválido. Permitidos: " . implode(', ', $metodosValidos)]);

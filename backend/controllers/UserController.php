@@ -454,8 +454,23 @@ class UserController {
      * @return void
      */
     public function logout() {
-        $headers = function_exists('apache_request_headers') ? apache_request_headers() : [];
-        $authHeader = $headers['Authorization'] ?? ($headers['authorization'] ?? null);
+        $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null);
+        if (!$authHeader) {
+            $headers = [];
+            if (function_exists('getallheaders')) {
+                $headers = getallheaders();
+            } elseif (function_exists('apache_request_headers')) {
+                $headers = apache_request_headers();
+            } else {
+                foreach ($_SERVER as $key => $value) {
+                    if (strncmp($key, 'HTTP_', 5) === 0) {
+                        $name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($key, 5)))));
+                        $headers[$name] = $value;
+                    }
+                }
+            }
+            $authHeader = $headers['Authorization'] ?? ($headers['authorization'] ?? null);
+        }
         if (!$authHeader) {
             http_response_code(400);
             echo json_encode(["message" => "No se proporcionó token."]);
@@ -469,7 +484,7 @@ class UserController {
         }
         $jwt = $parts[1];
         try {
-            $secret_key = $_ENV['JWT_SECRET'];
+            $secret_key = $_ENV['JWT_SECRET'] ?? '';
             if (empty($secret_key)) {
                 throw new Exception("Error de configuración del servidor (JWT_SECRET).");
             }

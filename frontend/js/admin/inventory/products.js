@@ -1,6 +1,15 @@
 (function () {
     const ns = window.AdminInventory = window.AdminInventory || {};
     const state = ns.state;
+    const FALLBACK_IMAGE = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="Arial,sans-serif" font-size="16">Sin imagen</text></svg>')}`;
+
+    function resolveProductImageUrl(imagePath) {
+        if (!imagePath) return FALLBACK_IMAGE;
+        if (/^https?:\/\//i.test(imagePath) || imagePath.startsWith('data:')) return imagePath;
+        const baseBackendURL = state.API_URL.replace('/index.php', '');
+        const normalizedPath = String(imagePath).replace(/^\/+/, '');
+        return `${baseBackendURL}/${normalizedPath}`;
+    }
 
     async function cargarCategoriasSelect() {
         const select = document.getElementById('categoria_id');
@@ -48,7 +57,7 @@
         if (!container) return;
 
         try {
-            const response = await fetch(`${state.API_URL}/products`);
+            const response = await fetch(`${state.API_URL}/products`, { cache: 'no-store' });
             const json = await response.json();
             const productos = Array.isArray(json) ? json : (json.data || []);
             state.productosAdminGlobal = productos;
@@ -60,19 +69,24 @@
             }
 
             productos.forEach(prod => {
-                const imgSrc = prod.imagen ? `${state.API_URL}/${prod.imagen}` : 'https://via.placeholder.com/150?text=Sin+Imagen';
+                const imgSrc = resolveProductImageUrl(prod.imagen);
+                const esPeso = (String(prod.tipo_venta || '').toLowerCase() === 'peso') || (String(prod.unidad_base || '').toLowerCase() === 'kg');
+                const stockVal = Number(prod.stock_actual || 0);
+                const stockTxt = esPeso ? `${stockVal.toFixed(3)} kg` : `${stockVal}`;
+                const priceVal = Number(prod.precio_venta || 0);
+                const priceTxt = esPeso ? `$${priceVal.toLocaleString('es-CO')} /kg` : `$${priceVal.toLocaleString('es-CO')}`;
                 const card = `
                     <div class="card-producto">
                         <div class="card-img-wrapper">
-                            <img src="${imgSrc}" alt="${prod.nombre}">
+                            <img src="${imgSrc}" alt="${prod.nombre}" data-fallback="${FALLBACK_IMAGE}" onerror="this.onerror=null;this.src=this.dataset.fallback;">
                         </div>
                         <span class="stock-badge ${prod.stock_actual <= prod.stock_minimo ? 'stock-low' : ''}">
-                            Stock: ${prod.stock_actual}
+                            Stock: ${stockTxt}
                         </span>
                         <div class="card-body">
                             <h3 class="card-title">${prod.nombre}</h3>
                             <p class="card-desc">${prod.descripcion || 'Sin descripción'}</p>
-                            <p class="price-tag">$${parseFloat(prod.precio_venta).toLocaleString()}</p>
+                            <p class="price-tag">${priceTxt}</p>
                         </div>
                         <div class="card-footer card-footer--wrap">
                             <button class="btn-primary btn-sm" type="button" onclick="verLotesProducto(${prod.id_producto})">Ver lotes</button>
@@ -165,12 +179,24 @@
 
             try {
                 const response = await fetch(url, options);
+                const rawBody = await response.text();
+                let res = {};
+                if (rawBody) {
+                    try {
+                        res = JSON.parse(rawBody);
+                    } catch (_) {
+                        res = { message: rawBody };
+                    }
+                }
+
                 if (response.ok) {
+                    if (res.warning) {
+                        alert(res.warning);
+                    }
                     closeModal();
                     await cargarProductos();
                 } else {
-                    const res = await response.json();
-                    alert('Error al guardar: ' + (res.message || 'Desconocido'));
+                    alert('Error al guardar: ' + (res.message || `HTTP ${response.status}`));
                 }
             } catch (error) {
                 console.error(error);
@@ -181,7 +207,7 @@
 
     async function editarProducto(id) {
         try {
-            const response = await fetch(`${state.API_URL}/products/${id}`);
+            const response = await fetch(`${state.API_URL}/products/${id}`, { cache: 'no-store' });
             const prod = await response.json();
 
             document.getElementById('productoId').value = prod.id_producto;
@@ -247,19 +273,24 @@
         }
         
         productosFiltrados.forEach(prod => {
-            const imgSrc = prod.imagen ? `${state.API_URL}/${prod.imagen}` : 'https://via.placeholder.com/150?text=Sin+Imagen';
+            const imgSrc = resolveProductImageUrl(prod.imagen);
+            const esPeso = (String(prod.tipo_venta || '').toLowerCase() === 'peso') || (String(prod.unidad_base || '').toLowerCase() === 'kg');
+            const stockVal = Number(prod.stock_actual || 0);
+            const stockTxt = esPeso ? `${stockVal.toFixed(3)} kg` : `${stockVal}`;
+            const priceVal = Number(prod.precio_venta || 0);
+            const priceTxt = esPeso ? `$${priceVal.toLocaleString('es-CO')} /kg` : `$${priceVal.toLocaleString('es-CO')}`;
             const card = `
                 <div class="card-producto">
                     <div class="card-img-wrapper">
-                        <img src="${imgSrc}" alt="${prod.nombre}">
+                        <img src="${imgSrc}" alt="${prod.nombre}" data-fallback="${FALLBACK_IMAGE}" onerror="this.onerror=null;this.src=this.dataset.fallback;">
                     </div>
                     <span class="stock-badge ${prod.stock_actual <= prod.stock_minimo ? 'stock-low' : ''}">
-                        Stock: ${prod.stock_actual}
+                        Stock: ${stockTxt}
                     </span>
                     <div class="card-body">
                         <h3 class="card-title">${prod.nombre}</h3>
                         <p class="card-desc">${prod.descripcion || 'Sin descripción'}</p>
-                        <p class="price-tag">$${parseFloat(prod.precio_venta).toLocaleString()}</p>
+                        <p class="price-tag">${priceTxt}</p>
                     </div>
                     <div class="card-footer card-footer--wrap">
                         <button class="btn-primary btn-sm" type="button" onclick="verLotesProducto(${prod.id_producto})">Ver lotes</button>

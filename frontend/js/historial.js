@@ -1,4 +1,4 @@
-const API_URL = (window.TRIUNFOGO?.API_BASE || ((window.location.origin || '') + ((window.TRIUNFOGO?.APP_BASE || '') + '/backend/index.php')));
+const API_URL = (window.TRIUNFOGO?.API_BASE || ((window.location.origin || '') + (window.TRIUNFOGO?.APP_BASE || '') + '/backend'));
 let facturasGlobal = [];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -26,7 +26,18 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadHistory() {
     try {
         const response = await fetch(`${API_URL}/invoices`);
-        const json = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        let json;
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            json = await response.json();
+        } else {
+            throw new Error('Respuesta no es JSON');
+        }
 
         facturasGlobal = Array.isArray(json) ? json : (json.data || []);
         
@@ -34,6 +45,8 @@ async function loadHistory() {
         actualizarKPIs(facturasGlobal);
     } catch (error) {
         console.error('Error cargando historial:', error);
+        facturasGlobal = [];
+        renderTablaFacturas([]);
         showAdminToast('Error al cargar el historial de ventas.', 'error');
     }
 }
@@ -215,14 +228,18 @@ async function viewDetail(id) {
         tbody.innerHTML = '';
         (invoice.detalles || []).forEach(item => {
             const tr = document.createElement('tr');
-            const precio = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(item.precio_unitario);
+            const esPeso = ((item?.producto_tipo_venta || item?.tipo_venta || '').toString().toLowerCase() === 'peso')
+                || ((item?.producto_unidad_base || item?.unidad_base || '').toString().toLowerCase() === 'kg');
+            const precioBase = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(item.precio_unitario);
+            const precio = esPeso ? `${precioBase} /kg` : precioBase;
             const subtotal = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(item.subtotal);
             const loteTxt = item.lote_id ? (item.lote_numero ? item.lote_numero : ('#' + item.lote_id)) : '-';
+            const cantidad = esPeso ? `${Number(item.cantidad || 0).toFixed(3)} kg` : `${item.cantidad}`;
             
             tr.innerHTML = `
                 <td>${item.producto_nombre}</td>
                 <td>${loteTxt}</td>
-                <td>${item.cantidad}</td>
+                <td>${cantidad}</td>
                 <td>${precio}</td>
                 <td>${subtotal}</td>
             `;
@@ -337,8 +354,11 @@ function buildWhatsappMessage(factura) {
         const sub = Number(d.subtotal || 0);
         const subTxt = '$' + sub.toLocaleString('es-CO', { maximumFractionDigits: 0 });
         const nombre = d.producto_nombre || 'Item';
-        const cant = d.cantidad || 0;
-        return `- ${nombre}${loteTxt ? ` (Lote: ${loteTxt})` : ''} x${cant}: ${subTxt}`;
+        const esPeso = ((d?.producto_tipo_venta || d?.tipo_venta || '').toString().toLowerCase() === 'peso')
+            || ((d?.producto_unidad_base || d?.unidad_base || '').toString().toLowerCase() === 'kg');
+        const cant = Number(d.cantidad || 0);
+        const cantTxt = esPeso ? `${cant.toFixed(3)} kg` : `${cant}`;
+        return `- ${nombre}${loteTxt ? ` (Lote: ${loteTxt})` : ''} x${cantTxt}: ${subTxt}`;
     }).join('\n');
     return `${header}${items ? (items + '\n') : ''}Gracias por su compra.`;
 }

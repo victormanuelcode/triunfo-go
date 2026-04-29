@@ -15,6 +15,15 @@ posNS.state = posNS.state || {
     loteModalDisponibles: []
 };
 const API_URL = posNS.state.API_URL;
+const BACKEND_BASE_URL = API_URL.replace('/index.php', '');
+const POS_FALLBACK_IMAGE = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="Arial,sans-serif" font-size="14">Sin imagen</text></svg>')}`;
+
+function resolveProductImageUrl(imagePath) {
+    if (!imagePath) return POS_FALLBACK_IMAGE;
+    if (/^https?:\/\//i.test(imagePath) || imagePath.startsWith('data:')) return imagePath;
+    const normalizedPath = String(imagePath).replace(/^\/+/, '');
+    return `${BACKEND_BASE_URL}/${normalizedPath}`;
+}
 
 function showToastPOS(message, type = 'info') {
     return posNS.base.showToastPOS(message, type);
@@ -97,14 +106,18 @@ function renderizarCatalogo(productos) {
     }
 
     productos.forEach(prod => {
-        if (prod.stock_actual > 0) {
+        if (Number(prod.stock_actual || 0) > 0) {
+            const esPeso = prod.tipo_venta === 'peso';
+            const stockValor = Number(prod.stock_actual || 0);
+            const stockTxt = esPeso ? `${stockValor.toFixed(3)} kg` : `${stockValor}`;
+            const precioTxt = esPeso
+                ? `$${parseFloat(prod.precio_venta).toLocaleString('es-CO')} /kg`
+                : `$${parseFloat(prod.precio_venta).toLocaleString('es-CO')}`;
             // Manejo de imagen: si no hay URL, usar ícono placeholder
             let imgHtml = '';
             if (prod.imagen && prod.imagen.trim() !== '') {
-                // Asumimos que la ruta viene relativa o absoluta. Si es subida localmente, ajustar path.
-                // Ajuste rápido para rutas relativas si es necesario (e.g. uploads/)
-                const imgSrc = prod.imagen.startsWith('http') ? prod.imagen : `../../${prod.imagen}`;
-                imgHtml = `<img src="${imgSrc}" alt="${prod.nombre}" class="product-img" onerror="this.parentElement.innerHTML='<div class=\'product-placeholder-icon\'>📦</div>'">`;
+                const imgSrc = resolveProductImageUrl(prod.imagen);
+                imgHtml = `<img src="${imgSrc}" alt="${prod.nombre}" class="product-img" data-fallback="${POS_FALLBACK_IMAGE}" onerror="this.onerror=null;this.src=this.dataset.fallback;">`;
             } else {
                 imgHtml = `<div class="product-placeholder-icon" style="font-size:2rem;">📦</div>`;
             }
@@ -113,10 +126,10 @@ function renderizarCatalogo(productos) {
             item.className = 'product-item';
             
             // Verificación de stock bajo
-            let stockHtml = `<div class="stock">Stock: ${prod.stock_actual}</div>`;
-            if (prod.stock_minimo && prod.stock_actual <= prod.stock_minimo) {
+            let stockHtml = `<div class="stock">Stock: ${stockTxt}</div>`;
+            if (prod.stock_minimo && Number(prod.stock_actual || 0) <= Number(prod.stock_minimo || 0)) {
                 stockHtml = `<div class="stock" style="color: #e74c3c; font-weight: bold;">
-                                ⚠️ Stock: ${prod.stock_actual} (Bajo)
+                                ⚠️ Stock: ${stockTxt} (Bajo)
                              </div>`;
                 item.style.border = '1px solid #e74c3c';
             }
@@ -129,7 +142,7 @@ function renderizarCatalogo(productos) {
                 <div class="product-info">
                     <h4>${prod.nombre}</h4>
                     ${stockHtml}
-                    <div class="price">$${parseFloat(prod.precio_venta).toLocaleString('es-CO')}</div>
+                    <div class="price">${precioTxt}</div>
                     <button class="btn-add-product">
                         <span>+ Agregar</span>
                     </button>

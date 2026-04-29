@@ -23,7 +23,10 @@ if (!file_exists($autoload)) {
 
 require_once $autoload;
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-$dotenv->load();
+$dotenv->safeLoad();
+if (file_exists(__DIR__ . '/.env.example')) {
+    Dotenv\Dotenv::createImmutable(__DIR__, '.env.example')->safeLoad();
+}
 
 include_once 'config/Database.php';
 include_once 'utils/Router.php';
@@ -40,6 +43,7 @@ include_once 'controllers/InventoryController.php';
 include_once 'controllers/BoxController.php';
 include_once 'controllers/LotController.php';
 include_once 'controllers/NotificationController.php';
+include_once 'controllers/ExpenseController.php';
 include_once 'utils/AuthMiddleware.php';
 
 $database = new Database();
@@ -67,6 +71,7 @@ $inventoryController = new InventoryController($db);
 $boxController = new BoxController($db);
 $lotController = new LotController($db);
 $notificationController = new NotificationController($db);
+$expenseController = new ExpenseController($db);
 
 $request_uri = $_SERVER['REQUEST_URI'];
 
@@ -382,6 +387,28 @@ $router->add('GET', '/notifications', function () use ($notificationController, 
 $router->add('PATCH', '/notifications/{id}/read', function ($id) use ($notificationController, $auth) {
     $tokenData = $auth->validateToken();
     $notificationController->markRead($tokenData, $id);
+});
+
+// Egresos (Gastos)
+$router->add('GET', '/expenses', function () use ($expenseController, $auth) {
+    $tokenData = $auth->validateToken(); // Admin y Cajero
+    $expenseController->getAll($tokenData);
+});
+$router->add('GET', '/expenses/{id}', function ($id) use ($expenseController, $auth) {
+    $tokenData = $auth->validateToken();
+    $expenseController->getOne($id, $tokenData);
+});
+$router->add('POST', '/expenses', function () use ($expenseController, $auth) {
+    $tokenData = $auth->validateToken();
+    $expenseController->create($tokenData);
+});
+$router->add('PUT', '/expenses/{id}', function ($id) use ($expenseController, $auth) {
+    $tokenData = $auth->validateToken();
+    $expenseController->update($id, $tokenData);
+});
+$router->add('DELETE', '/expenses/{id}', function ($id) use ($expenseController, $auth) {
+    $tokenData = $auth->validateToken();
+    $expenseController->delete($id, $tokenData);
 });
 
 // Despachar la ruta

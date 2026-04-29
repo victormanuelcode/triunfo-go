@@ -81,7 +81,7 @@ class InventoryController {
 
         $producto_id = (int)$data['producto_id'];
         $lote_id = (int)$data['lote_id'];
-        $cantidad = (int)$data['cantidad'];
+        $cantidad = round((float)$data['cantidad'], 3);
         $tipo = (string)$data['tipo']; // 'entrada' o 'salida'
         $razon = trim((string)$data['razon']);
 

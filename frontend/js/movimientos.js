@@ -1,9 +1,18 @@
 // Constantes
 const API_URL = (window.TRIUNFOGO?.API_BASE || ((window.location.origin || '') + ((window.TRIUNFOGO?.APP_BASE || '') + '/backend/index.php')));
+const BACKEND_BASE_URL = API_URL.replace('/index.php', '');
+const MOVIMIENTOS_FALLBACK_IMAGE = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="Arial,sans-serif" font-size="8">Sin img</text></svg>')}`;
 let movimientosGlobal = [];
 let currentPage = 1;
 let itemsPerPage = 10;
 let lotesPorProductoMovimiento = new Map();
+
+function resolveProductImageUrl(imagePath) {
+    if (!imagePath) return MOVIMIENTOS_FALLBACK_IMAGE;
+    if (/^https?:\/\//i.test(imagePath) || imagePath.startsWith('data:')) return imagePath;
+    const normalizedPath = String(imagePath).replace(/^\/+/, '');
+    return `${BACKEND_BASE_URL}/${normalizedPath}`;
+}
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
@@ -253,7 +262,7 @@ function renderizarTabla() {
 
         // Imagen del producto
         const imgHtml = m.producto_imagen 
-            ? `<img src="${m.producto_imagen}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 8px; margin-right: 12px; border: 1px solid #e5e7eb;">` 
+            ? `<img src="${resolveProductImageUrl(m.producto_imagen)}" data-fallback="${MOVIMIENTOS_FALLBACK_IMAGE}" onerror="this.onerror=null;this.src=this.dataset.fallback;" style="width: 40px; height: 40px; object-fit: cover; border-radius: 8px; margin-right: 12px; border: 1px solid #e5e7eb;">` 
             : '<div style="width: 40px; height: 40px; background-color: #f3f4f6; border-radius: 8px; margin-right: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid #e5e7eb;"><i class="fas fa-box text-muted"></i></div>';
 
         const loteNumero = m.numero_lote_snapshot || m.numero_lote || (m.lote_id ? ('#' + m.lote_id) : '');

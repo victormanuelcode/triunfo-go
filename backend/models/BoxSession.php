@@ -26,6 +26,14 @@ class BoxSession {
         $this->conn = $db;
     }
 
+    private function isMissingTable(Throwable $e): bool {
+        $msg = $e->getMessage();
+        // 42S02 = Base table or view not found
+        return ($e instanceof PDOException && $e->getCode() === '42S02') ||
+               (is_string($msg) && stripos($msg, 'Base table or view not found') !== false) ||
+               (is_string($msg) && stripos($msg, "doesn't exist") !== false);
+    }
+
     /**
      * Abre una nueva sesión de caja para un usuario.
      * 
@@ -128,20 +136,74 @@ class BoxSession {
      * @return array Array asociativo con los totales por método de pago.
      */
     public function getSummary($sesion_id) {
-        // Obtener total vendido en esta sesión
-        $query = "SELECT 
-                    SUM(total) as total_ventas,
-                    SUM(CASE WHEN metodo_pago = 'efectivo' THEN total ELSE 0 END) as total_efectivo,
-                    SUM(CASE WHEN metodo_pago = 'tarjeta' THEN total ELSE 0 END) as total_tarjeta,
-                    SUM(CASE WHEN metodo_pago = 'transferencia' THEN total ELSE 0 END) as total_transferencia,
-                    SUM(CASE WHEN metodo_pago = 'otros' THEN total ELSE 0 END) as total_otros
-                  FROM facturas 
-                  WHERE sesion_id = :sesion_id";
-        
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":sesion_id", $sesion_id);
-        $stmt->execute();
-        
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $buildSalesOnly = function () use ($sesion_id) {
+            $query = "SELECT 
+                        IFNULL(SUM(total), 0) as total_ventas,
+                        IFNULL(SUM(CASE WHEN metodo_pago = 'efectivo' THEN total ELSE 0 END), 0) as total_efectivo,
+                        IFNULL(SUM(CASE WHEN metodo_pago = 'tarjeta' THEN total ELSE 0 END), 0) as total_tarjeta,
+                        IFNULL(SUM(CASE WHEN metodo_pago = 'transferencia' THEN total ELSE 0 END), 0) as total_transferencia,
+                        IFNULL(SUM(CASE WHEN metodo_pago = 'otros' THEN total ELSE 0 END), 0) as total_otros,
+                        0 as total_egresos,
+                        0 as egresos_efectivo,
+                        0 as egresos_tarjeta,
+                        0 as egresos_transferencia,
+                        0 as egresos_otros
+                      FROM facturas
+                      WHERE sesion_id = :sesion_id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":sesion_id", $sesion_id);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        };
+
+        // Intentar con egresos; si la tabla aún no existe, caer a ventas-only
+        try {
+            $query = "SELECT 
+                        IFNULL(v.total_ventas, 0) as total_ventas,
+                        IFNULL(v.total_efectivo, 0) as total_efectivo,
+                        IFNULL(v.total_tarjeta, 0) as total_tarjeta,
+                        IFNULL(v.total_transferencia, 0) as total_transferencia,
+                        IFNULL(v.total_otros, 0) as total_otros,
+                        IFNULL(e.total_egresos, 0) as total_egresos,
+                        IFNULL(e.egresos_efectivo, 0) as egresos_efectivo,
+                        IFNULL(e.egresos_tarjeta, 0) as egresos_tarjeta,
+                        IFNULL(e.egresos_transferencia, 0) as egresos_transferencia,
+                        IFNULL(e.egresos_otros, 0) as egresos_otros
+                      FROM
+                        (SELECT 
+                            SUM(total) as total_ventas,
+                            SUM(CASE WHEN metodo_pago = 'efectivo' THEN total ELSE 0 END) as total_efectivo,
+                            SUM(CASE WHEN metodo_pago = 'tarjeta' THEN total ELSE 0 END) as total_tarjeta,
+                            SUM(CASE WHEN metodo_pago = 'transferencia' THEN total ELSE 0 END) as total_transferencia,
+                            SUM(CASE WHEN metodo_pago = 'otros' THEN total ELSE 0 END) as total_otros
+                         FROM facturas 
+                         WHERE sesion_id = :sesion_id_v
+                        ) v
+                      LEFT JOIN
+                        (SELECT
+                            SUM(monto) as total_egresos,
+                            SUM(CASE WHEN metodo_pago = 'efectivo' THEN monto ELSE 0 END) as egresos_efectivo,
+                            SUM(CASE WHEN metodo_pago = 'tarjeta' THEN monto ELSE 0 END) as egresos_tarjeta,
+                            SUM(CASE WHEN metodo_pago = 'transferencia' THEN monto ELSE 0 END) as egresos_transferencia,
+                            SUM(CASE WHEN metodo_pago = 'otros' THEN monto ELSE 0 END) as egresos_otros
+                         FROM egresos
+                         WHERE sesion_id = :sesion_id_e
+                        ) e
+                      ON 1=1";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":sesion_id_v", $sesion_id);
+            $stmt->bindParam(":sesion_id_e", $sesion_id);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            if ($this->isMissingTable($e) && stripos($e->getMessage(), 'egresos') !== false) {
+                return $buildSalesOnly();
+            }
+            throw $e;
+        } catch (Throwable $e) {
+            // Último fallback para no romper /box/status
+            return $buildSalesOnly();
+        }
     }
 }

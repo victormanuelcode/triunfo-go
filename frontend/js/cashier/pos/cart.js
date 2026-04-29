@@ -1,6 +1,30 @@
 (function () {
     const ns = window.CashierPOS = window.CashierPOS || {};
     const state = ns.state;
+    const BACKEND_BASE_URL = state.API_URL.replace('/index.php', '');
+    const CART_FALLBACK_IMAGE = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="Arial,sans-serif" font-size="10">Sin imagen</text></svg>')}`;
+
+    function resolveProductImageUrl(imagePath) {
+        if (!imagePath) return CART_FALLBACK_IMAGE;
+        if (/^https?:\/\//i.test(imagePath) || imagePath.startsWith('data:')) return imagePath;
+        const normalizedPath = String(imagePath).replace(/^\/+/, '');
+        return `${BACKEND_BASE_URL}/${normalizedPath}`;
+    }
+
+    function roundQty(value) {
+        return Math.round((Number(value || 0) + Number.EPSILON) * 1000) / 1000;
+    }
+
+    function getStepForItem(item) {
+        const raw = Number(item?.fraccion_minima || 0);
+        if (raw > 0) return raw;
+        return item?.tipo_venta === 'peso' ? 0.001 : 1;
+    }
+
+    function formatCantidad(item) {
+        if (item?.tipo_venta === 'peso') return `${roundQty(item.cantidad).toFixed(3)} kg`;
+        return `${Number(item?.cantidad || 0)}`;
+    }
 
     function scheduleQuoteRefresh() {
         if (!state.sesionCajaId) return;
@@ -67,7 +91,7 @@
                 line.innerHTML = `
                     <div style="display:flex; flex-direction:column;">
                         <span style="font-weight:600; color:#111827; font-size:0.9rem;">${productName}</span>
-                        <span style="font-size:0.78rem; color:#6b7280;">Lote: #${r.lote_id} · ${r.cantidad} × $${r.precio_unitario.toLocaleString('es-CO')}</span>
+                        <span style="font-size:0.78rem; color:#6b7280;">Lote: #${r.lote_id} · ${Number(r.cantidad).toFixed(3)} × $${r.precio_unitario.toLocaleString('es-CO')}</span>
                     </div>
                     <div style="font-weight:700; color:#111827;">$${Math.round(r.subtotal).toLocaleString('es-CO')}</div>
                 `;
@@ -184,10 +208,32 @@
     }
 
     function agregarAlCarrito(producto) {
+        const tipoVenta = (producto.tipo_venta === 'peso') ? 'peso' : 'unidad';
+        const fraccion = Number(producto.fraccion_minima || (tipoVenta === 'peso' ? 0.001 : 1));
+        const stockActual = Number(producto.stock_actual || 0);
+        let cantidadInicial = tipoVenta === 'peso' ? fraccion : 1;
+
+        if (tipoVenta === 'peso') {
+            const entered = prompt(`Ingrese cantidad en kg para ${producto.nombre} (ej: 0.250):`, String(fraccion.toFixed(3)));
+            if (entered === null) return;
+            const parsed = Number(String(entered).replace(',', '.'));
+            if (!Number.isFinite(parsed) || parsed <= 0) {
+                alert('Cantidad inválida.');
+                return;
+            }
+            cantidadInicial = roundQty(parsed);
+        }
+
+        if (cantidadInicial > stockActual) {
+            alert(`Stock insuficiente. Disponible: ${stockActual}`);
+            return;
+        }
+
         const existente = state.carrito.find(item => item.id_producto === producto.id_producto);
         if (existente) {
-            if (existente.cantidad < producto.stock_actual) {
-                existente.cantidad++;
+            const next = roundQty(Number(existente.cantidad || 0) + cantidadInicial);
+            if (next <= Number(producto.stock_actual || 0)) {
+                existente.cantidad = next;
             } else {
                 alert('Stock máximo alcanzado para este producto.');
                 return;
@@ -197,10 +243,13 @@
                 id_producto: producto.id_producto,
                 nombre: producto.nombre,
                 precio: parseFloat(producto.precio_venta),
-                cantidad: 1,
-                max_stock: producto.stock_actual,
+                cantidad: cantidadInicial,
+                max_stock: stockActual,
                 imagen: producto.imagen,
-                lote_id: null
+                lote_id: null,
+                tipo_venta: tipoVenta,
+                unidad_base: producto.unidad_base || (tipoVenta === 'peso' ? 'kg' : 'unidad'),
+                fraccion_minima: fraccion
             });
         }
         ns.base.saveCart();
@@ -212,16 +261,17 @@
         const item = state.carrito.find(p => p.id_producto === id);
         if (!item) return;
 
-        const nuevaCantidad = item.cantidad + delta;
+        const step = getStepForItem(item);
+        const nuevaCantidad = roundQty(Number(item.cantidad || 0) + (delta * step));
         const limiteLote = item.lote_id ? Number(item.lote_disponible || 0) : null;
 
-        if (nuevaCantidad > 0 && nuevaCantidad <= item.max_stock && (!item.lote_id || nuevaCantidad <= limiteLote)) {
+        if (nuevaCantidad > 0 && nuevaCantidad <= Number(item.max_stock || 0) && (!item.lote_id || nuevaCantidad <= limiteLote)) {
             item.cantidad = nuevaCantidad;
         } else if (nuevaCantidad <= 0) {
             eliminarDelCarrito(id);
             return;
         } else if (item.lote_id && limiteLote !== null && nuevaCantidad > limiteLote) {
-            ns.base.showToastPOS(`El lote seleccionado solo permite ${limiteLote} unidades. Cambia a FIFO o elige otro lote.`, 'warning');
+            ns.base.showToastPOS(`El lote seleccionado solo permite ${limiteLote}. Cambia a FIFO o elige otro lote.`, 'warning');
             return;
         } else {
             alert('No hay suficiente stock disponible.');
@@ -284,8 +334,8 @@
 
             let imgHtml = '';
             if (item.imagen && item.imagen.trim() !== '') {
-                const imgSrc = item.imagen.startsWith('http') ? item.imagen : `../../${item.imagen}`;
-                imgHtml = `<img src="${imgSrc}" class="cart-thumb" onerror="this.src='../../assets/no-image.png'">`;
+                const imgSrc = resolveProductImageUrl(item.imagen);
+                imgHtml = `<img src="${imgSrc}" class="cart-thumb" data-fallback="${CART_FALLBACK_IMAGE}" onerror="this.onerror=null;this.src=this.dataset.fallback;">`;
             } else {
                 imgHtml = `<div class="cart-thumb" style="display:flex;align-items:center;justify-content:center;font-size:1.2rem;">📦</div>`;
             }
@@ -293,20 +343,23 @@
             const tr = document.createElement('tr');
             const loteLabel = item.lote_id ? `Lote: ${item.lote_numero || ('#' + item.lote_id)}` : 'Lote: FIFO';
             const loteModo = item.lote_id ? 'Modo: solo este lote' : 'Modo: automático';
+            const cantidadHtml = item.tipo_venta === 'peso'
+                ? `<input type="number" min="${getStepForItem(item)}" step="${getStepForItem(item)}" value="${roundQty(item.cantidad)}" style="width:86px;" oninput="actualizarCantidadPeso(${item.id_producto}, this.value)">`
+                : `<button class="btn-qty" onclick="cambiarCantidad(${item.id_producto}, -1)">-</button>
+                   <div class="cart-qty-val">${formatCantidad(item)}</div>
+                   <button class="btn-qty" onclick="cambiarCantidad(${item.id_producto}, 1)">+</button>`;
             tr.innerHTML = `
                 <td>${imgHtml}</td>
                 <td>
                     <div style="font-weight:600; font-size:0.9rem;">${item.nombre}</div>
-                    <div style="color:#666; font-size:0.8rem;">$${item.precio.toLocaleString('es-CO')}</div>
+                    <div style="color:#666; font-size:0.8rem;">$${item.precio.toLocaleString('es-CO')} ${item.tipo_venta === 'peso' ? '/kg' : ''}</div>
                     <div style="display:flex; align-items:center; gap:8px; margin-top:4px; font-size:0.75rem; color:#666;">
                         <span>${loteLabel}</span>
                         <span>${loteModo}</span>
                         <button class="btn-qty" style="padding:2px 8px; font-size:0.75rem;" onclick="event.stopPropagation(); seleccionarLotePreferido(${item.id_producto})">Cambiar</button>
                     </div>
                     <div class="cart-qty-control" style="margin-top:4px;">
-                        <button class="btn-qty" onclick="cambiarCantidad(${item.id_producto}, -1)">-</button>
-                        <div class="cart-qty-val">${item.cantidad}</div>
-                        <button class="btn-qty" onclick="cambiarCantidad(${item.id_producto}, 1)">+</button>
+                        ${cantidadHtml}
                     </div>
                 </td>
                 <td style="text-align:right; font-weight:600;">$${subtotalItem.toLocaleString('es-CO')}</td>
@@ -332,6 +385,26 @@
         }
     }
 
+    function actualizarCantidadPeso(idProducto, rawValue) {
+        const item = state.carrito.find(p => p.id_producto === idProducto);
+        if (!item || item.tipo_venta !== 'peso') return;
+        const value = Number(String(rawValue || '').replace(',', '.'));
+        if (!Number.isFinite(value) || value <= 0) return;
+        const next = roundQty(value);
+        if (next > Number(item.max_stock || 0)) {
+            ns.base.showToastPOS(`Stock insuficiente. Disponible: ${item.max_stock}`, 'warning');
+            return;
+        }
+        if (item.lote_id && Number(item.lote_disponible || 0) > 0 && next > Number(item.lote_disponible)) {
+            ns.base.showToastPOS(`El lote seleccionado solo permite ${item.lote_disponible}.`, 'warning');
+            return;
+        }
+        item.cantidad = next;
+        ns.base.saveCart();
+        actualizarCarritoUI();
+        scheduleQuoteRefresh();
+    }
+
     function filtrarProductos() {
         const texto = document.getElementById('buscador').value.toLowerCase();
         const filtrados = state.productosGlobal.filter(p => {
@@ -355,6 +428,7 @@
         window.cambiarCantidad = cambiarCantidad;
         window.eliminarDelCarrito = eliminarDelCarrito;
         window.seleccionarLotePreferido = seleccionarLotePreferido;
+        window.actualizarCantidadPeso = actualizarCantidadPeso;
         window.actualizarCarritoUI = actualizarCarritoUI;
         window.filtrarProductos = filtrarProductos;
     }

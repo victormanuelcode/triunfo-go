@@ -36,6 +36,31 @@ class Invoice {
         $this->conn = $db;
     }
 
+    public function getAllowedPaymentMethods(): ?array {
+        try {
+            $stmt = $this->conn->prepare("SHOW COLUMNS FROM {$this->table_name} LIKE 'metodo_pago'");
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            $type = $row['Type'] ?? null;
+            if (!is_string($type) || stripos($type, 'enum(') !== 0) {
+                return null;
+            }
+            $inside = substr($type, 5, -1);
+            if (!is_string($inside) || $inside === '') {
+                return null;
+            }
+            $parts = str_getcsv($inside, ',', "'");
+            $values = [];
+            foreach ($parts as $p) {
+                $v = trim((string)$p);
+                if ($v !== '') $values[] = $v;
+            }
+            return !empty($values) ? array_values(array_unique($values)) : null;
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+
     private function buildSaleLines($items, $lotModel) {
         if (!is_array($items) || empty($items)) {
             throw new Exception("Items inválidos.");
@@ -48,7 +73,7 @@ class Invoice {
             }
 
             $productoId = isset($item['producto_id']) ? (int)$item['producto_id'] : 0;
-            $cantidad = isset($item['cantidad']) ? (int)$item['cantidad'] : 0;
+            $cantidad = isset($item['cantidad']) ? round((float)$item['cantidad'], 3) : 0;
             $preferredLotId = isset($item['lote_id']) ? (int)$item['lote_id'] : null;
 
             if (isset($item['lotes']) && is_array($item['lotes']) && !empty($item['lotes'])) {
@@ -57,7 +82,7 @@ class Invoice {
                         throw new Exception("Selección de lote inválida.");
                     }
                     $loteId = (int)$sel['lote_id'];
-                    $cantSel = (int)$sel['cantidad'];
+                    $cantSel = round((float)$sel['cantidad'], 3);
                     if ($loteId <= 0 || $cantSel <= 0) {
                         throw new Exception("Selección de lote inválida.");
                     }
@@ -68,7 +93,7 @@ class Invoice {
                     if ($productoId > 0 && (int)$lot['producto_id'] !== $productoId) {
                         throw new Exception("El lote {$loteId} no pertenece al producto {$productoId}.");
                     }
-                    if ((int)$lot['cantidad_disponible'] < $cantSel) {
+                    if ((float)$lot['cantidad_disponible'] + 0.000001 < $cantSel) {
                         throw new Exception("Stock insuficiente en lote ID: {$loteId}.");
                     }
 
@@ -77,7 +102,7 @@ class Invoice {
                         'lote_id' => $loteId,
                         'cantidad' => $cantSel,
                         'precio_unitario' => (float)$lot['precio_venta'],
-                        'subtotal' => (float)$lot['precio_venta'] * $cantSel
+                        'subtotal' => (float)$lot['precio_venta'] * (float)$cantSel
                     ];
                 }
                 continue;
@@ -92,9 +117,9 @@ class Invoice {
                 $lines[] = [
                     'producto_id' => $productoId,
                     'lote_id' => (int)$alloc['lote_id'],
-                    'cantidad' => (int)$alloc['cantidad'],
+                    'cantidad' => (float)$alloc['cantidad'],
                     'precio_unitario' => (float)$alloc['precio_unitario'],
-                    'subtotal' => (float)$alloc['precio_unitario'] * (int)$alloc['cantidad']
+                    'subtotal' => (float)$alloc['precio_unitario'] * (float)$alloc['cantidad']
                 ];
             }
         }
@@ -153,14 +178,37 @@ class Invoice {
                   ORDER BY f.fecha DESC
                   LIMIT :limit OFFSET :offset";
         
-        $stmt = $this->conn->prepare($query);
-        if (!empty($usuario_id)) {
-            $stmt->bindValue(':usuario_id', (int)$usuario_id, PDO::PARAM_INT);
+        try {
+            $stmt = $this->conn->prepare($query);
+            if (!empty($usuario_id)) {
+                $stmt->bindValue(':usuario_id', (int)$usuario_id, PDO::PARAM_INT);
+            }
+            $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt;
+        } catch (PDOException $e) {
+            if ($e->getCode() === '42S22' && stripos($e->getMessage(), 'estado') !== false) {
+                $query2 = "SELECT f.id_factura, f.numero_factura, f.fecha, f.total, f.metodo_pago, NULL as estado, c.nombre as cliente_nombre 
+                           FROM " . $this->table_name . " f 
+                           LEFT JOIN clientes c ON f.cliente_id = c.id_cliente";
+                if (!empty($usuario_id)) {
+                    $query2 .= " WHERE f.usuario_id = :usuario_id";
+                }
+                $query2 .= " 
+                           ORDER BY f.fecha DESC
+                           LIMIT :limit OFFSET :offset";
+                $stmt2 = $this->conn->prepare($query2);
+                if (!empty($usuario_id)) {
+                    $stmt2->bindValue(':usuario_id', (int)$usuario_id, PDO::PARAM_INT);
+                }
+                $stmt2->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+                $stmt2->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+                $stmt2->execute();
+                return $stmt2;
+            }
+            throw $e;
         }
-        $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt;
     }
 
     /**
@@ -218,7 +266,7 @@ class Invoice {
             $this->monto_recibido = $row['monto_recibido'] ?? 0;
             $this->metodo_pago = $row['metodo_pago'];
             $this->observaciones = $row['observaciones'];
-            $this->estado = $row['estado']; // Cargar estado
+            $this->estado = $row['estado'] ?? null;
             $this->cliente_nombre = $row['cliente_nombre'];
             $this->cliente_documento = $row['cliente_documento'];
             $this->cliente_direccion = $row['cliente_direccion'];
@@ -227,7 +275,12 @@ class Invoice {
             $this->usuario_nombre = $row['usuario_nombre'];
 
             // 2. Obtener detalles
-            $query_det = "SELECT d.*, p.nombre as producto_nombre, p.imagen as producto_imagen,
+            // Incluimos tipo_venta/unidad_base para que el frontend pueda formatear cantidad (kg vs unidades).
+            $query_det = "SELECT d.*, 
+                                 p.nombre as producto_nombre, 
+                                 p.imagen as producto_imagen,
+                                 p.tipo_venta as producto_tipo_venta,
+                                 p.unidad_base as producto_unidad_base,
                                  COALESCE(d.lote_numero_snapshot, l.numero_lote) as lote_numero
                           FROM detalle_factura d
                           LEFT JOIN productos p ON d.producto_id = p.id_producto
@@ -254,6 +307,9 @@ class Invoice {
      * @throws Exception Si la factura ya está anulada o falla la transacción.
      */
     public function annul() {
+        if ($this->estado === null) {
+            throw new Exception("Tu base de datos no soporta el campo estado en facturas. Actualiza el esquema para poder anular.");
+        }
         if ($this->estado === 'anulada') {
             throw new Exception("La factura ya se encuentra anulada.");
         }
@@ -275,7 +331,7 @@ class Invoice {
             // 2. Revertir stock y registrar movimientos
             foreach ($this->detalles as $detalle) {
                 $producto_id = $detalle['producto_id'];
-                $cantidad = $detalle['cantidad'];
+                $cantidad = (float)$detalle['cantidad'];
                 $lote_id = isset($detalle['lote_id']) ? $detalle['lote_id'] : null;
 
                 // a. Devolver stock
@@ -288,7 +344,7 @@ class Invoice {
                 }
 
                 if (!empty($lote_id)) {
-                    $lotModel->restoreLot((int)$lote_id, (int)$cantidad);
+                    $lotModel->restoreLot((int)$lote_id, (float)$cantidad);
                 }
 
                 // b. Registrar movimiento de entrada (devolución)
@@ -323,6 +379,13 @@ class Invoice {
             $this->estado = 'anulada';
             return true;
 
+        } catch (PDOException $e) {
+            if ($e->getCode() === '42S22' && stripos($e->getMessage(), 'estado') !== false) {
+                $this->conn->rollBack();
+                throw new Exception("Tu base de datos no tiene la columna estado en facturas. Actualiza el esquema para poder anular.");
+            }
+            $this->conn->rollBack();
+            throw $e;
         } catch (Exception $e) {
             $this->conn->rollBack();
             throw $e;
@@ -468,17 +531,17 @@ class Invoice {
                 $lotSnapshot = $this->getLotSnapshot($lotModel, $d_lote_id);
                 $d_lote_numero_snapshot = $lotSnapshot['numero_lote'];
                 $d_costo_unitario_snapshot = (float)$lotSnapshot['costo_unitario'];
-                $d_cantidad = (int)$line['cantidad'];
+                $d_cantidad = (float)$line['cantidad'];
                 $d_precio = (float)$line['precio_unitario'];
                 $d_subtotal = (float)$line['subtotal'];
 
-                $s_cantidad = (int)$line['cantidad'];
+                $s_cantidad = (float)$line['cantidad'];
                 $s_producto_id = (int)$line['producto_id'];
 
                 $m_producto_id = (int)$line['producto_id'];
                 $m_lote_id = (int)$line['lote_id'];
                 $m_numero_lote_snapshot = $lotSnapshot['numero_lote'];
-                $m_cantidad = (int)$line['cantidad'];
+                $m_cantidad = (float)$line['cantidad'];
 
                 if (!$stmt_detail->execute()) {
                     throw new Exception("Error al insertar detalle del producto ID: " . $d_producto_id);

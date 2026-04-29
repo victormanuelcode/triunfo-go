@@ -67,6 +67,7 @@ class InventoryMovement {
         $stmt->bindParam(":producto_id", $this->producto_id);
         $stmt->bindValue(":lote_id", $this->lote_id !== null ? (int)$this->lote_id : null, $this->lote_id !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
         $stmt->bindValue(":numero_lote_snapshot", $this->numero_lote_snapshot !== null ? (string)$this->numero_lote_snapshot : null, $this->numero_lote_snapshot !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+        $this->cantidad = round((float)$this->cantidad, 3);
         $stmt->bindParam(":cantidad", $this->cantidad);
         $stmt->bindParam(":descripcion", $this->descripcion);
         $stmt->bindParam(":referencia", $this->referencia);

@@ -9,8 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../css/styles.css">
     <link rel="stylesheet" href="../../css/reportes.css">
-    <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" onerror="(function(){var s=document.createElement('script');s.src='https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js';document.head.appendChild(s);}())"></script>
 </head>
 <body>
     <script src="../../js/auth.js"></script>
@@ -73,6 +72,14 @@
                         <div class="kpi-card">
                             <div class="kpi-value" id="kpiSalesMonth">$0</div>
                             <div class="kpi-label">Ventas mes actual</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value" id="kpiExpensesToday">$0</div>
+                            <div class="kpi-label">Egresos hoy</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-value" id="kpiNetPeriod">$0</div>
+                            <div class="kpi-label">Neto mes actual</div>
                         </div>
                         <div class="kpi-card">
                             <div class="kpi-value" id="kpiLowStock">0</div>

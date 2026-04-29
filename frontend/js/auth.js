@@ -344,8 +344,10 @@ function getRelativePathToLogin() {
 function checkRolePermissions() {
     const userRole = localStorage.getItem('usuario_rol');
     const path = window.location.pathname;
+    const cashierAllowedAdminViews = ['/frontend/views/admin/factura.html'];
+    const isCashierAllowedAdminView = cashierAllowedAdminViews.some(route => path.includes(route));
 
-    if (userRole === ROLE_CASHIER && path.includes('/admin/')) {
+    if (userRole === ROLE_CASHIER && path.includes('/admin/') && !isCashierAllowedAdminView) {
         alert('Acceso no autorizado para su perfil.');
         window.location.href = `${APP_BASE}/frontend/views/cashier/dashboard.html`;
     }

@@ -1,4 +1,6 @@
 const API_URL = (window.TRIUNFOGO?.API_BASE || ((window.location.origin || '') + ((window.TRIUNFOGO?.APP_BASE || '') + '/backend/index.php')));
+const BACKEND_BASE_URL = API_URL.replace('/index.php', '');
+const FACTURA_FALLBACK_IMAGE = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="Arial,sans-serif" font-size="10">Sin imagen</text></svg>')}`;
 
 document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
@@ -13,6 +15,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     await cargarFactura(id);
     await cargarDatosEmpresa();
 });
+
+function formatCantidadDetalle(item) {
+    const tipo = (item?.producto_tipo_venta || item?.tipo_venta || '').toString().toLowerCase();
+    const unidad = (item?.producto_unidad_base || item?.unidad_base || '').toString().toLowerCase();
+    const raw = Number(item?.cantidad || 0);
+    if (tipo === 'peso' || unidad === 'kg' || unidad === 'kilo' || unidad === 'kilogramo') {
+        return `${raw.toFixed(3)} kg`;
+    }
+    return `${raw}`;
+}
+
+function formatPrecioUnitario(item) {
+    const tipo = (item?.producto_tipo_venta || item?.tipo_venta || '').toString().toLowerCase();
+    const unidad = (item?.producto_unidad_base || item?.unidad_base || '').toString().toLowerCase();
+    const price = Number(item?.precio_unitario || 0);
+    const base = formatMoney(price);
+    if (tipo === 'peso' || unidad === 'kg' || unidad === 'kilo' || unidad === 'kilogramo') {
+        return `${base} /kg`;
+    }
+    return base;
+}
 
 async function cargarDatosEmpresa() {
     try {
@@ -77,8 +100,8 @@ function renderFactura(factura) {
         // Mejorar manejo de imagen para evitar bucles infinitos
         let imgHtml = '';
         if (item.producto_imagen) {
-            const imgUrl = `../../backend/${item.producto_imagen}`;
-            imgHtml = `<img src="${imgUrl}" class="product-img" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=&quot;product-placeholder&quot;><i class=&quot;fas fa-box&quot;></i></div>';">`;
+            const imgUrl = resolveProductImageUrl(item.producto_imagen);
+            imgHtml = `<img src="${imgUrl}" class="product-img" data-fallback="${FACTURA_FALLBACK_IMAGE}" onerror="this.onerror=null;this.src=this.dataset.fallback;">`;
         } else {
             imgHtml = `<div class="product-placeholder"><i class="fas fa-box"></i></div>`;
         }
@@ -89,8 +112,8 @@ function renderFactura(factura) {
                         <div style="font-weight: 600;">${item.producto_nombre}</div>
                         <div style="font-size: 11px; color: #6b7280;">${item.lote_id ? (`Lote: ${loteNumero}`) : ''}</div>
                     </td>
-                    <td class="col-right">${formatMoney(item.precio_unitario)}</td>
-                    <td class="col-center">${item.cantidad}</td>
+                    <td class="col-right">${formatPrecioUnitario(item)}</td>
+                    <td class="col-center">${formatCantidadDetalle(item)}</td>
                     <td class="col-right">${formatMoney(subtotalItem)}</td>
                 `;
         tbody.appendChild(tr);
@@ -117,6 +140,13 @@ function renderFactura(factura) {
         document.getElementById('invoice-content').style.opacity = '0.6';
         document.body.style.backgroundImage = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='150px' width='150px'><text transform='translate(20, 120) rotate(-45)' fill='rgba(255,0,0,0.15)' font-size='30' font-weight='bold'>ANULADA</text></svg>\")";
     }
+}
+
+function resolveProductImageUrl(imagePath) {
+    if (!imagePath) return FACTURA_FALLBACK_IMAGE;
+    if (/^https?:\/\//i.test(imagePath) || imagePath.startsWith('data:')) return imagePath;
+    const normalizedPath = String(imagePath).replace(/^\/+/, '');
+    return `${BACKEND_BASE_URL}/${normalizedPath}`;
 }
 
 function formatMoney(amount) {

@@ -21,7 +21,7 @@ class AuthMiddleware {
      * @throws Exception Si JWT_SECRET no está configurado.
      */
     public function __construct($db) {
-        $this->secret_key = $_ENV['JWT_SECRET'];
+        $this->secret_key = $_ENV['JWT_SECRET'] ?? '';
         if (empty($this->secret_key)) {
             throw new Exception("JWT_SECRET no está configurado en el entorno.");
         }
@@ -41,13 +41,25 @@ class AuthMiddleware {
      * @return array Datos del usuario decodificados del token.
      */
     public function validateToken() {
-        $headers = apache_request_headers();
-        $authHeader = null;
+        $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null);
+        if (!$authHeader) {
+            $headers = [];
+            if (function_exists('getallheaders')) {
+                $headers = getallheaders();
+            } else {
+                foreach ($_SERVER as $key => $value) {
+                    if (strncmp($key, 'HTTP_', 5) === 0) {
+                        $name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($key, 5)))));
+                        $headers[$name] = $value;
+                    }
+                }
+            }
 
-        if (isset($headers['Authorization'])) {
-            $authHeader = $headers['Authorization'];
-        } elseif (isset($headers['authorization'])) { // A veces llega en minúscula
-            $authHeader = $headers['authorization'];
+            if (isset($headers['Authorization'])) {
+                $authHeader = $headers['Authorization'];
+            } elseif (isset($headers['authorization'])) {
+                $authHeader = $headers['authorization'];
+            }
         }
 
         if (!$authHeader) {

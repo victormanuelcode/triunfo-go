@@ -44,6 +44,11 @@ class BoxController {
             $row['total_tarjeta'] = $summary['total_tarjeta'] ? $summary['total_tarjeta'] : 0;
             $row['total_transferencia'] = $summary['total_transferencia'] ? $summary['total_transferencia'] : 0;
             $row['total_otros'] = $summary['total_otros'] ? $summary['total_otros'] : 0;
+            $row['total_egresos'] = $summary['total_egresos'] ? $summary['total_egresos'] : 0;
+            $row['egresos_efectivo'] = $summary['egresos_efectivo'] ? $summary['egresos_efectivo'] : 0;
+            $row['egresos_tarjeta'] = $summary['egresos_tarjeta'] ? $summary['egresos_tarjeta'] : 0;
+            $row['egresos_transferencia'] = $summary['egresos_transferencia'] ? $summary['egresos_transferencia'] : 0;
+            $row['egresos_otros'] = $summary['egresos_otros'] ? $summary['egresos_otros'] : 0;
             
             http_response_code(200);
             echo json_encode($row);
@@ -131,6 +136,7 @@ class BoxController {
             // Obtener resumen de ventas del sistema para calcular diferencias
             $summary = $this->boxSession->getSummary($data->id_sesion);
             $totalVentasSistema = (float)($summary['total_ventas'] ?? 0);
+            $totalEgresosSistema = (float)($summary['total_egresos'] ?? 0);
             
             // Obtener datos de la sesión para el monto de apertura
             $session = $this->boxSession->getById($data->id_sesion);
@@ -150,9 +156,9 @@ class BoxController {
             $this->boxSession->total_transferencia = (float)($summary['total_transferencia'] ?? 0);
             $this->boxSession->total_otros = (float)($summary['total_otros'] ?? 0);
 
-            // Calcular diferencia: Monto Cierre (Contado) - (Monto Apertura + Total Ventas)
-            // Total Esperado en Caja = Monto Apertura + Total Ventas
-            $totalEsperado = $montoApertura + $totalVentasSistema;
+            // Calcular diferencia: Monto Cierre (Contado) - (Monto Apertura + Total Ventas - Total Egresos)
+            // Total Esperado en Caja = Monto Apertura + Total Ventas - Total Egresos
+            $totalEsperado = $montoApertura + $totalVentasSistema - $totalEgresosSistema;
             $this->boxSession->diferencia = $montoCierre - $totalEsperado; 
 
             if ($this->boxSession->close()) {
@@ -167,12 +173,17 @@ class BoxController {
                     "message" => "Caja cerrada exitosamente.",
                     "resumen" => [
                         "sistema_total" => $totalVentasSistema,
+                        "sistema_egresos_total" => $totalEgresosSistema,
                         "contado_cajero" => $montoCierre,
                         "diferencia_calculada" => $this->boxSession->diferencia,
                         "desglose" => [
                             "efectivo" => $this->boxSession->total_efectivo,
                             "tarjeta" => $this->boxSession->total_tarjeta,
-                            "transferencia" => $this->boxSession->total_transferencia
+                            "transferencia" => $this->boxSession->total_transferencia,
+                            "egresos_efectivo" => (float)($summary['egresos_efectivo'] ?? 0),
+                            "egresos_tarjeta" => (float)($summary['egresos_tarjeta'] ?? 0),
+                            "egresos_transferencia" => (float)($summary['egresos_transferencia'] ?? 0),
+                            "egresos_otros" => (float)($summary['egresos_otros'] ?? 0)
                         ]
                     ]
                 ]);
