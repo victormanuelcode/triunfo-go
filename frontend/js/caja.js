@@ -42,6 +42,32 @@ function showCajaToast(message, type = 'info') {
     el._t = setTimeout(() => { el.style.display = 'none'; }, 3500);
 }
 
+function cerrarSesionYRedirigirLogin() {
+    if (typeof logout === 'function') {
+        // Reutiliza el flujo oficial de auth.js (incluye logout backend + limpieza local)
+        logout(false);
+        return;
+    }
+
+    // Fallback defensivo si auth.js no está disponible por algún motivo
+    const keys = [
+        'sesion_activa',
+        'token',
+        'usuario_id',
+        'usuario_rol',
+        'usuario_datos',
+        'usuario_nombre',
+        'usuario_email',
+        'sesion_actual',
+        'pos_carrito',
+        'user'
+    ];
+    keys.forEach(k => localStorage.removeItem(k));
+    sessionStorage.clear();
+    const appBase = window.TRIUNFOGO?.APP_BASE || '';
+    window.location.href = `${appBase}/frontend/views/auth/login.html`;
+}
+
 // HTML de los modales
 const MODAL_APERTURA_HTML = `
 <div id="modalAperturaCaja" class="modal">
@@ -329,7 +355,7 @@ async function confirmarCierre() {
             
             window.cajaSesion = null;
             actualizarBotonCaja(false);
-            window.location.reload(); // Recargar para forzar nueva apertura
+            setTimeout(cerrarSesionYRedirigirLogin, 600);
         }
 
     } catch (e) {

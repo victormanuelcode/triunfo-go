@@ -4,6 +4,11 @@ let datosReportes = null;
 let salesChartInstance = null;
 let topProductsChartInstance = null;
 
+const PDF_LANDSCAPE_RULES = {
+    topProducts: { maxRowsPortrait: 10, minColumnsLandscape: 6 },
+    lowStock: { maxRowsPortrait: 15, minColumnsLandscape: 6 }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     if (!localStorage.getItem('sesion_activa')) {
         window.location.href = '../auth/login.html';
@@ -314,10 +319,222 @@ function exportarReportes(tipo) {
     }
 
     if (tipo === 'pdf') {
-        window.print();
+        exportarPdfEstructurado(datosReportes);
     } else if (tipo === 'excel') {
         exportarExcel(datosReportes);
     }
+}
+
+function exportarPdfEstructurado(data) {
+    const win = window.open('', '_blank', 'width=1024,height=768');
+    if (!win) {
+        alert('No se pudo abrir la ventana de impresión. Revisa el bloqueador de ventanas emergentes.');
+        return;
+    }
+
+    const now = new Date();
+    const periodo = construirTextoPeriodo();
+    const usuario = localStorage.getItem('usuario_nombre') || 'Administrador';
+    const logoSrc = resolveLogoSrc();
+    const kpis = data.kpis || {};
+    const salesRows = Array.isArray(data.sales_last_days) ? data.sales_last_days : [];
+    const topProducts = Array.isArray(data.top_products) ? data.top_products : [];
+    const lowStock = Array.isArray(data.low_stock) ? data.low_stock : [];
+    const landscapeTopProducts = shouldUseLandscapeForTable(
+        topProducts,
+        3,
+        PDF_LANDSCAPE_RULES.topProducts.maxRowsPortrait,
+        PDF_LANDSCAPE_RULES.topProducts.minColumnsLandscape
+    );
+    const landscapeLowStock = shouldUseLandscapeForTable(
+        lowStock,
+        4,
+        PDF_LANDSCAPE_RULES.lowStock.maxRowsPortrait,
+        PDF_LANDSCAPE_RULES.lowStock.minColumnsLandscape
+    );
+
+    const salesChartBase64 = getChartImageBase64('salesChart');
+    const topChartBase64 = getChartImageBase64('topProductsChart');
+
+    const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte TRIUNFO GO</title>
+    <style>
+        @page { size: A4 portrait; margin: 14mm; }
+        @page landscapePage { size: A4 landscape; margin: 12mm; }
+        body { font-family: Arial, sans-serif; color: #111827; margin: 0; }
+        h1, h2, h3 { margin: 0 0 10px; }
+        .meta { margin-bottom: 16px; color: #374151; font-size: 13px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .logo { display: inline-flex; align-items: center; gap: 8px; }
+        .logo img { max-height: 42px; max-width: 170px; object-fit: contain; }
+        .logo-fallback { font-weight: 700; border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 10px; font-size: 13px; }
+        .grid-kpi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0 20px; }
+        .kpi { border: 1px solid #d1d5db; border-radius: 8px; padding: 10px; }
+        .kpi .label { font-size: 12px; color: #6b7280; }
+        .kpi .value { font-size: 18px; font-weight: 700; margin-top: 4px; }
+        .page { page-break-after: always; padding-bottom: 18mm; }
+        .page:last-of-type { page-break-after: auto; }
+        .page.landscape { page: landscapePage; }
+        .section { margin-top: 8px; page-break-inside: avoid; }
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        th, td { border: 1px solid #d1d5db; padding: 8px; font-size: 12px; text-align: left; }
+        th { background: #f3f4f6; }
+        .chart-wrap { margin-top: 10px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px; }
+        .chart-wrap img { width: 100%; max-height: 300px; object-fit: contain; }
+        .empty { color: #6b7280; font-size: 12px; }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            border-top: 1px solid #e5e7eb;
+            padding: 6px 0;
+            font-size: 11px;
+            color: #4b5563;
+            display: flex;
+            justify-content: space-between;
+        }
+        .page-number::after { content: counter(page); }
+        @media print {
+            .footer { position: fixed; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="header">
+            <div class="logo">
+                ${logoSrc
+                    ? `<img src="${escapeHtml(logoSrc)}" alt="Logo empresa">`
+                    : '<div class="logo-fallback">TRIUNFO GO</div>'}
+            </div>
+            <div>
+                <h1>Reporte de negocio - TRIUNFO GO</h1>
+            </div>
+        </div>
+        <div class="meta">
+            Generado: ${escapeHtml(now.toLocaleString('es-CO'))}<br>
+            Periodo: ${escapeHtml(periodo)}
+        </div>
+
+        <div class="grid-kpi">
+            <div class="kpi"><div class="label">Ventas hoy</div><div class="value">${formatCurrency(kpis.ventas_hoy)}</div></div>
+            <div class="kpi"><div class="label">Ventas periodo</div><div class="value">${formatCurrency(kpis.ventas_mes)}</div></div>
+            <div class="kpi"><div class="label">Egresos hoy</div><div class="value">${formatCurrency(kpis.egresos_hoy)}</div></div>
+            <div class="kpi"><div class="label">Egresos periodo</div><div class="value">${formatCurrency(kpis.egresos_mes)}</div></div>
+            <div class="kpi"><div class="label">Neto periodo</div><div class="value">${formatCurrency(kpis.neto_mes)}</div></div>
+            <div class="kpi"><div class="label">Productos bajo stock</div><div class="value">${Number(kpis.productos_bajo_stock || 0)}</div></div>
+        </div>
+    </div>
+
+    <div class="page">
+        <div class="section">
+            <h2>Ventas por dia</h2>
+            ${salesChartBase64 ? `<div class="chart-wrap"><img src="${salesChartBase64}" alt="Grafica de ventas por dia"></div>` : '<p class="empty">Sin grafica disponible.</p>'}
+            <table>
+                <thead><tr><th>Fecha</th><th>Total venta</th></tr></thead>
+                <tbody>
+                    ${salesRows.length
+                        ? salesRows.map(r => `<tr><td>${escapeHtml(r.fecha || '-')}</td><td>${formatCurrency(r.total)}</td></tr>`).join('')
+                        : '<tr><td colspan="2" class="empty">Sin datos de ventas.</td></tr>'}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="page ${landscapeTopProducts ? 'landscape' : ''}">
+        <div class="section">
+            <h2>Productos mas vendidos</h2>
+            ${topChartBase64 ? `<div class="chart-wrap"><img src="${topChartBase64}" alt="Grafica de top productos"></div>` : '<p class="empty">Sin grafica disponible.</p>'}
+            <table>
+                <thead><tr><th>Producto</th><th>Descripcion</th><th>Cantidad vendida</th></tr></thead>
+                <tbody>
+                    ${topProducts.length
+                        ? topProducts.map(p => `<tr><td>${escapeHtml(p.nombre || '-')}</td><td>${escapeHtml(p.descripcion || '-')}</td><td>${Number(p.total_vendido || 0)}</td></tr>`).join('')
+                        : '<tr><td colspan="3" class="empty">Sin datos de productos.</td></tr>'}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="page ${landscapeLowStock ? 'landscape' : ''}">
+        <div class="section">
+            <h2>Alertas de stock bajo</h2>
+            <table>
+                <thead><tr><th>Producto</th><th>Stock actual</th><th>Stock minimo</th><th>Estado</th></tr></thead>
+                <tbody>
+                    ${lowStock.length
+                        ? lowStock.map(p => `<tr><td>${escapeHtml(p.nombre || '-')}</td><td>${Number(p.stock_actual || 0)}</td><td>${Number(p.stock_minimo || 0)}</td><td>Stock bajo</td></tr>`).join('')
+                        : '<tr><td colspan="4" class="empty">Sin alertas de stock.</td></tr>'}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>Usuario: ${escapeHtml(usuario)} | Fecha: ${escapeHtml(now.toLocaleString('es-CO'))}</div>
+        <div>Pagina <span class="page-number"></span></div>
+    </div>
+</body>
+</html>`;
+
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 400);
+}
+
+function getChartImageBase64(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || typeof canvas.toDataURL !== 'function') return '';
+    try {
+        return canvas.toDataURL('image/png');
+    } catch (_) {
+        return '';
+    }
+}
+
+function construirTextoPeriodo() {
+    const desdeVal = document.getElementById('dateFromFilter')?.value || '';
+    const hastaVal = document.getElementById('dateToFilter')?.value || '';
+    if (!desdeVal && !hastaVal) return 'Mes actual';
+    if (desdeVal && hastaVal) return `Desde ${desdeVal} hasta ${hastaVal}`;
+    if (desdeVal) return `Desde ${desdeVal}`;
+    return `Hasta ${hastaVal}`;
+}
+
+function formatCurrency(value) {
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(Number(value || 0));
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function shouldUseLandscapeForTable(rows, columns, maxRowsPortrait = 12, minColumnsLandscape = 6) {
+    const rowCount = Array.isArray(rows) ? rows.length : 0;
+    return rowCount > Number(maxRowsPortrait || 12) || Number(columns || 0) >= Number(minColumnsLandscape || 6);
+}
+
+function resolveLogoSrc() {
+    const fromGlobal = window.TRIUNFOGO?.LOGO_URL || '';
+    const fromStorage = localStorage.getItem('empresa_logo')
+        || localStorage.getItem('logo_empresa')
+        || localStorage.getItem('triunfo_logo')
+        || '';
+    const src = fromGlobal || fromStorage;
+    if (!src) return '';
+    return src;
 }
 
 function exportarExcel(data) {

@@ -117,83 +117,89 @@ class BoxController {
      * @return void Retorna JSON con el resumen del cierre.
      */
     public function close() {
-        $data = json_decode(file_get_contents("php://input"));
+        try {
+            $data = json_decode(file_get_contents("php://input"));
 
-        if (!is_object($data)) {
-            http_response_code(400);
-            echo json_encode(["message" => "Formato de datos inválido."]);
-            return;
-        }
-
-        if (!empty($data->id_sesion) && isset($data->monto_cierre)) {
-            $montoCierre = (float) $data->monto_cierre;
-            if ($montoCierre < 0) {
+            if (!is_object($data)) {
                 http_response_code(400);
-                echo json_encode(["message" => "El monto de cierre no puede ser negativo."]);
+                echo json_encode(["message" => "Formato de datos inválido."]);
                 return;
             }
 
-            // Obtener resumen de ventas del sistema para calcular diferencias
-            $summary = $this->boxSession->getSummary($data->id_sesion);
-            $totalVentasSistema = (float)($summary['total_ventas'] ?? 0);
-            $totalEgresosSistema = (float)($summary['total_egresos'] ?? 0);
-            
-            // Obtener datos de la sesión para el monto de apertura
-            $session = $this->boxSession->getById($data->id_sesion);
-            if (!$session) {
-                http_response_code(404);
-                echo json_encode(["message" => "Sesión de caja no encontrada."]);
-                return;
-            }
-            $montoApertura = (float)$session['monto_apertura'];
+            if (!empty($data->id_sesion) && isset($data->monto_cierre)) {
+                $montoCierre = (float) $data->monto_cierre;
+                if ($montoCierre < 0) {
+                    http_response_code(400);
+                    echo json_encode(["message" => "El monto de cierre no puede ser negativo."]);
+                    return;
+                }
 
-            $this->boxSession->id_sesion = $data->id_sesion;
-            $this->boxSession->monto_cierre = $montoCierre; // Lo que contó el cajero (Total General)
+                // Obtener resumen de ventas del sistema para calcular diferencias
+                $summary = $this->boxSession->getSummary($data->id_sesion);
+                $totalVentasSistema = (float)($summary['total_ventas'] ?? 0);
+                $totalEgresosSistema = (float)($summary['total_egresos'] ?? 0);
+                
+                // Obtener datos de la sesión para el monto de apertura
+                $session = $this->boxSession->getById($data->id_sesion);
+                if (!$session) {
+                    http_response_code(404);
+                    echo json_encode(["message" => "Sesión de caja no encontrada."]);
+                    return;
+                }
+                $montoApertura = (float)$session['monto_apertura'];
 
-            // Desglose del sistema (Teórico)
-            $this->boxSession->total_efectivo = (float)($summary['total_efectivo'] ?? 0);
-            $this->boxSession->total_tarjeta = (float)($summary['total_tarjeta'] ?? 0);
-            $this->boxSession->total_transferencia = (float)($summary['total_transferencia'] ?? 0);
-            $this->boxSession->total_otros = (float)($summary['total_otros'] ?? 0);
+                $this->boxSession->id_sesion = $data->id_sesion;
+                $this->boxSession->monto_cierre = $montoCierre; // Lo que contó el cajero (Total General)
 
-            // Calcular diferencia: Monto Cierre (Contado) - (Monto Apertura + Total Ventas - Total Egresos)
-            // Total Esperado en Caja = Monto Apertura + Total Ventas - Total Egresos
-            $totalEsperado = $montoApertura + $totalVentasSistema - $totalEgresosSistema;
-            $this->boxSession->diferencia = $montoCierre - $totalEsperado; 
+                // Desglose del sistema (Teórico)
+                $this->boxSession->total_efectivo = (float)($summary['total_efectivo'] ?? 0);
+                $this->boxSession->total_tarjeta = (float)($summary['total_tarjeta'] ?? 0);
+                $this->boxSession->total_transferencia = (float)($summary['total_transferencia'] ?? 0);
+                $this->boxSession->total_otros = (float)($summary['total_otros'] ?? 0);
 
-            if ($this->boxSession->close()) {
-                // Notificación al usuario: caja cerrada
-                include_once __DIR__ . '/../models/Notification.php';
-                try {
-                    $notif = new Notification($this->db);
-                    $notif->create((int)$session['usuario_id'], "Caja cerrada", "Has cerrado tu caja. Diferencia: " . number_format($this->boxSession->diferencia, 0, ',', '.'), ($this->boxSession->diferencia == 0 ? 'info' : 'warning'));
-                } catch (\Throwable $e) {}
-                http_response_code(200);
-                echo json_encode([
-                    "message" => "Caja cerrada exitosamente.",
-                    "resumen" => [
-                        "sistema_total" => $totalVentasSistema,
-                        "sistema_egresos_total" => $totalEgresosSistema,
-                        "contado_cajero" => $montoCierre,
-                        "diferencia_calculada" => $this->boxSession->diferencia,
-                        "desglose" => [
-                            "efectivo" => $this->boxSession->total_efectivo,
-                            "tarjeta" => $this->boxSession->total_tarjeta,
-                            "transferencia" => $this->boxSession->total_transferencia,
-                            "egresos_efectivo" => (float)($summary['egresos_efectivo'] ?? 0),
-                            "egresos_tarjeta" => (float)($summary['egresos_tarjeta'] ?? 0),
-                            "egresos_transferencia" => (float)($summary['egresos_transferencia'] ?? 0),
-                            "egresos_otros" => (float)($summary['egresos_otros'] ?? 0)
+                // Calcular diferencia: Monto Cierre (Contado) - (Monto Apertura + Total Ventas - Total Egresos)
+                // Total Esperado en Caja = Monto Apertura + Total Ventas - Total Egresos
+                $totalEsperado = $montoApertura + $totalVentasSistema - $totalEgresosSistema;
+                $this->boxSession->diferencia = $montoCierre - $totalEsperado; 
+
+                if ($this->boxSession->close()) {
+                    // Notificación al usuario: caja cerrada
+                    include_once __DIR__ . '/../models/Notification.php';
+                    try {
+                        $notif = new Notification($this->db);
+                        $notif->create((int)$session['usuario_id'], "Caja cerrada", "Has cerrado tu caja. Diferencia: " . number_format($this->boxSession->diferencia, 0, ',', '.'), ($this->boxSession->diferencia == 0 ? 'info' : 'warning'));
+                    } catch (\Throwable $e) {}
+                    http_response_code(200);
+                    echo json_encode([
+                        "message" => "Caja cerrada exitosamente.",
+                        "resumen" => [
+                            "sistema_total" => $totalVentasSistema,
+                            "sistema_egresos_total" => $totalEgresosSistema,
+                            "contado_cajero" => $montoCierre,
+                            "diferencia_calculada" => $this->boxSession->diferencia,
+                            "desglose" => [
+                                "efectivo" => $this->boxSession->total_efectivo,
+                                "tarjeta" => $this->boxSession->total_tarjeta,
+                                "transferencia" => $this->boxSession->total_transferencia,
+                                "egresos_efectivo" => (float)($summary['egresos_efectivo'] ?? 0),
+                                "egresos_tarjeta" => (float)($summary['egresos_tarjeta'] ?? 0),
+                                "egresos_transferencia" => (float)($summary['egresos_transferencia'] ?? 0),
+                                "egresos_otros" => (float)($summary['egresos_otros'] ?? 0)
+                            ]
                         ]
-                    ]
-                ]);
+                    ]);
+                } else {
+                    http_response_code(503);
+                    echo json_encode(["message" => "Error al cerrar la caja."]);
+                }
             } else {
-                http_response_code(503);
-                echo json_encode(["message" => "Error al cerrar la caja."]);
+                http_response_code(400);
+                echo json_encode(["message" => "Datos incompletos."]);
             }
-        } else {
-            http_response_code(400);
-            echo json_encode(["message" => "Datos incompletos."]);
+        } catch (Throwable $e) {
+            error_log("Error en BoxController::close: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(["message" => "Error interno al cerrar caja."]);
         }
     }
 }

@@ -34,6 +34,14 @@ class BoxSession {
                (is_string($msg) && stripos($msg, "doesn't exist") !== false);
     }
 
+    private function isUnknownColumn(Throwable $e): bool {
+        $msg = $e->getMessage();
+        // 42S22 = Column not found
+        return ($e instanceof PDOException && $e->getCode() === '42S22') ||
+               (is_string($msg) && stripos($msg, 'Unknown column') !== false) ||
+               (is_string($msg) && stripos($msg, 'Column not found') !== false);
+    }
+
     /**
      * Abre una nueva sesión de caja para un usuario.
      * 
@@ -69,32 +77,53 @@ class BoxSession {
      * @return boolean True si se cerró correctamente, False en caso contrario.
      */
     public function close() {
-        $query = "UPDATE " . $this->table_name . "
-                  SET monto_cierre = :monto_cierre,
-                      total_efectivo = :total_efectivo,
-                      total_tarjeta = :total_tarjeta,
-                      total_transferencia = :total_transferencia,
-                      total_otros = :total_otros,
-                      diferencia = :diferencia,
-                      fecha_cierre = NOW(),
-                      estado = 'cerrada'
-                  WHERE id_sesion = :id_sesion";
+        $runFullUpdate = function () {
+            $query = "UPDATE " . $this->table_name . "
+                      SET monto_cierre = :monto_cierre,
+                          total_efectivo = :total_efectivo,
+                          total_tarjeta = :total_tarjeta,
+                          total_transferencia = :total_transferencia,
+                          total_otros = :total_otros,
+                          diferencia = :diferencia,
+                          fecha_cierre = NOW(),
+                          estado = 'cerrada'
+                      WHERE id_sesion = :id_sesion";
 
-        $stmt = $this->conn->prepare($query);
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":monto_cierre", $this->monto_cierre);
+            $stmt->bindParam(":total_efectivo", $this->total_efectivo);
+            $stmt->bindParam(":total_tarjeta", $this->total_tarjeta);
+            $stmt->bindParam(":total_transferencia", $this->total_transferencia);
+            $stmt->bindParam(":total_otros", $this->total_otros);
+            $stmt->bindParam(":diferencia", $this->diferencia);
+            $stmt->bindParam(":id_sesion", $this->id_sesion);
+            return $stmt->execute();
+        };
 
-        // Vincular parámetros
-        $stmt->bindParam(":monto_cierre", $this->monto_cierre);
-        $stmt->bindParam(":total_efectivo", $this->total_efectivo);
-        $stmt->bindParam(":total_tarjeta", $this->total_tarjeta);
-        $stmt->bindParam(":total_transferencia", $this->total_transferencia);
-        $stmt->bindParam(":total_otros", $this->total_otros);
-        $stmt->bindParam(":diferencia", $this->diferencia);
-        $stmt->bindParam(":id_sesion", $this->id_sesion);
+        $runLegacyUpdate = function () {
+            // Compatibilidad con esquemas antiguos (sin columnas de desglose ni diferencia)
+            $query = "UPDATE " . $this->table_name . "
+                      SET monto_cierre = :monto_cierre,
+                          fecha_cierre = NOW(),
+                          estado = 'cerrada'
+                      WHERE id_sesion = :id_sesion";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":monto_cierre", $this->monto_cierre);
+            $stmt->bindParam(":id_sesion", $this->id_sesion);
+            return $stmt->execute();
+        };
 
-        if ($stmt->execute()) {
-            return true;
+        try {
+            return $runFullUpdate();
+        } catch (PDOException $e) {
+            if ($this->isUnknownColumn($e)) {
+                return $runLegacyUpdate();
+            }
+            throw $e;
+        } catch (Throwable $e) {
+            error_log("Error en BoxSession::close: " . $e->getMessage());
+            return false;
         }
-        return false;
     }
 
     /**
