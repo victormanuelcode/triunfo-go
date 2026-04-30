@@ -23,6 +23,16 @@
         return Math.max(1, Math.round(k * 1000));
     }
 
+    function formatStockDisplay(prod) {
+        const esPeso = (String(prod?.tipo_venta || '').toLowerCase() === 'peso') || (String(prod?.unidad_base || '').toLowerCase() === 'kg');
+        const stockVal = Number(prod?.stock_actual || 0);
+        if (esPeso) {
+            const gramos = Math.round(stockVal * 1000);
+            return `${stockVal.toFixed(3)} kg (${gramos} g)`;
+        }
+        return `${stockVal}`;
+    }
+
     function actualizarUIVentaPeso() {
         const tipoVentaEl = document.getElementById('tipo_venta');
         const gramosEl = document.getElementById('fraccion_gramos');
@@ -103,8 +113,7 @@
             productos.forEach(prod => {
                 const imgSrc = resolveProductImageUrl(prod.imagen);
                 const esPeso = (String(prod.tipo_venta || '').toLowerCase() === 'peso') || (String(prod.unidad_base || '').toLowerCase() === 'kg');
-                const stockVal = Number(prod.stock_actual || 0);
-                const stockTxt = esPeso ? `${stockVal.toFixed(3)} kg` : `${stockVal}`;
+                const stockTxt = formatStockDisplay(prod);
                 const priceVal = Number(prod.precio_venta || 0);
                 const priceTxt = esPeso ? `$${priceVal.toLocaleString('es-CO')} /kg` : `$${priceVal.toLocaleString('es-CO')}`;
                 const fraccionKg = Number(prod.fraccion_minima || 0.001);
@@ -255,6 +264,8 @@
         try {
             const response = await fetch(`${state.API_URL}/products/${id}`, { cache: 'no-store' });
             const prod = await response.json();
+            const tipoVentaEl = document.getElementById('tipo_venta');
+            const gramosEl = document.getElementById('fraccion_gramos');
 
             document.getElementById('productoId').value = prod.id_producto;
             document.getElementById('nombre').value = prod.nombre;
@@ -324,8 +335,7 @@
         productosFiltrados.forEach(prod => {
             const imgSrc = resolveProductImageUrl(prod.imagen);
             const esPeso = (String(prod.tipo_venta || '').toLowerCase() === 'peso') || (String(prod.unidad_base || '').toLowerCase() === 'kg');
-            const stockVal = Number(prod.stock_actual || 0);
-            const stockTxt = esPeso ? `${stockVal.toFixed(3)} kg` : `${stockVal}`;
+            const stockTxt = formatStockDisplay(prod);
             const priceVal = Number(prod.precio_venta || 0);
             const priceTxt = esPeso ? `$${priceVal.toLocaleString('es-CO')} /kg` : `$${priceVal.toLocaleString('es-CO')}`;
             const fraccionKg = Number(prod.fraccion_minima || 0.001);

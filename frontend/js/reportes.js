@@ -22,12 +22,12 @@ async function cargarDashboardReportes() {
         // Obtener filtros de la URL o del DOM
         const desdeVal = document.getElementById('dateFromFilter')?.value;
         const hastaVal = document.getElementById('dateToFilter')?.value;
-        
+
         let url = `${API_URL}/reports/dashboard`;
         const params = [];
         if (desdeVal) params.push(`fecha_inicio=${desdeVal}`);
         if (hastaVal) params.push(`fecha_fin=${hastaVal}`);
-        
+
         if (params.length > 0) {
             url += '?' + params.join('&');
         }
@@ -128,17 +128,17 @@ function aplicarFiltrosReportes() {
     const tableTop = document.getElementById('tablaTopProductosCard');
 
     if (tipo === 'general') {
-        if(chartVentas) chartVentas.style.display = '';
-        if(chartTop) chartTop.style.display = '';
-        if(tableTop) tableTop.style.display = '';
+        if (chartVentas) chartVentas.style.display = '';
+        if (chartTop) chartTop.style.display = '';
+        if (tableTop) tableTop.style.display = '';
     } else if (tipo === 'ventas') {
-        if(chartVentas) chartVentas.style.display = '';
-        if(chartTop) chartTop.style.display = 'none';
-        if(tableTop) tableTop.style.display = 'none';
+        if (chartVentas) chartVentas.style.display = '';
+        if (chartTop) chartTop.style.display = 'none';
+        if (tableTop) tableTop.style.display = 'none';
     } else if (tipo === 'productos') {
-        if(chartVentas) chartVentas.style.display = 'none';
-        if(chartTop) chartTop.style.display = '';
-        if(tableTop) tableTop.style.display = '';
+        if (chartVentas) chartVentas.style.display = 'none';
+        if (chartTop) chartTop.style.display = '';
+        if (tableTop) tableTop.style.display = '';
     }
 }
 
@@ -162,7 +162,7 @@ function renderSalesChart(salesData) {
         canvas.parentElement.innerHTML = '<p style="text-align:center;padding:40px;color:#9ca3af;">No se pudo cargar Chart.js (sin conexión o CDN bloqueado)</p>';
         return;
     }
-    
+
     if (!salesData || salesData.length === 0) {
         canvas.parentElement.innerHTML = '<p style="text-align:center;padding:40px;color:#9ca3af;">Sin datos de ventas en este período</p>';
         return;
@@ -220,7 +220,7 @@ function renderTopProductsChart(products) {
         canvas.parentElement.innerHTML = '<p style="text-align:center;padding:40px;color:#9ca3af;">No se pudo cargar Chart.js (sin conexión o CDN bloqueado)</p>';
         return;
     }
-    
+
     if (!products || products.length === 0) {
         canvas.parentElement.innerHTML = '<p style="text-align:center;padding:40px;color:#9ca3af;">Sin datos de productos vendidos en este período</p>';
         return;
@@ -374,25 +374,46 @@ function exportarPdfEstructurado(data) {
     <style>
         @page { size: A4 portrait; margin: 18mm; }
         @page landscapePage { size: A4 landscape; margin: 16mm; }
-        body { font-family: Arial, sans-serif; color: #111827; margin: 0; }
+        body { font-family: Inter, Arial, sans-serif; color: #0f172a; margin: 0; background: #ffffff; }
         h1, h2, h3 { margin: 0 0 10px; }
-        .meta { margin-bottom: 16px; color: #374151; font-size: 13px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .meta { margin-bottom: 16px; color: #334155; font-size: 13px; }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+        }
         .logo { display: inline-flex; align-items: center; gap: 8px; }
         .logo img { max-height: 42px; max-width: 170px; object-fit: contain; }
         .logo-fallback { font-weight: 700; border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 10px; font-size: 13px; }
         .grid-kpi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0 20px; }
-        .kpi { border: 1px solid #d1d5db; border-radius: 8px; padding: 10px; }
-        .kpi .label { font-size: 12px; color: #6b7280; }
-        .kpi .value { font-size: 18px; font-weight: 700; margin-top: 4px; }
+        .kpi {
+            border: 1px solid #dbeafe;
+            border-radius: 10px;
+            padding: 10px;
+            background: #f8fbff;
+        }
+        .kpi .label { font-size: 12px; color: #475569; }
+        .kpi .value { font-size: 18px; font-weight: 700; margin-top: 4px; color: #0f172a; }
         .page { page-break-after: always; padding: 2mm 1mm 18mm; }
         .page:last-of-type { page-break-after: auto; }
         .page.landscape { page: landscapePage; }
         .section { margin-top: 8px; page-break-inside: avoid; }
+        h2 {
+            font-size: 16px;
+            color: #0b3b75;
+            border-bottom: 2px solid #dbeafe;
+            padding-bottom: 4px;
+            margin-bottom: 8px;
+        }
         table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        th, td { border: 1px solid #d1d5db; padding: 8px; font-size: 12px; text-align: left; }
-        th { background: #f3f4f6; }
-        .chart-wrap { margin-top: 10px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px; }
+        th, td { border: 1px solid #e2e8f0; padding: 8px; font-size: 12px; text-align: left; }
+        th { background: #eff6ff; color: #1e3a8a; }
+        .chart-wrap { margin-top: 10px; border: 1px solid #dbeafe; border-radius: 10px; padding: 8px; background: #f8fbff; }
         .chart-wrap img { width: 100%; max-height: 300px; object-fit: contain; }
         .empty { color: #6b7280; font-size: 12px; }
         .footer {
@@ -418,8 +439,8 @@ function exportarPdfEstructurado(data) {
         <div class="header">
             <div class="logo">
                 ${logoSrc
-                    ? `<img src="${escapeHtml(logoSrc)}" alt="Logo empresa">`
-                    : '<div class="logo-fallback">TRIUNFO GO</div>'}
+            ? `<img src="${escapeHtml(logoSrc)}" alt="Logo empresa">`
+            : '<div class="logo-fallback">TRIUNFO GO</div>'}
             </div>
             <div>
                 <h1>Reporte de negocio - TRIUNFO GO</h1>
@@ -449,8 +470,8 @@ function exportarPdfEstructurado(data) {
                 <thead><tr><th>Fecha</th><th>Total venta</th></tr></thead>
                 <tbody>
                     ${salesRows.length
-                        ? salesRows.map(r => `<tr><td>${escapeHtml(r.fecha || '-')}</td><td>${formatCurrency(r.total)}</td></tr>`).join('')
-                        : '<tr><td colspan="2" class="empty">Sin datos de ventas.</td></tr>'}
+                ? salesRows.map(r => `<tr><td>${escapeHtml(r.fecha || '-')}</td><td>${formatCurrency(r.total)}</td></tr>`).join('')
+                : '<tr><td colspan="2" class="empty">Sin datos de ventas.</td></tr>'}
                 </tbody>
             </table>
         </div>
@@ -466,8 +487,8 @@ function exportarPdfEstructurado(data) {
                 <thead><tr><th>Producto</th><th>Descripcion</th><th>Cantidad vendida</th></tr></thead>
                 <tbody>
                     ${topProducts.length
-                        ? topProducts.map(p => `<tr><td>${escapeHtml(p.nombre || '-')}</td><td>${escapeHtml(p.descripcion || '-')}</td><td>${escapeHtml(formatCantidadSegunTipo(p.total_vendido, p))}</td></tr>`).join('')
-                        : '<tr><td colspan="3" class="empty">Sin datos de productos.</td></tr>'}
+                ? topProducts.map(p => `<tr><td>${escapeHtml(p.nombre || '-')}</td><td>${escapeHtml(p.descripcion || '-')}</td><td>${escapeHtml(formatCantidadSegunTipo(p.total_vendido, p))}</td></tr>`).join('')
+                : '<tr><td colspan="3" class="empty">Sin datos de productos.</td></tr>'}
                 </tbody>
             </table>
         </div>
@@ -482,8 +503,8 @@ function exportarPdfEstructurado(data) {
                 <thead><tr><th>Producto</th><th>Stock actual</th><th>Stock minimo</th><th>Estado</th></tr></thead>
                 <tbody>
                     ${lowStock.length
-                        ? lowStock.map(p => `<tr><td>${escapeHtml(p.nombre || '-')}</td><td>${escapeHtml(formatCantidadSegunTipo(p.stock_actual, p))}</td><td>${escapeHtml(formatCantidadSegunTipo(p.stock_minimo, p))}</td><td>Stock bajo</td></tr>`).join('')
-                        : '<tr><td colspan="4" class="empty">Sin alertas de stock.</td></tr>'}
+                ? lowStock.map(p => `<tr><td>${escapeHtml(p.nombre || '-')}</td><td>${escapeHtml(formatCantidadSegunTipo(p.stock_actual, p))}</td><td>${escapeHtml(formatCantidadSegunTipo(p.stock_minimo, p))}</td><td>Stock bajo</td></tr>`).join('')
+                : '<tr><td colspan="4" class="empty">Sin alertas de stock.</td></tr>'}
                 </tbody>
             </table>
         </div>
@@ -567,10 +588,14 @@ function formatCantidadSegunTipo(value, item) {
 }
 
 function exportarExcel(data) {
+    const reportType = getCurrentReportType();
+    const showSalesSection = reportType === 'general' || reportType === 'ventas';
+    const showProductsSection = reportType === 'general' || reportType === 'productos';
+
     // Exportar ventas diarias
     let csvContent = "data:text/csv;charset=utf-8,";
     csvContent += "Reporte de Ventas - TRIUNFO GO\n\n";
-    
+
     // KPIs
     csvContent += "Resumen General\n";
     csvContent += `Ventas Hoy,${data.kpis.ventas_hoy}\n`;
@@ -580,18 +605,23 @@ function exportarExcel(data) {
     csvContent += `Neto Mes,${data.kpis.neto_mes}\n`;
     csvContent += `Bajo Stock,${data.kpis.productos_bajo_stock}\n\n`;
 
-    // Ventas Diarias
-    csvContent += "Ventas Diarias (Últimos días)\n";
-    csvContent += "Fecha,Total Venta\n";
-    data.sales_last_days.forEach(row => {
-        csvContent += `${row.fecha},${row.total}\n`;
-    });
+    if (showSalesSection) {
+        // Ventas Diarias
+        csvContent += "Ventas Diarias (Últimos días)\n";
+        csvContent += "Fecha,Total Venta\n";
+        data.sales_last_days.forEach(row => {
+            csvContent += `${row.fecha},${row.total}\n`;
+        });
+        csvContent += "\n";
+    }
 
-    csvContent += "\nTop Productos\n";
-    csvContent += "Producto,Cantidad Vendida\n";
-    data.top_products.forEach(row => {
-        csvContent += `${row.nombre},${formatCantidadSegunTipo(row.total_vendido, row)}\n`;
-    });
+    if (showProductsSection) {
+        csvContent += "Top Productos\n";
+        csvContent += "Producto,Cantidad Vendida\n";
+        data.top_products.forEach(row => {
+            csvContent += `${row.nombre},${formatCantidadSegunTipo(row.total_vendido, row)}\n`;
+        });
+    }
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");

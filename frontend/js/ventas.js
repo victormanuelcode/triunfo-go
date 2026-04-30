@@ -25,6 +25,16 @@ function resolveProductImageUrl(imagePath) {
     return `${BACKEND_BASE_URL}/${normalizedPath}`;
 }
 
+function formatStockDisplay(prod) {
+    const esPeso = (prod?.tipo_venta === 'peso') || ((prod?.unidad_base || '').toLowerCase() === 'kg');
+    const stockValor = Number(prod?.stock_actual || 0);
+    if (esPeso) {
+        const gramos = Math.round(stockValor * 1000);
+        return `${stockValor.toFixed(3)} kg (${gramos} g)`;
+    }
+    return `${stockValor}`;
+}
+
 function showToastPOS(message, type = 'info') {
     return posNS.base.showToastPOS(message, type);
 }
@@ -108,8 +118,7 @@ function renderizarCatalogo(productos) {
     productos.forEach(prod => {
         if (Number(prod.stock_actual || 0) > 0) {
             const esPeso = prod.tipo_venta === 'peso';
-            const stockValor = Number(prod.stock_actual || 0);
-            const stockTxt = esPeso ? `${stockValor.toFixed(3)} kg` : `${stockValor}`;
+            const stockTxt = formatStockDisplay(prod);
             const precioTxt = esPeso
                 ? `$${parseFloat(prod.precio_venta).toLocaleString('es-CO')} /kg`
                 : `$${parseFloat(prod.precio_venta).toLocaleString('es-CO')}`;

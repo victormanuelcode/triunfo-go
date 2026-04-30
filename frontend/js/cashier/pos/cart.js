@@ -26,6 +26,16 @@
         return `${Number(item?.cantidad || 0)}`;
     }
 
+    function formatDisponibleLote(lote, productoId) {
+        const disponible = Number(lote?.cantidad_disponible || 0);
+        const item = (state.carrito || []).find(p => Number(p.id_producto) === Number(productoId));
+        if (item?.tipo_venta === 'peso') {
+            const gramos = Math.round(disponible * 1000);
+            return `${disponible.toFixed(3)} kg (${gramos} g)`;
+        }
+        return `${disponible}`;
+    }
+
     function scheduleQuoteRefresh() {
         if (!state.sesionCajaId) return;
         if (state.quoteRefreshTimer) clearTimeout(state.quoteRefreshTimer);
@@ -158,7 +168,7 @@
 
         list.forEach(l => {
             const idLote = Number(l.id_lote);
-            const disponible = Number(l.cantidad_disponible || 0);
+            const disponibleTxt = formatDisponibleLote(l, state.loteModalProductoId);
             const precio = Number(l.precio_venta || 0);
             const numero = l.numero_lote ? String(l.numero_lote) : null;
             const label = numero ? `${numero} (#${idLote})` : `#${idLote}`;
@@ -168,7 +178,7 @@
                 <td style="padding:10px 12px; border-top:1px solid var(--border-color);">
                     <div style="font-weight:700; color:#111827;">${label}</div>
                 </td>
-                <td style="padding:10px 12px; text-align:right; border-top:1px solid var(--border-color); font-weight:600;">${disponible}</td>
+                <td style="padding:10px 12px; text-align:right; border-top:1px solid var(--border-color); font-weight:600;">${disponibleTxt}</td>
                 <td style="padding:10px 12px; text-align:right; border-top:1px solid var(--border-color); font-weight:700; color: var(--primary-color);">$${precio.toLocaleString('es-CO')}</td>
                 <td style="padding:10px 12px; text-align:right; border-top:1px solid var(--border-color);">
                     <button type="button" class="btn-qty" style="padding:6px 10px;" onclick="seleccionarLoteModal(${idLote})">Elegir</button>
