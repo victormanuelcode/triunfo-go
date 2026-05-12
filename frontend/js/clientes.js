@@ -13,10 +13,19 @@ function checkSession() {
     }
 }
 
+function authHeaders(json = false) {
+    const token = localStorage.getItem('token');
+    const h = {};
+    if (token) h['Authorization'] = `Bearer ${token}`;
+    if (json) h['Content-Type'] = 'application/json';
+    return h;
+}
+
 async function cargarClientes() {
     try {
-        const response = await fetch(`${API_URL}/clients`);
-        clientesGlobal = await response.json();
+        const response = await fetch(`${API_URL}/clients`, { headers: authHeaders() });
+        const json = await response.json();
+        clientesGlobal = Array.isArray(json) ? json : [];
         renderizarTabla(clientesGlobal);
     } catch (error) {
         console.error('Error cargando clientes:', error);
@@ -50,11 +59,14 @@ function renderizarTabla(clientes) {
 }
 
 function filtrarClientes() {
-    const texto = document.getElementById('buscador').value.toLowerCase();
-    const filtrados = clientesGlobal.filter(c => 
-        c.nombre.toLowerCase().includes(texto) || 
-        (c.documento && c.documento.includes(texto))
-    );
+    const texto = (document.getElementById('buscador')?.value || '').toLowerCase().trim();
+    const filtrados = clientesGlobal.filter(c => {
+        const nombre = (c.nombre || '').toLowerCase();
+        const doc = (c.documento || '').toString().toLowerCase();
+        const tel = (c.telefono || '').toString().toLowerCase();
+        const mail = (c.email || '').toString().toLowerCase();
+        return !texto || nombre.includes(texto) || doc.includes(texto) || tel.includes(texto) || mail.includes(texto);
+    });
     renderizarTabla(filtrados);
 }
 
@@ -96,7 +108,7 @@ function setupModal() {
         try {
             const response = await fetch(url, {
                 method: method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders(true),
                 body: JSON.stringify(data)
             });
 
@@ -133,7 +145,8 @@ async function eliminarCliente(id) {
 
     try {
         const response = await fetch(`${API_URL}/clients/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: authHeaders()
         });
 
         if (response.ok) {

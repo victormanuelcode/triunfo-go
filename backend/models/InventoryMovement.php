@@ -107,8 +107,10 @@ class InventoryMovement {
         if (!empty($type) && $type !== 'todos') {
             $query .= " AND m.tipo = :type";
         }
+        // Nota: PDO + MySQL no permite repetir el mismo placeholder nombrado (:search) varias veces
+        // con prepared statements nativos; se usan tres parámetros con el mismo valor.
         if (!empty($search)) {
-            $query .= " AND (p.nombre LIKE :search OR m.referencia LIKE :search OR m.descripcion LIKE :search)";
+            $query .= " AND (p.nombre LIKE :search_nom OR m.referencia LIKE :search_ref OR m.descripcion LIKE :search_desc)";
         }
         
         $query .= " ORDER BY m.fecha DESC";
@@ -120,7 +122,9 @@ class InventoryMovement {
         if (!empty($type) && $type !== 'todos') $stmt->bindParam(":type", $type);
         if (!empty($search)) {
             $searchTerm = "%{$search}%";
-            $stmt->bindParam(":search", $searchTerm);
+            $stmt->bindValue(":search_nom", $searchTerm, PDO::PARAM_STR);
+            $stmt->bindValue(":search_ref", $searchTerm, PDO::PARAM_STR);
+            $stmt->bindValue(":search_desc", $searchTerm, PDO::PARAM_STR);
         }
 
         $stmt->execute();

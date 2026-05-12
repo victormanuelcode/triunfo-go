@@ -6,7 +6,7 @@
         if (!state.ultimaVenta) return;
         document.getElementById('success-invoice-number').innerText = state.ultimaVenta.numero_factura;
         document.getElementById('success-client').innerText = state.ultimaVenta.cliente_nombre;
-        document.getElementById('success-total').innerText = '$' + state.ultimaVenta.total.toLocaleString('es-CO');
+        document.getElementById('success-total').innerText = ns.base.formatCOP(state.ultimaVenta.total);
         const modal = document.getElementById('modal-exito-venta');
         if (modal) modal.style.display = 'flex';
     }
@@ -52,7 +52,7 @@
         if (!state.ultimaVenta) return;
         const telefono = prompt('Ingrese el número de WhatsApp del cliente (ej: 573001234567):');
         if (telefono) {
-            const mensaje = `Hola! Gracias por tu compra en TRIUNFO GO. Tu factura es ${state.ultimaVenta.numero_factura} por un total de $${state.ultimaVenta.total.toLocaleString('es-CO')}.`;
+            const mensaje = `Hola! Gracias por tu compra en TRIUNFO GO. Tu factura es ${state.ultimaVenta.numero_factura} por un total de ${ns.base.formatCOP(state.ultimaVenta.total)}.`;
             const url = `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`;
             window.open(url, '_blank');
         }

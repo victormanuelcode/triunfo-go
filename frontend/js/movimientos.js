@@ -67,6 +67,15 @@ function setupEventListeners() {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', aplicarFiltros);
     });
+
+    let searchDebounce = null;
+    const busqueda = document.getElementById('filtro-busqueda');
+    if (busqueda) {
+        busqueda.addEventListener('input', () => {
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(() => aplicarFiltros(), 400);
+        });
+    }
 }
 
 // Cargar KPIs del Resumen
@@ -292,7 +301,6 @@ function renderizarTabla() {
             <td style="font-weight: 700; font-size: 1rem; color: ${m.tipo === 'entrada' ? '#15803d' : '#b91c1c'};">
                 ${m.tipo === 'entrada' ? '+' : '-'}${m.cantidad}
             </td>
-            <td style="font-weight: 500;">${m.stock_resultante !== null ? m.stock_resultante : '-'}</td>
             <td style="font-family: monospace; color: #4b5563;">${m.referencia || '-'}</td>
             <td>
                 <div style="display: flex; align-items: center; gap: 6px;">

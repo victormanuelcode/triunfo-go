@@ -218,6 +218,8 @@ class InvoiceController {
             $this->invoice->sesion_id = $currentSession['id_sesion'];
             $this->invoice->total = isset($data['total']) ? (float)$data['total'] : 0;
             $this->invoice->metodo_pago = isset($data['metodo_pago']) ? $data['metodo_pago'] : 'efectivo';
+            $mr = isset($data['monto_recibido']) ? (float)$data['monto_recibido'] : 0;
+            $this->invoice->monto_recibido = ($this->invoice->metodo_pago === 'efectivo' && $mr >= 0) ? round($mr) : 0;
 
             // Validar metodo de pago
             $metodosValidos = $this->invoice->getAllowedPaymentMethods() ?? ['efectivo', 'tarjeta', 'transferencia', 'otros', 'credito'];

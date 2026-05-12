@@ -1,5 +1,21 @@
-const API_URL = (window.TRIUNFOGO?.API_BASE || ((window.location.origin || '') + (window.TRIUNFOGO?.APP_BASE || '') + '/backend'));
+const API_URL = (window.TRIUNFOGO?.API_BASE || ((window.location.origin || '') + ((window.TRIUNFOGO?.APP_BASE || '') + '/backend/index.php')));
 let facturasGlobal = [];
+
+function authHeaders(json = false) {
+    const token = localStorage.getItem('token');
+    const h = {};
+    if (token) h['Authorization'] = `Bearer ${token}`;
+    if (json) h['Content-Type'] = 'application/json';
+    return h;
+}
+
+/** Fecha Y-m-d en calendario local (evita desfase UTC al filtrar). */
+function parseFechaLocalYmd(ymd) {
+    if (!ymd || typeof ymd !== 'string') return null;
+    const p = ymd.split('-').map(Number);
+    if (p.length !== 3 || p.some(n => !Number.isFinite(n))) return null;
+    return new Date(p[0], p[1] - 1, p[2], 0, 0, 0, 0);
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!localStorage.getItem('sesion_activa')) {
@@ -25,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadHistory() {
     try {
-        const response = await fetch(`${API_URL}/invoices`);
+        const response = await fetch(`${API_URL}/invoices?limit=10000&page=1`, { headers: authHeaders() });
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
@@ -40,6 +56,7 @@ async function loadHistory() {
         }
 
         facturasGlobal = Array.isArray(json) ? json : (json.data || []);
+        if (!Array.isArray(facturasGlobal)) facturasGlobal = [];
         
         renderTablaFacturas(facturasGlobal);
         actualizarKPIs(facturasGlobal);
@@ -118,7 +135,8 @@ async function anularFactura(id) {
 
     try {
         const response = await fetch(`${API_URL}/invoices/${id}/annul`, {
-            method: 'POST'
+            method: 'POST',
+            headers: authHeaders(true)
         });
 
         const result = await response.json();
@@ -182,23 +200,26 @@ function filtrarFacturas() {
         filtradas = filtradas.filter(inv => {
             const num = (inv.numero_factura || '').toString().toLowerCase();
             const cli = (inv.cliente_nombre || '').toLowerCase();
-            return num.includes(texto) || cli.includes(texto);
+            const doc = (inv.cliente_documento || '').toString().toLowerCase();
+            return num.includes(texto) || cli.includes(texto) || doc.includes(texto);
         });
     }
 
     if (estado) {
-        filtradas = filtradas.filter(inv => (inv.estado || '').toLowerCase() === estado);
+        filtradas = filtradas.filter(inv => (String(inv.estado || '').trim().toLowerCase()) === estado);
     }
 
     if (desde) {
-        const d = new Date(desde);
-        filtradas = filtradas.filter(inv => inv.fecha && new Date(inv.fecha) >= d);
+        const d = parseFechaLocalYmd(desde);
+        if (d) filtradas = filtradas.filter(inv => inv.fecha && new Date(inv.fecha) >= d);
     }
 
     if (hasta) {
-        const h = new Date(hasta);
-        h.setHours(23,59,59,999);
-        filtradas = filtradas.filter(inv => inv.fecha && new Date(inv.fecha) <= h);
+        const h = parseFechaLocalYmd(hasta);
+        if (h) {
+            h.setHours(23, 59, 59, 999);
+            filtradas = filtradas.filter(inv => inv.fecha && new Date(inv.fecha) <= h);
+        }
     }
 
     renderTablaFacturas(filtradas);
@@ -206,7 +227,7 @@ function filtrarFacturas() {
 
 async function viewDetail(id) {
     try {
-        const response = await fetch(`${API_URL}/invoices/${id}`);
+        const response = await fetch(`${API_URL}/invoices/${id}`, { headers: authHeaders() });
         if (!response.ok) throw new Error('Error fetching detail');
         
         const invoice = await response.json();
@@ -301,9 +322,7 @@ function downloadCsv(filename, csvText) {
 }
 
 async function fetchFacturaDetalle(idFactura) {
-    const token = localStorage.getItem('token');
-    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-    const response = await fetch(`${API_URL}/invoices/${idFactura}`, { headers });
+    const response = await fetch(`${API_URL}/invoices/${idFactura}`, { headers: authHeaders() });
     const json = await response.json();
     if (!response.ok) throw new Error(json.message || 'No se pudo cargar la factura');
     return json;

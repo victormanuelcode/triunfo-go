@@ -61,11 +61,73 @@
         return ns.state.carrito;
     }
 
+    /** Pesos colombianos: $ + separador de miles (es-CO), sin decimales. */
+    function formatCOP(value) {
+        const n = Math.round(Number(value) || 0);
+        return '$' + n.toLocaleString('es-CO', { maximumFractionDigits: 0, minimumFractionDigits: 0 });
+    }
+
+    /** Interpreta texto como COP entero (solo dígitos; ignora separadores y símbolos). */
+    function parseCOPInput(raw) {
+        const digits = String(raw ?? '').replace(/\D/g, '');
+        if (digits === '') return 0;
+        const n = parseInt(digits, 10);
+        return Number.isFinite(n) ? n : 0;
+    }
+
+    /** Total a pagar en POS: respeta cotización por lote si existe (misma lógica que el carrito). */
+    function getTotalCarritoOQuote() {
+        let total = (ns.state.carrito || []).reduce((sum, item) => {
+            return sum + Math.round(Number(item.precio) * Number(item.cantidad));
+        }, 0);
+        const q = ns.state.quoteCache;
+        const keyOk = ns.state.quoteCartKey === getCartKey();
+        if (q && keyOk && Number(q.total || 0) > 0) {
+            total = Math.round(Number(q.total || 0));
+        }
+        return Math.round(Number(total) || 0);
+    }
+
+    /**
+     * Monto recibido en efectivo: mínimo $50 COP si hay valor;
+     * para pagar debe ser >= max(total, 50) cuando total > 0.
+     */
+    function minMontoRecibidoValido(totalVenta) {
+        const t = Math.round(Number(totalVenta) || 0);
+        if (t <= 0) return 50;
+        return Math.max(t, 50);
+    }
+
+    /**
+     * Solo dígitos en campo COP, formateo es-CO al escribir; bloquea letras y símbolos.
+     */
+    function applyMontoRecibidoInput(el) {
+        if (!el) return;
+        const maxDigits = 12;
+        let digits = String(el.value || '').replace(/\D/g, '').slice(0, maxDigits);
+        if (digits === '') {
+            el.value = '';
+            return;
+        }
+        let n = parseInt(digits, 10);
+        if (!Number.isFinite(n)) {
+            el.value = '';
+            return;
+        }
+        const formatted = n.toLocaleString('es-CO', { maximumFractionDigits: 0, minimumFractionDigits: 0 });
+        el.value = formatted;
+    }
+
     ns.base = {
         showToastPOS,
         getAuthHeaders,
         getCartKey,
         saveCart,
-        loadCartFromStorage
+        loadCartFromStorage,
+        formatCOP,
+        parseCOPInput,
+        getTotalCarritoOQuote,
+        minMontoRecibidoValido,
+        applyMontoRecibidoInput
     };
 })();

@@ -166,7 +166,7 @@ class Invoice {
      * @return PDOStatement Resultado de la consulta.
      */
     public function read($limit = 10, $offset = 0, $usuario_id = null) {
-        $query = "SELECT f.id_factura, f.numero_factura, f.fecha, f.total, f.metodo_pago, f.estado, c.nombre as cliente_nombre 
+        $query = "SELECT f.id_factura, f.numero_factura, f.fecha, f.total, f.metodo_pago, f.estado, c.nombre as cliente_nombre, c.documento as cliente_documento 
                   FROM " . $this->table_name . " f 
                   LEFT JOIN clientes c ON f.cliente_id = c.id_cliente";
 
@@ -189,7 +189,7 @@ class Invoice {
             return $stmt;
         } catch (PDOException $e) {
             if ($e->getCode() === '42S22' && stripos($e->getMessage(), 'estado') !== false) {
-                $query2 = "SELECT f.id_factura, f.numero_factura, f.fecha, f.total, f.metodo_pago, NULL as estado, c.nombre as cliente_nombre 
+                $query2 = "SELECT f.id_factura, f.numero_factura, f.fecha, f.total, f.metodo_pago, NULL as estado, c.nombre as cliente_nombre, c.documento as cliente_documento 
                            FROM " . $this->table_name . " f 
                            LEFT JOIN clientes c ON f.cliente_id = c.id_cliente";
                 if (!empty($usuario_id)) {
@@ -426,6 +426,7 @@ class Invoice {
                           usuario_id=:usuario_id,
                           sesion_id=:sesion_id,
                           total=:total, 
+                          monto_recibido=:monto_recibido,
                           metodo_pago=:metodo_pago, 
                           observaciones=:observaciones";
             
@@ -445,6 +446,8 @@ class Invoice {
             $stmt->bindParam(":usuario_id", $this->usuario_id);
             $stmt->bindParam(":sesion_id", $this->sesion_id);
             $stmt->bindParam(":total", $this->total);
+            $montoRec = isset($this->monto_recibido) ? (float)$this->monto_recibido : 0;
+            $stmt->bindValue(":monto_recibido", $montoRec);
             $stmt->bindParam(":metodo_pago", $this->metodo_pago);
             $stmt->bindParam(":observaciones", $this->observaciones);
 

@@ -66,6 +66,28 @@ document.addEventListener('DOMContentLoaded', () => {
     posNS.postsale?.init();
     cargarCatalogo();
     cargarClientes();
+
+    const montoEl = document.getElementById('monto-recibido');
+    if (montoEl) {
+        const teclasPermitidas = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
+        montoEl.addEventListener('keydown', (ev) => {
+            if (teclasPermitidas.includes(ev.key) || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+            if (!/^\d$/.test(ev.key)) ev.preventDefault();
+        });
+        montoEl.addEventListener('paste', (ev) => {
+            ev.preventDefault();
+            const txt = (ev.clipboardData || window.clipboardData).getData('text') || '';
+            const soloDigitos = txt.replace(/\D/g, '');
+            if (!soloDigitos) return;
+            montoEl.value = soloDigitos;
+            posNS.base.applyMontoRecibidoInput(montoEl);
+            calcularCambio();
+        });
+        montoEl.addEventListener('input', () => {
+            posNS.base.applyMontoRecibidoInput(montoEl);
+            calcularCambio();
+        });
+    }
     
     // Inicializar UI de pago
     seleccionarMetodoPago('efectivo');
@@ -120,8 +142,8 @@ function renderizarCatalogo(productos) {
             const esPeso = prod.tipo_venta === 'peso';
             const stockTxt = formatStockDisplay(prod);
             const precioTxt = esPeso
-                ? `$${parseFloat(prod.precio_venta).toLocaleString('es-CO')} /kg`
-                : `$${parseFloat(prod.precio_venta).toLocaleString('es-CO')}`;
+                ? `${posNS.base.formatCOP(prod.precio_venta)} /kg`
+                : posNS.base.formatCOP(prod.precio_venta);
             // Manejo de imagen: si no hay URL, usar ícono placeholder
             let imgHtml = '';
             if (prod.imagen && prod.imagen.trim() !== '') {
@@ -203,29 +225,27 @@ function seleccionarMetodoPago(metodo) {
     } else {
         cashDetails.style.display = 'none';
         document.getElementById('monto-recibido').value = '';
-        document.getElementById('texto-cambio').innerText = '$0';
+        document.getElementById('texto-cambio').innerText = posNS.base.formatCOP(0);
     }
 }
 
-function calcularCambio(totalActual = null) {
+function calcularCambio(totalActual) {
     if (posNS.state.metodoPagoSeleccionado !== 'efectivo') return;
 
-    // Obtener total si no se pasa como arg
-    let total = totalActual;
-    if (total === null) {
-        // Recalcular total desde carrito
-        total = posNS.state.carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
-    }
+    // Misma base que el resumen del carrito: si hay cotización por lote, usar su total.
+    const total = (totalActual !== undefined && totalActual !== null && String(totalActual) !== '')
+        ? Math.round(Number(totalActual) || 0)
+        : posNS.base.getTotalCarritoOQuote();
 
-    const recibido = parseFloat(document.getElementById('monto-recibido').value) || 0;
+    const recibido = posNS.base.parseCOPInput(document.getElementById('monto-recibido')?.value);
     const cambio = recibido - total;
 
     const cambioEl = document.getElementById('texto-cambio');
     if (cambio >= 0) {
-        cambioEl.innerText = '$' + cambio.toLocaleString('es-CO');
+        cambioEl.innerText = posNS.base.formatCOP(cambio);
         cambioEl.style.color = 'var(--primary-dark)';
     } else {
-        cambioEl.innerText = 'Falta $' + Math.abs(cambio).toLocaleString('es-CO');
+        cambioEl.innerText = 'Falta ' + posNS.base.formatCOP(Math.abs(cambio));
         cambioEl.style.color = 'var(--danger)';
     }
 }

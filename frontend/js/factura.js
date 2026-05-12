@@ -92,9 +92,13 @@ function renderFactura(factura) {
     const tbody = document.getElementById('tabla-items');
     tbody.innerHTML = '';
 
+    let sumaSubtotales = 0;
     factura.detalles.forEach(item => {
         const tr = document.createElement('tr');
-        const subtotalItem = item.precio_unitario * item.cantidad;
+        const lineSub = Math.round(Number(item.subtotal != null && item.subtotal !== ''
+            ? item.subtotal
+            : (Number(item.precio_unitario) * Number(item.cantidad))));
+        sumaSubtotales += lineSub;
         const loteNumero = item.lote_numero_snapshot || item.lote_numero || (item.lote_id ? ('#' + item.lote_id) : '');
 
         // Mejorar manejo de imagen para evitar bucles infinitos
@@ -114,15 +118,16 @@ function renderFactura(factura) {
                     </td>
                     <td class="col-right">${formatPrecioUnitario(item)}</td>
                     <td class="col-center">${formatCantidadDetalle(item)}</td>
-                    <td class="col-right">${formatMoney(subtotalItem)}</td>
+                    <td class="col-right">${formatMoney(lineSub)}</td>
                 `;
         tbody.appendChild(tr);
     });
 
     // Totales
-    const totalFactura = parseFloat(factura.total);
-    const montoRecibido = parseFloat(factura.monto_recibido || 0);
-    document.getElementById('lbl-subtotal').textContent = formatMoney(totalFactura);
+    const totalFactura = Math.round(Number(factura.total) || 0);
+    const montoRecibido = Math.round(Number(factura.monto_recibido || 0));
+    const subtotalMostrar = sumaSubtotales > 0 ? sumaSubtotales : totalFactura;
+    document.getElementById('lbl-subtotal').textContent = formatMoney(subtotalMostrar);
     document.getElementById('lbl-total').textContent = formatMoney(totalFactura);
 
     // Pago
@@ -130,10 +135,18 @@ function renderFactura(factura) {
     document.getElementById('lbl-metodo-pago').textContent = metodo.charAt(0).toUpperCase() + metodo.slice(1);
     document.getElementById('lbl-cajero').textContent = factura.usuario_nombre || 'Sistema';
 
-    if (metodo === 'efectivo' && montoRecibido > 0) {
-        document.getElementById('pago-efectivo-detalles').style.display = 'block';
-        document.getElementById('lbl-monto-recibido').textContent = formatMoney(montoRecibido);
-        document.getElementById('lbl-cambio').textContent = formatMoney(montoRecibido - totalFactura);
+    const pagoEfec = document.getElementById('pago-efectivo-detalles');
+    if (metodo === 'efectivo') {
+        pagoEfec.style.display = 'block';
+        if (montoRecibido > 0) {
+            document.getElementById('lbl-monto-recibido').textContent = formatMoney(montoRecibido);
+            document.getElementById('lbl-cambio').textContent = formatMoney(montoRecibido - totalFactura);
+        } else {
+            document.getElementById('lbl-monto-recibido').textContent = '—';
+            document.getElementById('lbl-cambio').textContent = '—';
+        }
+    } else {
+        pagoEfec.style.display = 'none';
     }
 
     if (factura.estado === 'anulada') {
@@ -150,11 +163,8 @@ function resolveProductImageUrl(imagePath) {
 }
 
 function formatMoney(amount) {
-    return new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: 'COP',
-        minimumFractionDigits: 0
-    }).format(amount);
+    const n = Math.round(Number(amount) || 0);
+    return '$' + n.toLocaleString('es-CO', { maximumFractionDigits: 0, minimumFractionDigits: 0 });
 }
 
 function cerrarFactura() {

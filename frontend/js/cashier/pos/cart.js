@@ -101,9 +101,9 @@
                 line.innerHTML = `
                     <div style="display:flex; flex-direction:column;">
                         <span style="font-weight:600; color:#111827; font-size:0.9rem;">${productName}</span>
-                        <span style="font-size:0.78rem; color:#6b7280;">Lote: #${r.lote_id} · ${Number(r.cantidad).toFixed(3)} × $${r.precio_unitario.toLocaleString('es-CO')}</span>
+                        <span style="font-size:0.78rem; color:#6b7280;">Lote: #${r.lote_id} · ${Number(r.cantidad).toFixed(3)} × ${ns.base.formatCOP(r.precio_unitario)}</span>
                     </div>
-                    <div style="font-weight:700; color:#111827;">$${Math.round(r.subtotal).toLocaleString('es-CO')}</div>
+                    <div style="font-weight:700; color:#111827;">${ns.base.formatCOP(r.subtotal)}</div>
                 `;
                 body.appendChild(line);
             });
@@ -179,7 +179,7 @@
                     <div style="font-weight:700; color:#111827;">${label}</div>
                 </td>
                 <td style="padding:10px 12px; text-align:right; border-top:1px solid var(--border-color); font-weight:600;">${disponibleTxt}</td>
-                <td style="padding:10px 12px; text-align:right; border-top:1px solid var(--border-color); font-weight:700; color: var(--primary-color);">$${precio.toLocaleString('es-CO')}</td>
+                <td style="padding:10px 12px; text-align:right; border-top:1px solid var(--border-color); font-weight:700; color: var(--primary-color);">${ns.base.formatCOP(precio)}</td>
                 <td style="padding:10px 12px; text-align:right; border-top:1px solid var(--border-color);">
                     <button type="button" class="btn-qty" style="padding:6px 10px;" onclick="seleccionarLoteModal(${idLote})">Elegir</button>
                 </td>
@@ -329,17 +329,17 @@
 
         if (state.carrito.length === 0) {
             tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">Carrito vacío</td></tr>';
-            subtotalSpan.innerText = '$0';
-            totalSpan.innerText = '$0';
+            subtotalSpan.innerText = ns.base.formatCOP(0);
+            totalSpan.innerText = ns.base.formatCOP(0);
             const montoRecibido = document.getElementById('monto-recibido');
             const textoCambio = document.getElementById('texto-cambio');
             if (montoRecibido) montoRecibido.value = '';
-            if (textoCambio) textoCambio.innerText = '$0';
+            if (textoCambio) textoCambio.innerText = ns.base.formatCOP(0);
             return;
         }
 
         state.carrito.forEach(item => {
-            const subtotalItem = item.precio * item.cantidad;
+            const subtotalItem = Math.round(Number(item.precio) * Number(item.cantidad));
             total += subtotalItem;
 
             let imgHtml = '';
@@ -362,7 +362,7 @@
                 <td>${imgHtml}</td>
                 <td>
                     <div style="font-weight:600; font-size:0.9rem;">${item.nombre}</div>
-                    <div style="color:#666; font-size:0.8rem;">$${item.precio.toLocaleString('es-CO')} ${item.tipo_venta === 'peso' ? '/kg' : ''}</div>
+                    <div style="color:#666; font-size:0.8rem;">${ns.base.formatCOP(item.precio)} ${item.tipo_venta === 'peso' ? '/kg' : ''}</div>
                     <div style="display:flex; align-items:center; gap:8px; margin-top:4px; font-size:0.75rem; color:#666;">
                         <span>${loteLabel}</span>
                         <span>${loteModo}</span>
@@ -372,7 +372,7 @@
                         ${cantidadHtml}
                     </div>
                 </td>
-                <td style="text-align:right; font-weight:600;">$${subtotalItem.toLocaleString('es-CO')}</td>
+                <td style="text-align:right; font-weight:600;">${ns.base.formatCOP(subtotalItem)}</td>
                 <td style="text-align:center;">
                     <button class="btn-delete-item" onclick="eliminarDelCarrito(${item.id_producto})">
                         <svg style="width:18px;height:18px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
@@ -383,12 +383,14 @@
         });
 
         if (state.quoteCache && state.quoteCartKey === ns.base.getCartKey() && Number(state.quoteCache.total || 0) > 0) {
-            total = Number(state.quoteCache.total || 0);
+            total = Math.round(Number(state.quoteCache.total || 0));
             renderQuoteBreakdown();
+        } else {
+            total = Math.round(Number(total) || 0);
         }
 
-        subtotalSpan.innerText = '$' + total.toLocaleString('es-CO', { maximumFractionDigits: 0 });
-        totalSpan.innerText = '$' + total.toLocaleString('es-CO', { maximumFractionDigits: 0 });
+        subtotalSpan.innerText = ns.base.formatCOP(total);
+        totalSpan.innerText = ns.base.formatCOP(total);
 
         if (typeof window.calcularCambio === 'function') {
             window.calcularCambio(total);

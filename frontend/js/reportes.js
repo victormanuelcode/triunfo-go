@@ -154,28 +154,50 @@ function limpiarFiltrosReportes() {
     cargarDashboardReportes();
 }
 
+function resetChartCard(cardId, title, canvasId) {
+    const card = document.getElementById(cardId);
+    if (!card) return null;
+    card.innerHTML = `<h3>${escapeHtml(title)}</h3><canvas id="${escapeHtml(canvasId)}"></canvas>`;
+    return document.getElementById(canvasId);
+}
+
+function setChartCardMessage(cardId, title, message) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    card.innerHTML = `<h3>${escapeHtml(title)}</h3><p style="text-align:center;padding:40px;color:#9ca3af;">${escapeHtml(message)}</p>`;
+}
+
 function renderSalesChart(salesData) {
-    const canvas = document.getElementById('salesChart');
-    if (!canvas) return;
+    const cardId = 'chartVentasCard';
+    const title = 'Ventas por día';
+    const canvasId = 'salesChart';
 
     if (typeof Chart === 'undefined') {
-        canvas.parentElement.innerHTML = '<p style="text-align:center;padding:40px;color:#9ca3af;">No se pudo cargar Chart.js (sin conexión o CDN bloqueado)</p>';
+        setChartCardMessage(cardId, title, 'No se pudo cargar Chart.js (sin conexión o CDN bloqueado)');
         return;
     }
 
     if (!salesData || salesData.length === 0) {
-        canvas.parentElement.innerHTML = '<p style="text-align:center;padding:40px;color:#9ca3af;">Sin datos de ventas en este período</p>';
+        if (salesChartInstance) {
+            salesChartInstance.destroy();
+            salesChartInstance = null;
+        }
+        setChartCardMessage(cardId, title, 'Sin datos de ventas en este período');
         return;
     }
+
+    if (salesChartInstance) {
+        salesChartInstance.destroy();
+        salesChartInstance = null;
+    }
+
+    const canvas = resetChartCard(cardId, title, canvasId);
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
 
     const labels = salesData.map(item => item.fecha);
     const totals = salesData.map(item => Number(item.total || 0));
-
-    if (salesChartInstance) {
-        salesChartInstance.destroy();
-    }
 
     salesChartInstance = new Chart(ctx, {
         type: 'line',
@@ -213,27 +235,36 @@ function renderSalesChart(salesData) {
 }
 
 function renderTopProductsChart(products) {
-    const canvas = document.getElementById('topProductsChart');
-    if (!canvas) return;
+    const cardId = 'chartTopProductosCard';
+    const title = 'Productos más vendidos';
+    const canvasId = 'topProductsChart';
 
     if (typeof Chart === 'undefined') {
-        canvas.parentElement.innerHTML = '<p style="text-align:center;padding:40px;color:#9ca3af;">No se pudo cargar Chart.js (sin conexión o CDN bloqueado)</p>';
+        setChartCardMessage(cardId, title, 'No se pudo cargar Chart.js (sin conexión o CDN bloqueado)');
         return;
     }
 
     if (!products || products.length === 0) {
-        canvas.parentElement.innerHTML = '<p style="text-align:center;padding:40px;color:#9ca3af;">Sin datos de productos vendidos en este período</p>';
+        if (topProductsChartInstance) {
+            topProductsChartInstance.destroy();
+            topProductsChartInstance = null;
+        }
+        setChartCardMessage(cardId, title, 'Sin datos de productos vendidos en este período');
         return;
     }
+
+    if (topProductsChartInstance) {
+        topProductsChartInstance.destroy();
+        topProductsChartInstance = null;
+    }
+
+    const canvas = resetChartCard(cardId, title, canvasId);
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
 
     const labels = products.map(p => p.nombre);
     const totals = products.map(p => Number(p.total_vendido || 0));
-
-    if (topProductsChartInstance) {
-        topProductsChartInstance.destroy();
-    }
 
     topProductsChartInstance = new Chart(ctx, {
         type: 'bar',

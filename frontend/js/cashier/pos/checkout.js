@@ -109,22 +109,29 @@
             return;
         }
 
-        const totalVenta = parseFloat(quote.total || 0);
+        const totalVenta = Math.round(parseFloat(quote.total || 0));
         if (!(totalVenta > 0)) {
             ns.base.showToastPOS('No se pudo calcular el total de la venta.', 'error');
             return;
         }
 
         if (state.metodoPagoSeleccionado === 'efectivo') {
-            const recibido = parseFloat(document.getElementById('monto-recibido').value || '0') || 0;
-            if (recibido < totalVenta) {
-                ns.base.showToastPOS('El monto recibido es insuficiente.', 'warning');
+            const recibido = ns.base.parseCOPInput(document.getElementById('monto-recibido')?.value);
+            const minRec = ns.base.minMontoRecibidoValido(totalVenta);
+            if (recibido < minRec) {
+                let msg = 'Ingrese al menos ' + ns.base.formatCOP(minRec) + ' en efectivo.';
+                if (recibido > 0 && recibido < totalVenta) {
+                    msg = 'Faltan ' + ns.base.formatCOP(totalVenta - recibido) + ' para cubrir el total (' + ns.base.formatCOP(totalVenta) + ').';
+                } else if (recibido >= totalVenta && recibido < 50 && totalVenta < 50) {
+                    msg = 'En efectivo el monto mínimo es $50 (total de esta venta: ' + ns.base.formatCOP(totalVenta) + ').';
+                }
+                ns.base.showToastPOS(msg, 'warning');
                 document.getElementById('monto-recibido')?.focus();
                 return;
             }
         }
 
-        if (!confirm('¿Confirmar venta por $' + totalVenta.toLocaleString('es-CO') + '?')) return;
+        if (!confirm('¿Confirmar venta por ' + ns.base.formatCOP(totalVenta) + '?')) return;
 
         const itemsVenta = (state.carrito || []).map(item => {
             const pid = Number(item.id_producto);
@@ -151,6 +158,9 @@
             usuario_id: usuarioId,
             sesion_id: state.sesionCajaId
         };
+        if (state.metodoPagoSeleccionado === 'efectivo') {
+            data.monto_recibido = ns.base.parseCOPInput(document.getElementById('monto-recibido')?.value);
+        }
 
         try {
             const response = await fetch(`${state.API_URL}/invoices`, {
@@ -193,7 +203,7 @@
         const montoRecibido = document.getElementById('monto-recibido');
         const textoCambio = document.getElementById('texto-cambio');
         if (montoRecibido) montoRecibido.value = '';
-        if (textoCambio) textoCambio.innerText = '$0';
+        if (textoCambio) textoCambio.innerText = ns.base.formatCOP(0);
 
         if (typeof window.cargarCatalogo === 'function') {
             window.cargarCatalogo();
