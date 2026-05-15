@@ -1,5 +1,10 @@
 const API_URL = (window.TRIUNFOGO?.API_BASE || ((window.location.origin || '') + ((window.TRIUNFOGO?.APP_BASE || '') + '/backend/index.php')));
 
+function authHeaders() {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 function formatCop(n) {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(Number(n) || 0);
 }
@@ -51,7 +56,9 @@ async function loadBoxSummary() {
     if (!usuarioId) return;
 
     try {
-        const res = await fetch(`${API_URL}/box/status?usuario_id=${encodeURIComponent(usuarioId)}`);
+        const res = await fetch(`${API_URL}/box/status?usuario_id=${encodeURIComponent(usuarioId)}`, {
+            headers: { ...authHeaders() }
+        });
         const data = await res.json();
 
         if (data && data.estado === 'abierta') {
@@ -85,7 +92,7 @@ async function loadTodayMetrics() {
         url.searchParams.set('limit', '200');
         url.searchParams.set('page', '1');
 
-        const res = await fetch(url.toString());
+        const res = await fetch(url.toString(), { headers: { ...authHeaders() } });
         const json = await res.json();
         const rows = Array.isArray(json) ? json : (json.data || []);
 
@@ -115,7 +122,7 @@ async function loadLowStockSample() {
         url.searchParams.set('limit', '300');
         url.searchParams.set('page', '1');
 
-        const res = await fetch(url.toString());
+        const res = await fetch(url.toString(), { headers: { ...authHeaders() } });
         const json = await res.json();
         const rows = Array.isArray(json) ? json : (json.data || []);
 
@@ -144,7 +151,7 @@ async function loadRecentInvoices() {
         url.searchParams.set('limit', '5');
         url.searchParams.set('page', '1');
 
-        const res = await fetch(url.toString());
+        const res = await fetch(url.toString(), { headers: { ...authHeaders() } });
         const json = await res.json();
         const rows = Array.isArray(json) ? json : (json.data || []);
 

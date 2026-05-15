@@ -64,7 +64,10 @@ function setupClienteSearch() {
 
         debounceTimer = setTimeout(async () => {
             try {
-                const response = await fetch(`${API_URL}/clients?search=${encodeURIComponent(term)}`);
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/clients?search=${encodeURIComponent(term)}`, {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {}
+                });
                 if (!response.ok) throw new Error('Error buscando clientes');
                 const clientes = await response.json();
                 

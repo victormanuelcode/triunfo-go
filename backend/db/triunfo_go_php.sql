@@ -156,6 +156,7 @@ CREATE TABLE `facturas` (
   `cliente_id` int(11) DEFAULT NULL,
   `usuario_id` int(11) DEFAULT NULL,
   `total` decimal(10,2) NOT NULL,
+  `monto_recibido` decimal(10,2) NOT NULL DEFAULT 0,
   `metodo_pago` enum('efectivo','transferencia','credito') DEFAULT 'efectivo',
   `observaciones` varchar(255) DEFAULT NULL,
   `creado_en` timestamp NOT NULL DEFAULT current_timestamp(),
