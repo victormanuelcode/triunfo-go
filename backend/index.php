@@ -22,10 +22,15 @@ if (!file_exists($autoload)) {
 }
 
 require_once $autoload;
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-$dotenv->safeLoad();
-if (file_exists(__DIR__ . '/.env.example')) {
-    Dotenv\Dotenv::createImmutable(__DIR__, '.env.example')->safeLoad();
+$envFile = __DIR__ . '/.env';
+if (file_exists($envFile)) {
+    Dotenv\Dotenv::createImmutable(__DIR__)->safeLoad();
+} elseif (file_exists(__DIR__ . '/.env.example')) {
+    try {
+        Dotenv\Dotenv::createImmutable(__DIR__, '.env.example')->safeLoad();
+    } catch (\Dotenv\Exception\ExceptionInterface $e) {
+        error_log('No se pudo cargar .env.example: ' . $e->getMessage());
+    }
 }
 
 include_once 'config/Database.php';
@@ -154,6 +159,14 @@ $router->add('POST', '/register', function () use ($userController) {
 
 $router->add('POST', '/login', function () use ($userController) {
     $userController->login();
+});
+
+$router->add('POST', '/password-reset/request', function () use ($userController) {
+    $userController->requestPasswordReset();
+});
+
+$router->add('POST', '/password-reset/confirm', function () use ($userController) {
+    $userController->resetPassword();
 });
 
 // Logout con revocación de token

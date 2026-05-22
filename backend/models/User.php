@@ -256,5 +256,30 @@ class User {
         }
         return false;
     }
+
+    public function findByEmail($email) {
+        $query = "SELECT id_usuario, nombre, usuario, email
+                  FROM " . $this->table_name . "
+                  WHERE LOWER(email) = LOWER(?)
+                  LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(1, $email);
+        $stmt->execute();
+        if ($stmt->rowCount() === 0) {
+            return null;
+        }
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function updatePassword($id, $plainPassword) {
+        $query = "UPDATE " . $this->table_name . "
+                  SET contrasena = :contrasena
+                  WHERE id_usuario = :id_usuario";
+        $stmt = $this->conn->prepare($query);
+        $passwordHash = password_hash($plainPassword, PASSWORD_BCRYPT);
+        $stmt->bindParam(':contrasena', $passwordHash);
+        $stmt->bindParam(':id_usuario', $id);
+        return $stmt->execute();
+    }
 }
 ?>

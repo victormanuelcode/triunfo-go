@@ -78,11 +78,17 @@ async function manejarInicioSesion(evento) {
 
         let datos = null;
         const contentType = respuesta.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-            datos = await respuesta.json();
+        const textoRespuesta = await respuesta.text();
+        if (contentType.includes('application/json') && textoRespuesta.trim() !== '') {
+            try {
+                datos = JSON.parse(textoRespuesta);
+            } catch (_) {
+                throw new Error('Respuesta inválida del servidor.');
+            }
+        } else if (textoRespuesta.trim() !== '') {
+            throw new Error(textoRespuesta);
         } else {
-            const txt = await respuesta.text();
-            throw new Error(txt || 'Respuesta no-JSON del servidor');
+            throw new Error(`Error del servidor (${respuesta.status}). Verifique la configuración del backend.`);
         }
 
         if (respuesta.ok) {

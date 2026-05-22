@@ -506,5 +506,155 @@ class UserController {
             echo json_encode(["message" => "Token inválido.", "error" => $e->getMessage()]);
         }
     }
+
+    /**
+     * Solicita un código de recuperación de contraseña por correo.
+     */
+    public function requestPasswordReset() {
+        $data = json_decode(file_get_contents("php://input"));
+
+        if (!is_object($data) || empty($data->email)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Ingrese un correo electrónico válido."]);
+            return;
+        }
+
+        $email = trim(strtolower($data->email));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Correo electrónico inválido."]);
+            return;
+        }
+
+        $genericOk = [
+            "message" => "Si el correo está registrado, recibirás un código de verificación en los próximos minutos."
+        ];
+
+        $userRow = $this->user->findByEmail($email);
+        if (!$userRow) {
+            http_response_code(200);
+            echo json_encode($genericOk);
+            return;
+        }
+
+        include_once __DIR__ . '/../models/PasswordReset.php';
+        $passwordReset = new PasswordReset($this->db);
+
+        if ($passwordReset->countRecentRequests($email, 15) >= 3) {
+            http_response_code(429);
+            echo json_encode(["message" => "Demasiados intentos. Espera unos minutos antes de volver a intentar."]);
+            return;
+        }
+
+        $code = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        if (!$passwordReset->create($email, $code, 15)) {
+            http_response_code(503);
+            echo json_encode(["message" => "No se pudo generar el código. Intente más tarde."]);
+            return;
+        }
+
+        include_once __DIR__ . '/../utils/MailService.php';
+        $mailService = new MailService();
+        $sent = $mailService->sendPasswordResetCode(
+            $userRow['email'],
+            $userRow['nombre'],
+            $code,
+            15
+        );
+
+        if (!$sent) {
+            http_response_code(503);
+            $driver = strtolower(trim($_ENV['MAIL_DRIVER'] ?? 'smtp'));
+            $hint = ($driver === 'smtp' || $driver === 'mail')
+                ? 'Configure MAIL_HOST, MAIL_USERNAME y MAIL_PASSWORD en backend/.env. En Fedora ejecute: sudo setsebool -P httpd_can_network_connect 1'
+                : 'Revise que el servidor pueda escribir en backend/logs/mail.log.';
+            if ($mailService->getLastError()) {
+                $hint .= ' Detalle: ' . $mailService->getLastError();
+            }
+            echo json_encode(["message" => "No se pudo enviar el correo. " . $hint]);
+            return;
+        }
+
+        http_response_code(200);
+        $response = $genericOk;
+        if ($mailService->usedLogFallback()) {
+            $logPath = $mailService->getLastLogPath();
+            $response['dev_hint'] = 'SELinux bloquea el correo real. Código guardado en ' . ($logPath ?: 'backend/logs/mail.log')
+                . '. Para Gmail directo ejecute: sudo setsebool -P httpd_can_network_connect 1';
+        } elseif (strtolower(trim($_ENV['MAIL_DRIVER'] ?? '')) === 'log') {
+            $logPath = $mailService->getLastLogPath();
+            if ($logPath) {
+                $response['dev_hint'] = 'Modo desarrollo: el código está en ' . $logPath;
+            }
+        }
+        echo json_encode($response);
+    }
+
+    /**
+     * Restablece la contraseña usando el código enviado por correo.
+     */
+    public function resetPassword() {
+        $data = json_decode(file_get_contents("php://input"));
+
+        if (!is_object($data)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Formato de datos inválido."]);
+            return;
+        }
+
+        $email = isset($data->email) ? trim(strtolower($data->email)) : '';
+        $code = isset($data->codigo) ? trim($data->codigo) : '';
+        $password = $data->contrasena ?? '';
+        $passwordConfirm = $data->contrasena_confirmacion ?? '';
+
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Correo electrónico inválido."]);
+            return;
+        }
+
+        if (!preg_match('/^\d{6}$/', $code)) {
+            http_response_code(400);
+            echo json_encode(["message" => "El código debe tener 6 dígitos."]);
+            return;
+        }
+
+        if (strlen($password) < 6) {
+            http_response_code(400);
+            echo json_encode(["message" => "La contraseña debe tener al menos 6 caracteres."]);
+            return;
+        }
+
+        if ($password !== $passwordConfirm) {
+            http_response_code(400);
+            echo json_encode(["message" => "Las contraseñas no coinciden."]);
+            return;
+        }
+
+        include_once __DIR__ . '/../models/PasswordReset.php';
+        $passwordReset = new PasswordReset($this->db);
+
+        if (!$passwordReset->verifyAndConsume($email, $code)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Código inválido o expirado. Solicita uno nuevo."]);
+            return;
+        }
+
+        $userRow = $this->user->findByEmail($email);
+        if (!$userRow) {
+            http_response_code(404);
+            echo json_encode(["message" => "Usuario no encontrado."]);
+            return;
+        }
+
+        if (!$this->user->updatePassword($userRow['id_usuario'], $password)) {
+            http_response_code(503);
+            echo json_encode(["message" => "No se pudo actualizar la contraseña."]);
+            return;
+        }
+
+        http_response_code(200);
+        echo json_encode(["message" => "Contraseña actualizada correctamente. Ya puedes iniciar sesión."]);
+    }
 }
 ?>
