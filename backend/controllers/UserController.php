@@ -508,7 +508,16 @@ class UserController {
     }
 
     /**
-     * Solicita un código de recuperación de contraseña por correo.
+     * Paso 1 del flujo de recuperación: genera y envía un código de 6 dígitos por correo.
+     *
+     * Endpoint: POST /password-reset/request
+     * Body JSON: { "email": "usuario@ejemplo.com" }
+     *
+     * El código se guarda hasheado en password_resets, expira a los 15 minutos
+     * y solo puede usarse una vez. Si el correo no está registrado, responde
+     * igual que en el caso exitoso para no revelar cuentas existentes.
+     *
+     * @return void
      */
     public function requestPasswordReset() {
         $data = json_decode(file_get_contents("php://input"));
@@ -526,6 +535,7 @@ class UserController {
             return;
         }
 
+        // Respuesta genérica: misma en éxito y si el email no existe (anti-enumeración).
         $genericOk = [
             "message" => "Si el correo está registrado, recibirás un código de verificación en los próximos minutos."
         ];
@@ -540,12 +550,14 @@ class UserController {
         include_once __DIR__ . '/../models/PasswordReset.php';
         $passwordReset = new PasswordReset($this->db);
 
+        // Rate limit: máximo 3 solicitudes por email en una ventana de 15 minutos.
         if ($passwordReset->countRecentRequests($email, 15) >= 3) {
             http_response_code(429);
             echo json_encode(["message" => "Demasiados intentos. Espera unos minutos antes de volver a intentar."]);
             return;
         }
 
+        // Código numérico de 6 dígitos; en BD se persiste hasheado (bcrypt).
         $code = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         if (!$passwordReset->create($email, $code, 15)) {
             http_response_code(503);
@@ -565,6 +577,7 @@ class UserController {
         if (!$sent) {
             http_response_code(503);
             $driver = strtolower(trim($_ENV['MAIL_DRIVER'] ?? 'smtp'));
+            // Pistas según el driver configurado en backend/.env.
             $hint = ($driver === 'smtp' || $driver === 'mail')
                 ? 'Configure MAIL_HOST, MAIL_USERNAME y MAIL_PASSWORD en backend/.env. En Fedora ejecute: sudo setsebool -P httpd_can_network_connect 1'
                 : 'Revise que el servidor pueda escribir en backend/logs/mail.log.';
@@ -577,6 +590,7 @@ class UserController {
 
         http_response_code(200);
         $response = $genericOk;
+        // En desarrollo: indicar dónde leer el código si no hay SMTP real.
         if ($mailService->usedLogFallback()) {
             $logPath = $mailService->getLastLogPath();
             $response['dev_hint'] = 'SELinux bloquea el correo real. Código guardado en ' . ($logPath ?: 'backend/logs/mail.log')
@@ -591,7 +605,19 @@ class UserController {
     }
 
     /**
-     * Restablece la contraseña usando el código enviado por correo.
+     * Paso 2 del flujo de recuperación: valida el código y actualiza la contraseña.
+     *
+     * Endpoint: POST /password-reset/confirm
+     * Body JSON: {
+     *   "email": "...",
+     *   "codigo": "123456",
+     *   "contrasena": "...",
+     *   "contrasena_confirmacion": "..."
+     * }
+     *
+     * verifyAndConsume comprueba el hash, la expiración y marca el código como usado.
+     *
+     * @return void
      */
     public function resetPassword() {
         $data = json_decode(file_get_contents("php://input"));
@@ -634,6 +660,7 @@ class UserController {
         include_once __DIR__ . '/../models/PasswordReset.php';
         $passwordReset = new PasswordReset($this->db);
 
+        // Valida hash y expiración; el código queda consumido (un solo uso).
         if (!$passwordReset->verifyAndConsume($email, $code)) {
             http_response_code(400);
             echo json_encode(["message" => "Código inválido o expirado. Solicita uno nuevo."]);
