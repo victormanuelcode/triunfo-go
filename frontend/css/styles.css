@@ -1070,6 +1070,11 @@ body.sidebar-overlay-open {
     flex-direction: column;
 }
 
+.card-producto--inactive {
+    opacity: 0.72;
+    border: 1px dashed var(--border-color);
+}
+
 .card-producto .card-body {
     padding: 16px 18px;
 }
@@ -1080,6 +1085,34 @@ body.sidebar-overlay-open {
     color: var(--text-main);
     margin: 0;
     line-height: 1.2;
+}
+
+.card-producto .card-title--with-badge {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.card-producto .card-title-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.producto-estado-badge {
+    flex-shrink: 0;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 1.2;
+}
+
+.producto-estado-badge--inactivo {
+    background-color: #FEE2E2;
+    color: #991B1B;
 }
 
 .card-producto .card-desc {
@@ -1651,13 +1684,147 @@ body.sidebar-overlay-open {
     display: none;
     position: absolute;
     width: 100%;
-    background: white;
-    border: 1px solid #ddd;
+    background: var(--white);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     z-index: 1000;
     max-height: 200px;
     overflow-y: auto;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.search-result-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.search-result-item:hover {
+    background: #f9fafb;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.lotes-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.lotes-summary-card {
+    background: #f9fafb;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.lotes-summary-label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.lot-card {
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px;
+}
+
+.lot-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.lot-card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.lot-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.lot-card-number {
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.lot-card-subtitle,
+.lot-card-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.lot-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.lot-badge--success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.lot-badge--warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.lot-badge--danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.inventory-empty-state {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.modal-productos-panel {
+    background: var(--white);
+    padding: 20px;
+    border-radius: 12px;
+    width: 80%;
+    max-width: 800px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+}
+
+.selector-product-card {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    transition: box-shadow 0.2s;
+}
+
+.selector-product-card.is-clickable {
+    cursor: pointer;
+}
+
+.selector-product-card.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
 }
 
 .input-select {

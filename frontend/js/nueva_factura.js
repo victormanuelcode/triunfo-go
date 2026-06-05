@@ -96,20 +96,10 @@ function renderResultadosClientes(clientes, container, inputBusqueda) {
     clientes.forEach(cliente => {
         const div = document.createElement('div');
         div.className = 'search-result-item';
-        div.style.padding = '8px 12px';
-        div.style.cursor = 'pointer';
-        div.style.borderBottom = '1px solid #f3f4f6';
         div.innerHTML = `
             <div style="font-weight: 500; font-size: 14px;">${cliente.nombre}</div>
-            <div style="font-size: 12px; color: #6b7280;">CC: ${cliente.documento || 'N/A'}</div>
+            <div class="selector-product-meta">CC: ${cliente.documento || 'N/A'}</div>
         `;
-        
-        div.addEventListener('mouseover', () => {
-            div.style.backgroundColor = '#f9fafb';
-        });
-        div.addEventListener('mouseout', () => {
-            div.style.backgroundColor = 'white';
-        });
 
         div.addEventListener('click', () => {
             seleccionarCliente(cliente);
@@ -224,14 +214,13 @@ function abrirSelectorProductos() {
     modal.style.alignItems = 'center';
 
     modal.innerHTML = `
-        <div style="background: white; padding: 20px; border-radius: 12px; width: 80%; max-width: 800px; max-height: 80vh; display: flex; flex-direction: column;">
+        <div class="modal-productos-panel">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h3 style="margin: 0; font-size: 18px; font-weight: 600;">Búsqueda Avanzada de Productos</h3>
-                <button onclick="cerrarSelectorProductos()" style="border: none; background: transparent; font-size: 24px; cursor: pointer;">&times;</button>
+                <button type="button" onclick="cerrarSelectorProductos()" class="btn-icon" aria-label="Cerrar">&times;</button>
             </div>
-            <input type="text" id="buscadorAvanzadoInput" placeholder="Buscar por nombre, SKU, categoría..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
+            <input type="text" id="buscadorAvanzadoInput" class="input-select" placeholder="Buscar por nombre, SKU, categoría..." style="margin-bottom: 15px;">
             <div id="gridProductosAvanzado" style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; padding: 5px;">
-                <!-- Productos aquí -->
             </div>
         </div>
     `;
@@ -269,21 +258,14 @@ function renderProductosAvanzado(lista) {
         const price = Number(prod.precio_venta || 0);
         const priceTxt = esPeso ? `$${price.toLocaleString('es-CO')} /kg` : `$${price.toLocaleString('es-CO')}`;
         const card = document.createElement('div');
-        card.style.border = '1px solid #eee';
-        card.style.borderRadius = '8px';
-        card.style.padding = '10px';
-        card.style.cursor = stock > 0 ? 'pointer' : 'not-allowed';
-        card.style.opacity = stock > 0 ? '1' : '0.6';
-        card.style.transition = 'box-shadow 0.2s';
-        
+        card.className = `selector-product-card ${stock > 0 ? 'is-clickable' : 'is-disabled'}`;
+
         card.innerHTML = `
             <div style="font-weight: 600; margin-bottom: 5px;">${prod.nombre}</div>
-            <div style="font-size: 12px; color: #666; margin-bottom: 5px;">SKU: ${prod.sku || 'N/A'}</div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: bold; color: #16A34A;">${priceTxt}</span>
-                <span style="font-size: 11px; padding: 2px 6px; border-radius: 4px; background: ${stock > 5 ? '#dcfce7' : '#fee2e2'}; color: ${stock > 5 ? '#166534' : '#991b1b'};">
-                    Stock: ${stockTxt}
-                </span>
+            <div class="selector-product-meta" style="margin-bottom: 5px;">SKU: ${prod.sku || 'N/A'}</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                <span class="price-tag" style="margin: 0;">${priceTxt}</span>
+                <span class="stock-badge ${stock <= 5 ? 'stock-low' : ''}" style="position: static;">Stock: ${stockTxt}</span>
             </div>
         `;
 
@@ -292,8 +274,8 @@ function renderProductosAvanzado(lista) {
                 agregarItemFactura(prod);
                 cerrarSelectorProductos();
             });
-            card.addEventListener('mouseenter', () => card.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)');
-            card.addEventListener('mouseleave', () => card.style.boxShadow = 'none');
+            card.addEventListener('mouseenter', () => { card.style.boxShadow = '0 4px 6px rgba(0,0,0,0.15)'; });
+            card.addEventListener('mouseleave', () => { card.style.boxShadow = 'none'; });
         }
 
         grid.appendChild(card);

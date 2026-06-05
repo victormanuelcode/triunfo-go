@@ -67,6 +67,14 @@
                                 <option value="ok">Stock suficiente</option>
                             </select>
                         </div>
+                        <div class="filter-group">
+                            <label for="filtroEstado" title="Para reactivar un producto, elija Inactivos y use el botón Activar en la tarjeta.">Estado del producto</label>
+                            <select id="filtroEstado" title="Para reactivar un producto, elija Inactivos y use el botón Activar en la tarjeta.">
+                                <option value="">Todos</option>
+                                <option value="activo">Activos</option>
+                                <option value="inactivo">Inactivos</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="inventory-grid" id="productos-container">
@@ -85,8 +93,13 @@
                 <span class="close-modal">&times;</span>
             </div>
             <div class="modal-body">
+                <div class="note-tight hidden" id="productoInactivoAviso">
+                    Este producto está <strong>inactivo</strong>. No se puede editar hasta reactivarlo.
+                    Cierre este modal y use el botón <strong>Activar</strong> en la tarjeta del producto.
+                </div>
                 <form id="productoForm">
                     <input type="hidden" id="productoId">
+                    <input type="hidden" id="productoEstado" value="activo">
                     <div class="form-group">
                         <label for="nombre">Nombre</label>
                         <input type="text" id="nombre" required>
@@ -639,7 +652,7 @@
     </div>
 
     <script src="../../js/admin/inventory/utils.js"></script>
-    <script src="../../js/admin/inventory/products.js"></script>
+    <script src="../../js/admin/inventory/products.js?v=20260531"></script>
     <script src="../../js/admin/inventory/units.js"></script>
     <script src="../../js/admin/inventory/lots.js"></script>
     <script src="../../js/admin/inventory/regularization.js"></script>

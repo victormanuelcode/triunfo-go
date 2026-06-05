@@ -41,8 +41,16 @@ class ProductController {
 
         $offset = ($page - 1) * $limit;
 
+        $readOptions = [];
+        if (!empty($_GET['include_inactive'])) {
+            $readOptions['include_inactive'] = true;
+        }
+        if (!empty($_GET['estado']) && in_array($_GET['estado'], ['activo', 'inactivo'], true)) {
+            $readOptions['estado'] = $_GET['estado'];
+        }
+
         // Obtener productos paginados
-        $stmt = $this->product->read($limit, $offset);
+        $stmt = $this->product->read($limit, $offset, $readOptions);
         $products_arr = [];
         
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -64,13 +72,14 @@ class ProductController {
                 "proveedor_nombre" => $row['proveedor_nombre'] ?? null,
                 "tipo_venta" => $row['tipo_venta'] ?? 'unidad',
                 "unidad_base" => $row['unidad_base'] ?? (($row['tipo_venta'] ?? 'unidad') === 'peso' ? 'kg' : 'unidad'),
-                "fraccion_minima" => isset($row['fraccion_minima']) ? (float)$row['fraccion_minima'] : (($row['tipo_venta'] ?? 'unidad') === 'peso' ? 0.001 : 1)
+                "fraccion_minima" => isset($row['fraccion_minima']) ? (float)$row['fraccion_minima'] : (($row['tipo_venta'] ?? 'unidad') === 'peso' ? 0.001 : 1),
+                "tiene_historial" => !empty($row['tiene_historial'])
             ];
             $products_arr[] = $item;
         }
 
         // Obtener total para metadata
-        $total_rows = $this->product->count();
+        $total_rows = $this->product->count($readOptions);
         $total_pages = ceil($total_rows / $limit);
         
         echo json_encode([
@@ -103,7 +112,8 @@ class ProductController {
                 "creado_en" => $this->product->creado_en,
                 "tipo_venta" => $this->product->tipo_venta ?? 'unidad',
                 "unidad_base" => $this->product->unidad_base ?? (($this->product->tipo_venta ?? 'unidad') === 'peso' ? 'kg' : 'unidad'),
-                "fraccion_minima" => isset($this->product->fraccion_minima) ? (float)$this->product->fraccion_minima : (($this->product->tipo_venta ?? 'unidad') === 'peso' ? 0.001 : 1)
+                "fraccion_minima" => isset($this->product->fraccion_minima) ? (float)$this->product->fraccion_minima : (($this->product->tipo_venta ?? 'unidad') === 'peso' ? 0.001 : 1),
+                "tiene_historial" => $this->product->hasOperationalHistory($id)
             ];
             echo json_encode($product_arr);
         } else {
@@ -197,6 +207,12 @@ class ProductController {
         $oldProduct->readOne();
 
         if (!empty($data['nombre']) || !empty($oldProduct->nombre)) {
+            if (($oldProduct->estado ?? 'activo') === 'inactivo') {
+                http_response_code(400);
+                echo json_encode(["message" => "No se puede editar un producto inactivo. Actívelo primero desde el inventario."]);
+                return;
+            }
+
             $precioVenta = isset($data['precio_venta']) ? (float) $data['precio_venta'] : (float) $oldProduct->precio_venta;
             $precioCompra = isset($data['precio_compra']) ? (float) $data['precio_compra'] : (float) $oldProduct->precio_compra;
             $stockActual = isset($data['stock_actual']) ? (float) $data['stock_actual'] : (float) $oldProduct->stock_actual;
@@ -260,12 +276,74 @@ class ProductController {
 
     public function delete($id) {
         $this->product->id_producto = $id;
-        if ($this->product->delete()) {
+
+        if (!$this->product->readOne()) {
+            http_response_code(404);
+            echo json_encode(["message" => "Producto no encontrado."]);
+            return;
+        }
+
+        if ($this->product->estado === 'inactivo') {
+            http_response_code(400);
+            echo json_encode(["message" => "El producto ya está inactivo. Puede reactivarlo desde el inventario."]);
+            return;
+        }
+
+        $tieneHistorial = $this->product->hasOperationalHistory($id);
+
+        if ($this->product->inactivate()) {
             http_response_code(200);
-            echo json_encode(["message" => "Producto eliminado (Soft Delete)."]);
+            echo json_encode([
+                "message" => $tieneHistorial
+                    ? "Producto inactivado. Tiene lotes, movimientos o ventas y no puede eliminarse permanentemente."
+                    : "Producto inactivado correctamente.",
+                "action" => "inactivated",
+                "can_reactivate" => true,
+                "tiene_historial" => $tieneHistorial
+            ]);
         } else {
             http_response_code(503);
-            echo json_encode(["message" => "No se pudo eliminar el producto."]);
+            echo json_encode(["message" => "No se pudo inactivar el producto."]);
+        }
+    }
+
+    public function updateStatus($id) {
+        $data = (array) json_decode(file_get_contents("php://input"), true);
+        $estado = $data['estado'] ?? null;
+
+        if (!in_array($estado, ['activo', 'inactivo'], true)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Estado inválido. Use 'activo' o 'inactivo'."]);
+            return;
+        }
+
+        $this->product->id_producto = $id;
+        if (!$this->product->readOne()) {
+            http_response_code(404);
+            echo json_encode(["message" => "Producto no encontrado."]);
+            return;
+        }
+
+        if ($this->product->estado === $estado) {
+            http_response_code(200);
+            echo json_encode([
+                "message" => $estado === 'activo' ? "El producto ya está activo." : "El producto ya está inactivo.",
+                "estado" => $estado
+            ]);
+            return;
+        }
+
+        $ok = $estado === 'activo' ? $this->product->activate() : $this->product->inactivate();
+        if ($ok) {
+            http_response_code(200);
+            echo json_encode([
+                "message" => $estado === 'activo' ? "Producto reactivado correctamente." : "Producto inactivado correctamente.",
+                "estado" => $estado,
+                "action" => $estado === 'activo' ? "activated" : "inactivated"
+            ]);
+        } else {
+            http_response_code(503);
+            echo json_encode(["message" => "No se pudo actualizar el estado del producto."]);
         }
     }
 

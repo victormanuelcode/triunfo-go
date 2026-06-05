@@ -18,10 +18,12 @@ class User {
     public $telefono;
     public $avatar_url;
     public $preferencias; // JSON/TEXT
+    public $estado;
 
     public function __construct($db) {
         $this->conn = $db;
         $this->ensureProfileColumns();
+        $this->ensureEstadoColumn();
     }
 
     /**
@@ -34,9 +36,15 @@ class User {
                     u.id_usuario, 
                     u.nombre, 
                     u.usuario, 
-                    u.email, 
+                    u.email,
+                    u.estado,
                     ru.rol_id,
-                    r.nombre as nombre_rol
+                    r.nombre as nombre_rol,
+                    (
+                        EXISTS (SELECT 1 FROM facturas f WHERE f.usuario_id = u.id_usuario)
+                        OR EXISTS (SELECT 1 FROM caja_sesiones cs WHERE cs.usuario_id = u.id_usuario)
+                        OR EXISTS (SELECT 1 FROM egresos e WHERE e.usuario_id = u.id_usuario)
+                    ) AS tiene_historial
                   FROM " . $this->table_name . " u
                   LEFT JOIN roles_user ru ON u.id_usuario = ru.usuario_id
                   LEFT JOIN roles r ON ru.rol_id = r.id_rol
@@ -60,7 +68,8 @@ class User {
                     u.email,
                     u.telefono,
                     u.avatar_url,
-                    u.preferencias, 
+                    u.preferencias,
+                    u.estado,
                     ru.rol_id 
                   FROM " . $this->table_name . " u
                   LEFT JOIN roles_user ru ON u.id_usuario = ru.usuario_id
@@ -204,23 +213,90 @@ class User {
         } catch (\Throwable $e) {}
     }
 
-    // Método para eliminar usuario
-    public function delete() {
-        // Primero eliminar de roles_user
-        $query_rol = "DELETE FROM roles_user WHERE usuario_id = ?";
-        $stmt_rol = $this->conn->prepare($query_rol);
-        $stmt_rol->bindParam(1, $this->id_usuario);
-        $stmt_rol->execute();
+    private function ensureEstadoColumn() {
+        try {
+            $this->conn->exec("ALTER TABLE {$this->table_name} ADD COLUMN estado VARCHAR(20) NOT NULL DEFAULT 'activo'");
+        } catch (\Throwable $e) {}
+    }
 
-        // Luego eliminar usuario
-        $query = "DELETE FROM " . $this->table_name . " WHERE id_usuario = ?";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(1, $this->id_usuario);
-
-        if($stmt->execute()){
-            return true;
+    /**
+     * Indica si el usuario tiene actividad registrada (ventas, caja o egresos).
+     */
+    public function hasOperationalHistory($userId = null) {
+        $id = (int)($userId ?? $this->id_usuario);
+        if ($id <= 0) {
+            return false;
         }
+
+        $checks = [
+            "SELECT COUNT(*) AS total FROM facturas WHERE usuario_id = :id",
+            "SELECT COUNT(*) AS total FROM caja_sesiones WHERE usuario_id = :id",
+            "SELECT COUNT(*) AS total FROM egresos WHERE usuario_id = :id",
+        ];
+
+        foreach ($checks as $sql) {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (((int)($row['total'] ?? 0)) > 0) {
+                return true;
+            }
+        }
+
         return false;
+    }
+
+    public function setEstado($estado) {
+        $estado = $estado === 'inactivo' ? 'inactivo' : 'activo';
+
+        $query = "UPDATE " . $this->table_name . " SET estado = :estado WHERE id_usuario = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindValue(':estado', $estado, PDO::PARAM_STR);
+        $stmt->bindValue(':id', (int)$this->id_usuario, PDO::PARAM_INT);
+
+        return $stmt->execute() && $stmt->rowCount() > 0;
+    }
+
+    public function inactivate() {
+        return $this->setEstado('inactivo');
+    }
+
+    public function activate() {
+        return $this->setEstado('activo');
+    }
+
+    public function hardDelete() {
+        $id = (int)$this->id_usuario;
+        if ($id <= 0 || $this->hasOperationalHistory($id)) {
+            return false;
+        }
+
+        $this->conn->beginTransaction();
+        try {
+            $stmtNotif = $this->conn->prepare("DELETE FROM notificaciones WHERE usuario_id = :id");
+            $stmtNotif->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmtNotif->execute();
+
+            $stmtRol = $this->conn->prepare("DELETE FROM roles_user WHERE usuario_id = :id");
+            $stmtRol->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmtRol->execute();
+
+            $stmt = $this->conn->prepare("DELETE FROM " . $this->table_name . " WHERE id_usuario = :id");
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+
+            if ($stmt->rowCount() <= 0) {
+                $this->conn->rollBack();
+                return false;
+            }
+
+            $this->conn->commit();
+            return true;
+        } catch (\Throwable $e) {
+            $this->conn->rollBack();
+            return false;
+        }
     }
 
     public function login() {
@@ -228,7 +304,8 @@ class User {
                     u.id_usuario, 
                     u.nombre, 
                     u.contrasena, 
-                    u.email, 
+                    u.email,
+                    u.estado,
                     ru.rol_id 
                   FROM " . $this->table_name . " u
                   LEFT JOIN roles_user ru ON u.id_usuario = ru.usuario_id

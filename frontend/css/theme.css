@@ -1010,6 +1010,226 @@
     color: var(--text-secondary);
 }
 
+/* Dashboard — acciones rápidas y tablas */
+[data-theme="dark"] .quick-actions.compact .quick-action-btn {
+    background-color: #1e293b;
+    border-color: var(--border-color);
+    color: var(--text-main);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .quick-actions.compact .quick-action-btn:hover {
+    background-color: #334155;
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .dashboard-table-container {
+    background: #1e293b;
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .dashboard-table th {
+    background-color: #111827;
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .dashboard-table td {
+    background: transparent;
+    color: var(--text-main);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .card-header {
+    border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .text-danger-dark {
+    color: #fca5a5;
+}
+
+/* Inventario / productos */
+[data-theme="dark"] .card-producto,
+[data-theme="dark"] .inventory-grid .card-producto,
+[data-theme="dark"] .products-grid .card-producto {
+    background-color: #1e293b;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .card-producto .card-footer,
+[data-theme="dark"] .card-producto .card-footer--wrap {
+    background: #1e293b;
+    border-top-color: var(--border-color);
+}
+
+[data-theme="dark"] .card-img-wrapper {
+    background: #0f172a;
+}
+
+[data-theme="dark"] .stock-badge {
+    background-color: rgba(46, 125, 50, 0.25);
+    color: #86efac;
+}
+
+[data-theme="dark"] .stock-badge.stock-low {
+    background-color: rgba(220, 38, 38, 0.2);
+    color: #fca5a5;
+}
+
+[data-theme="dark"] .loading-spinner {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .note-tight {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .lotes-summary-card {
+    background: #1e293b;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+[data-theme="dark"] .lotes-summary-label {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .lotes-summary-card strong {
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .lot-card {
+    background: #1e293b;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .lot-card-number,
+[data-theme="dark"] .lot-card-metric strong {
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .lot-card-subtitle,
+[data-theme="dark"] .lot-card-label {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .inventory-empty-state {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .lot-badge {
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .lot-badge--success {
+    background: rgba(22, 163, 74, 0.2);
+    color: #86efac;
+}
+
+[data-theme="dark"] .lot-badge--warning {
+    background: rgba(217, 119, 6, 0.2);
+    color: #fcd34d;
+}
+
+[data-theme="dark"] .lot-badge--danger {
+    background: rgba(220, 38, 38, 0.2);
+    color: #fca5a5;
+}
+
+[data-theme="dark"] .producto-estado-badge--inactivo {
+    background-color: rgba(220, 38, 38, 0.2);
+    color: #fca5a5;
+}
+
+/* Nueva factura */
+[data-theme="dark"] .invoice-card-header {
+    border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .items-table-wrapper {
+    background: #1e293b;
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .items-table tbody td {
+    background: transparent;
+}
+
+[data-theme="dark"] .totals-card {
+    background: #0f172a;
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .totals-row.total {
+    border-top-color: var(--border-color);
+    color: var(--text-main);
+}
+
+[data-theme="dark"] #resultadosBusquedaCliente {
+    background: #1e293b;
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .search-result-item {
+    border-bottom-color: var(--border-color);
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .search-result-item:hover {
+    background: #334155;
+}
+
+[data-theme="dark"] .modal-productos-panel {
+    background: #1e293b;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .modal-productos-panel h3 {
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .modal-productos-panel input {
+    background: #0f172a;
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .selector-product-card {
+    background: #1e293b;
+    border-color: var(--border-color) !important;
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .selector-product-card .selector-product-meta {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .input-select {
+    background: #0f172a;
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .btn-icon {
+    background: #1e293b;
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .btn-icon:hover {
+    background: #334155;
+}
+
+[data-theme="dark"] .modal-footer {
+    border-top-color: var(--border-color);
+    background: #1e293b;
+}
+
 @media print {
 
     html,

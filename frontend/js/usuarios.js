@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnNuevo.addEventListener('click', () => {
         form.reset();
         document.getElementById('usuarioId').value = '';
+        setFormularioUsuarioEditable(true);
         modal.style.display = 'block';
     });
 
@@ -44,9 +45,24 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarUsuarios();
 });
 
+function setFormularioUsuarioEditable(editable) {
+    const form = document.getElementById('usuarioForm');
+    const aviso = document.getElementById('usuarioInactivoAviso');
+    const submitBtn = form?.querySelector('button[type="submit"]');
+    if (!form) return;
+
+    form.querySelectorAll('input, select, textarea').forEach(el => {
+        if (el.id === 'usuarioId') return;
+        el.disabled = !editable;
+    });
+
+    if (aviso) aviso.classList.toggle('hidden', editable);
+    if (submitBtn) submitBtn.disabled = !editable;
+}
+
 async function cargarUsuarios() {
     try {
-        const response = await fetch(`${API_URL}/users`);
+        const response = await fetch(`${API_URL}/users`, { cache: 'no-store' });
         const usuarios = await response.json();
 
         usuariosGlobal = Array.isArray(usuarios)
@@ -54,8 +70,8 @@ async function cargarUsuarios() {
                 .filter(u => parseInt(u.rol_id) === 1 || parseInt(u.rol_id) === 2)
                 .map(u => ({
                     ...u,
-                    estado: 'activo',
-                    ultimo_acceso: null
+                    estado: u.estado || 'activo',
+                    tiene_historial: !!u.tiene_historial
                 }))
             : [];
 
@@ -67,9 +83,10 @@ async function cargarUsuarios() {
 }
 
 function renderKPIsUsuarios() {
-    const total = usuariosGlobal.length;
-    const admins = usuariosGlobal.filter(u => parseInt(u.rol_id) === 1).length;
-    const cajeros = usuariosGlobal.filter(u => parseInt(u.rol_id) === 2).length;
+    const activos = usuariosGlobal.filter(u => (u.estado || 'activo') === 'activo');
+    const total = activos.length;
+    const admins = activos.filter(u => parseInt(u.rol_id) === 1).length;
+    const cajeros = activos.filter(u => parseInt(u.rol_id) === 2).length;
 
     const totalEl = document.getElementById('kpiUsuariosTotal');
     const adminsEl = document.getElementById('kpiUsuariosAdmin');
@@ -108,9 +125,11 @@ function renderUsuariosTabla(lista) {
     tbody.innerHTML = '';
 
     if (!lista || lista.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No hay usuarios registrados</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No hay usuarios registrados</td></tr>';
         return;
     }
+
+    const sesionUsuarioId = parseInt(localStorage.getItem('usuario_id') || '0', 10);
 
     lista.forEach(user => {
         const rolId = parseInt(user.rol_id);
@@ -136,15 +155,23 @@ function renderUsuariosTabla(lista) {
         }
 
         const estado = user.estado || 'activo';
-        const estadoLabel = estado === 'inactivo' ? 'Inactivo' : 'Activo';
-        const estadoBg = estado === 'inactivo' ? '#E5E7EB' : '#DCFCE7';
-        const estadoColor = estado === 'inactivo' ? '#374151' : '#166534';
+        const esInactivo = estado === 'inactivo';
+        const estadoLabel = esInactivo ? 'Inactivo' : 'Activo';
+        const estadoBg = esInactivo ? '#E5E7EB' : '#DCFCE7';
+        const estadoColor = esInactivo ? '#374151' : '#166534';
 
-        const textoBotonEstado = estado === 'inactivo' ? 'Activar' : 'Desactivar';
+        const textoBotonEstado = esInactivo ? 'Activar' : 'Desactivar';
+        const esSesionActual = sesionUsuarioId > 0 && sesionUsuarioId === parseInt(user.id_usuario, 10);
+        const tieneHistorial = !!user.tiene_historial;
 
-        const ultimoAcceso = user.ultimo_acceso || '-';
+        const botonEliminar = (!tieneHistorial && !esInactivo && !esSesionActual)
+            ? `<button onclick="eliminarUsuario(${user.id_usuario})" class="btn-danger" style="padding: 2px 6px; font-size: 0.8em; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;" title="Solo usuarios sin actividad registrada">Eliminar</button>`
+            : '';
 
         const tr = document.createElement('tr');
+        if (esInactivo) {
+            tr.style.opacity = '0.75';
+        }
         tr.innerHTML = `
             <td>${user.nombre}</td>
             <td>${user.email || '-'}</td>
@@ -174,11 +201,10 @@ function renderUsuariosTabla(lista) {
                     ${estadoLabel}
                 </span>
             </td>
-            <td>${ultimoAcceso}</td>
             <td>
-                <button onclick="editarUsuario(${user.id_usuario})" class="btn-secondary" style="padding: 2px 6px; font-size: 0.8em; margin-right:4px;">Editar</button>
-                <button onclick="accionEstadoUsuario(${user.id_usuario})" class="btn-secondary" style="padding: 2px 6px; font-size: 0.8em; margin-right:4px;">${textoBotonEstado}</button>
-                <button onclick="eliminarUsuario(${user.id_usuario})" class="btn-danger" style="padding: 2px 6px; font-size: 0.8em; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">Eliminar</button>
+                <button onclick="editarUsuario(${user.id_usuario})" class="btn-secondary" style="padding: 2px 6px; font-size: 0.8em; margin-right:4px;"${esInactivo ? ' disabled title="Active el usuario primero"' : ''}>Editar</button>
+                <button onclick="cambiarEstadoUsuario(${user.id_usuario})" class="btn-secondary" style="padding: 2px 6px; font-size: 0.8em; margin-right:4px;"${esSesionActual && !esInactivo ? ' disabled title="No puede desactivar su propia cuenta"' : ''} title="${esInactivo ? 'Reactivar usuario' : (tieneHistorial ? 'Desactivar (conserva historial)' : 'Desactivar usuario')}">${textoBotonEstado}</button>
+                ${botonEliminar}
             </td>
         `;
         tbody.appendChild(tr);
@@ -194,16 +220,15 @@ async function guardarUsuario() {
     const rol_id = document.getElementById('rol_id').value;
 
     const data = { nombre, usuario, email, rol_id };
-    
-    // Solo enviar contraseña si no está vacía o es nuevo usuario
+
     if (contrasena || !id) {
         data.contrasena = contrasena;
     }
 
-    const url = id 
+    const url = id
         ? `${API_URL}/users/${id}`
         : `${API_URL}/users`;
-    
+
     const method = id ? 'PUT' : 'POST';
 
     try {
@@ -232,8 +257,9 @@ async function guardarUsuario() {
 
 async function editarUsuario(id) {
     try {
-        const response = await fetch(`${API_URL}/users/${id}`);
+        const response = await fetch(`${API_URL}/users/${id}`, { cache: 'no-store' });
         const user = await response.json();
+        const esInactivo = (user.estado || 'activo') === 'inactivo';
 
         document.getElementById('usuarioId').value = user.id_usuario;
         document.getElementById('nombre').value = user.nombre;
@@ -242,22 +268,61 @@ async function editarUsuario(id) {
         document.getElementById('rol_id').value = user.rol_id;
         document.getElementById('contrasena').value = '';
 
+        setFormularioUsuarioEditable(!esInactivo);
+        if (esInactivo) {
+            alert('Este usuario está inactivo. Para editarlo, actívelo primero con el botón Activar.');
+        }
+
         document.getElementById('usuarioModal').style.display = 'block';
     } catch (error) {
         console.error('Error cargando usuario:', error);
     }
 }
 
+async function cambiarEstadoUsuario(id) {
+    const usuarioId = parseInt(id, 10);
+    const user = usuariosGlobal.find(u => parseInt(u.id_usuario, 10) === usuarioId);
+    if (!user) return;
+
+    const estadoActual = user.estado || 'activo';
+    const nuevoEstado = estadoActual === 'inactivo' ? 'activo' : 'inactivo';
+    const esDesactivar = nuevoEstado === 'inactivo';
+
+    const mensaje = esDesactivar
+        ? '¿Desactivar este usuario? No podrá iniciar sesión, pero se conservará su historial de ventas, caja y egresos.'
+        : '¿Reactivar este usuario? Volverá a poder iniciar sesión.';
+    if (!confirm(mensaje)) return;
+
+    try {
+        const response = await fetch(`${API_URL}/users/${id}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado: nuevoEstado })
+        });
+        const result = await response.json();
+
+        if (response.ok) {
+            alert(result.message);
+            await cargarUsuarios();
+        } else {
+            alert('Error: ' + (result.message || `HTTP ${response.status}`));
+        }
+    } catch (error) {
+        console.error('Error cambiando estado del usuario:', error);
+        alert('Error de conexión');
+    }
+}
+
 async function eliminarUsuario(id) {
-    if(!confirm('¿Estás seguro de eliminar este usuario?')) return;
+    if (!confirm('¿Eliminar permanentemente este usuario? Solo aplica si no tiene actividad registrada.')) return;
 
     try {
         const response = await fetch(`${API_URL}/users/${id}`, {
             method: 'DELETE'
         });
         const result = await response.json();
-        
-        if(response.ok) {
+
+        if (response.ok) {
             alert(result.message);
             cargarUsuarios();
         } else {
@@ -268,21 +333,7 @@ async function eliminarUsuario(id) {
     }
 }
 
-function accionEstadoUsuario(id) {
-    const usuarioId = parseInt(id);
-    const index = usuariosGlobal.findIndex(u => parseInt(u.id_usuario) === usuarioId);
-    if (index === -1) {
-        return;
-    }
-
-    const user = usuariosGlobal[index];
-    const estadoActual = user.estado || 'activo';
-    const nuevoEstado = estadoActual === 'inactivo' ? 'activo' : 'inactivo';
-
-    usuariosGlobal[index] = {
-        ...user,
-        estado: nuevoEstado
-    };
-
-    renderUsuariosFiltrados();
-}
+window.renderUsuariosFiltrados = renderUsuariosFiltrados;
+window.editarUsuario = editarUsuario;
+window.cambiarEstadoUsuario = cambiarEstadoUsuario;
+window.eliminarUsuario = eliminarUsuario;

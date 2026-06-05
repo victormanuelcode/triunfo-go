@@ -33,6 +33,84 @@
         return `${stockVal}`;
     }
 
+    function renderProductCard(prod) {
+        const imgSrc = resolveProductImageUrl(prod.imagen);
+        const esPeso = (String(prod.tipo_venta || '').toLowerCase() === 'peso') || (String(prod.unidad_base || '').toLowerCase() === 'kg');
+        const stockTxt = formatStockDisplay(prod);
+        const priceVal = Number(prod.precio_venta || 0);
+        const priceTxt = esPeso ? `$${priceVal.toLocaleString('es-CO')} /kg` : `$${priceVal.toLocaleString('es-CO')}`;
+        const fraccionKg = Number(prod.fraccion_minima || 0.001);
+        const fraccionGramos = kgToGramos(fraccionKg);
+        const metaPeso = esPeso ? `<p class="card-desc">Equivalencia: ${fraccionGramos} g (${fraccionKg.toFixed(3)} kg)</p>` : '';
+        const esInactivo = String(prod.estado || '').toLowerCase() === 'inactivo';
+        const estadoBadge = esInactivo
+            ? '<span class="producto-estado-badge producto-estado-badge--inactivo">Inactivo</span>'
+            : '';
+        const tieneHistorial = !!prod.tiene_historial;
+        const accionEstadoBtn = esInactivo
+            ? `<button class="btn-primary btn-sm" type="button" title="Reactivar producto" onclick="activarProducto(${prod.id_producto})">Activar</button>`
+            : `<button class="btn-danger-outline btn-sm" type="button" title="${tieneHistorial ? 'Inactivar (conserva lotes y movimientos)' : 'Inactivar producto'}" onclick="inactivarProducto(${prod.id_producto})">Inactivar</button>`;
+
+        return `
+            <div class="card-producto${esInactivo ? ' card-producto--inactive' : ''}">
+                <div class="card-img-wrapper">
+                    <img src="${imgSrc}" alt="${prod.nombre}" data-fallback="${FALLBACK_IMAGE}" onerror="this.onerror=null;this.src=this.dataset.fallback;">
+                </div>
+                <span class="stock-badge ${prod.stock_actual <= prod.stock_minimo ? 'stock-low' : ''}">
+                    Stock: ${stockTxt}
+                </span>
+                <div class="card-body">
+                    <h3 class="card-title card-title--with-badge">
+                        <span class="card-title-text">${prod.nombre}</span>
+                        ${estadoBadge}
+                    </h3>
+                    <p class="card-desc">${prod.descripcion || 'Sin descripción'}</p>
+                    <p class="price-tag">${priceTxt}</p>
+                    ${metaPeso}
+                </div>
+                <div class="card-footer card-footer--wrap">
+                    <button class="btn-primary btn-sm" type="button" onclick="verLotesProducto(${prod.id_producto})">Ver lotes</button>
+                    <button class="btn-edit" type="button" onclick="editarProducto(${prod.id_producto})"${esInactivo ? ' disabled title="Active el producto primero"' : ''}>Editar</button>
+                    ${accionEstadoBtn}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderProductosLista(productos) {
+        const container = document.getElementById('productos-container');
+        if (!container) return;
+
+        container.innerHTML = '';
+        if (!productos.length) {
+            container.innerHTML = '<div class="loading-spinner">No se encontraron productos con los filtros aplicados.</div>';
+            return;
+        }
+
+        productos.forEach(prod => {
+            container.innerHTML += renderProductCard(prod);
+        });
+    }
+
+    function setFormularioProductoEditable(editable) {
+        const form = document.getElementById('productoForm');
+        const aviso = document.getElementById('productoInactivoAviso');
+        const submitBtn = form?.querySelector('button[type="submit"]');
+        if (!form) return;
+
+        form.querySelectorAll('input, select, textarea').forEach(el => {
+            if (el.id === 'productoId' || el.id === 'productoEstado') return;
+            if (el.id === 'stock_actual') {
+                el.readOnly = true;
+                return;
+            }
+            el.disabled = !editable;
+        });
+
+        if (aviso) aviso.classList.toggle('hidden', editable);
+        if (submitBtn) submitBtn.disabled = !editable;
+    }
+
     function actualizarUIVentaPeso() {
         const tipoVentaEl = document.getElementById('tipo_venta');
         const gramosEl = document.getElementById('fraccion_gramos');
@@ -99,49 +177,17 @@
         if (!container) return;
 
         try {
-            const response = await fetch(`${state.API_URL}/products`, { cache: 'no-store' });
+            const response = await fetch(`${state.API_URL}/products?include_inactive=1&limit=1000`, { cache: 'no-store' });
             const json = await response.json();
             const productos = Array.isArray(json) ? json : (json.data || []);
             state.productosAdminGlobal = productos;
 
-            container.innerHTML = '';
             if (productos.length === 0) {
                 container.innerHTML = '<div class="loading-spinner">No hay productos registrados.</div>';
                 return;
             }
 
-            productos.forEach(prod => {
-                const imgSrc = resolveProductImageUrl(prod.imagen);
-                const esPeso = (String(prod.tipo_venta || '').toLowerCase() === 'peso') || (String(prod.unidad_base || '').toLowerCase() === 'kg');
-                const stockTxt = formatStockDisplay(prod);
-                const priceVal = Number(prod.precio_venta || 0);
-                const priceTxt = esPeso ? `$${priceVal.toLocaleString('es-CO')} /kg` : `$${priceVal.toLocaleString('es-CO')}`;
-                const fraccionKg = Number(prod.fraccion_minima || 0.001);
-                const fraccionGramos = kgToGramos(fraccionKg);
-                const metaPeso = esPeso ? `<p class="card-desc">Equivalencia: ${fraccionGramos} g (${fraccionKg.toFixed(3)} kg)</p>` : '';
-                const card = `
-                    <div class="card-producto">
-                        <div class="card-img-wrapper">
-                            <img src="${imgSrc}" alt="${prod.nombre}" data-fallback="${FALLBACK_IMAGE}" onerror="this.onerror=null;this.src=this.dataset.fallback;">
-                        </div>
-                        <span class="stock-badge ${prod.stock_actual <= prod.stock_minimo ? 'stock-low' : ''}">
-                            Stock: ${stockTxt}
-                        </span>
-                        <div class="card-body">
-                            <h3 class="card-title">${prod.nombre}</h3>
-                            <p class="card-desc">${prod.descripcion || 'Sin descripción'}</p>
-                            <p class="price-tag">${priceTxt}</p>
-                            ${metaPeso}
-                        </div>
-                        <div class="card-footer card-footer--wrap">
-                            <button class="btn-primary btn-sm" type="button" onclick="verLotesProducto(${prod.id_producto})">Ver lotes</button>
-                            <button class="btn-edit" onclick="editarProducto(${prod.id_producto})">Editar</button>
-                            <button class="btn-danger-outline btn-sm" type="button" onclick="eliminarProducto(${prod.id_producto})">Eliminar</button>
-                        </div>
-                    </div>
-                `;
-                container.innerHTML += card;
-            });
+            filtrarProductosInventario();
         } catch (error) {
             console.error('Error cargando productos:', error);
             container.innerHTML = '<div class="loading-spinner text-danger">Error al conectar con el servidor.</div>';
@@ -162,6 +208,9 @@
             btnNuevo.onclick = function () {
                 form.reset();
                 document.getElementById('productoId').value = '';
+                const estadoEl = document.getElementById('productoEstado');
+                if (estadoEl) estadoEl.value = 'activo';
+                setFormularioProductoEditable(true);
                 modal.style.display = 'block';
             };
         }
@@ -179,6 +228,11 @@
             const id = document.getElementById('productoId').value;
             if (!id) {
                 alert('Los productos nuevos se registran desde "Compra de producto".');
+                return;
+            }
+            const estadoActual = document.getElementById('productoEstado')?.value || 'activo';
+            if (estadoActual === 'inactivo') {
+                alert('No se puede editar un producto inactivo. Actívelo primero con el botón Activar en su tarjeta.');
                 return;
             }
             const nombre = document.getElementById('nombre').value;
@@ -208,7 +262,7 @@
                 formData.append('tipo_venta', tipoVenta);
                 formData.append('unidad_base', tipoVenta === 'peso' ? 'kg' : 'unidad');
                 formData.append('fraccion_minima', String(fraccionKg));
-                formData.append('estado', 'activo');
+                formData.append('estado', document.getElementById('productoEstado')?.value || 'activo');
                 formData.append('imagen', imagenInput.files[0]);
                 options = { method: 'POST', body: formData };
             } else {
@@ -223,7 +277,7 @@
                     tipo_venta: tipoVenta,
                     unidad_base: tipoVenta === 'peso' ? 'kg' : 'unidad',
                     fraccion_minima: fraccionKg,
-                    estado: 'activo'
+                    estado: document.getElementById('productoEstado')?.value || 'activo'
                 };
                 options = {
                     method: 'PUT',
@@ -268,6 +322,14 @@
             const gramosEl = document.getElementById('fraccion_gramos');
 
             document.getElementById('productoId').value = prod.id_producto;
+            const estadoEl = document.getElementById('productoEstado');
+            const estado = prod.estado || 'activo';
+            if (estadoEl) estadoEl.value = estado;
+            const esInactivo = String(estado).toLowerCase() === 'inactivo';
+            setFormularioProductoEditable(!esInactivo);
+            if (esInactivo) {
+                alert('Este producto está inactivo. Para editarlo, actívelo primero con el botón Activar en su tarjeta (filtre por Inactivos si no lo ve).');
+            }
             document.getElementById('nombre').value = prod.nombre;
             document.getElementById('descripcion').value = prod.descripcion || '';
             document.getElementById('categoria_id').value = prod.categoria_id;
@@ -286,84 +348,78 @@
         }
     }
 
-    async function eliminarProducto(id) {
-        if (!confirm('¿Estás seguro de eliminar este producto?')) return;
+    async function cambiarEstadoProducto(id, nuevoEstado) {
+        const esInactivar = nuevoEstado === 'inactivo';
+        const mensaje = esInactivar
+            ? '¿Inactivar este producto? No aparecerá en ventas, pero se conservará su historial de lotes y movimientos.'
+            : '¿Reactivar este producto? Volverá a estar disponible en el inventario y ventas.';
+        if (!confirm(mensaje)) return;
+
         try {
-            await fetch(`${state.API_URL}/products/${id}`, { method: 'DELETE' });
-            await cargarProductos();
+            const response = await fetch(`${state.API_URL}/products/${id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado: nuevoEstado })
+            });
+            const rawBody = await response.text();
+            let res = {};
+            if (rawBody) {
+                try {
+                    res = JSON.parse(rawBody);
+                } catch (_) {
+                    res = { message: rawBody };
+                }
+            }
+
+            if (response.ok) {
+                alert(res.message || (esInactivar ? 'Producto inactivado.' : 'Producto reactivado.'));
+                await cargarProductos();
+            } else {
+                alert(res.message || `No se pudo actualizar el estado (HTTP ${response.status}).`);
+            }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error al eliminar producto');
+            alert('Error de conexión al cambiar el estado del producto');
         }
+    }
+
+    async function inactivarProducto(id) {
+        await cambiarEstadoProducto(id, 'inactivo');
+    }
+
+    async function activarProducto(id) {
+        await cambiarEstadoProducto(id, 'activo');
     }
 
     function filtrarProductosInventario() {
         const searchTerm = document.getElementById('buscador')?.value.toLowerCase() || '';
         const categoriaFilter = document.getElementById('filtroCategoria')?.value || '';
         const stockFilter = document.getElementById('filtroStock')?.value || '';
-        
-        const container = document.getElementById('productos-container');
-        if (!container || !state.productosAdminGlobal) return;
-        
-        let productosFiltrados = state.productosAdminGlobal.filter(producto => {
-            // Filter by search term
-            const matchSearch = !searchTerm || 
-                producto.nombre.toLowerCase().includes(searchTerm) || 
+        const estadoFilter = document.getElementById('filtroEstado')?.value || '';
+
+        if (!state.productosAdminGlobal) return;
+
+        const productosFiltrados = state.productosAdminGlobal.filter(producto => {
+            const matchSearch = !searchTerm ||
+                producto.nombre.toLowerCase().includes(searchTerm) ||
                 (producto.descripcion && producto.descripcion.toLowerCase().includes(searchTerm));
-            
-            // Filter by category
+
             const matchCategoria = !categoriaFilter || producto.categoria_id == categoriaFilter;
-            
-            // Filter by stock status
+
             let matchStock = true;
             if (stockFilter === 'low') {
                 matchStock = producto.stock_actual <= producto.stock_minimo;
             } else if (stockFilter === 'ok') {
                 matchStock = producto.stock_actual > producto.stock_minimo;
             }
-            
-            return matchSearch && matchCategoria && matchStock;
+
+            const estadoProducto = String(producto.estado || 'activo').toLowerCase();
+            const matchEstado = !estadoFilter || estadoProducto === estadoFilter;
+
+            return matchSearch && matchCategoria && matchStock && matchEstado;
         });
-        
-        // Clear and reload with filtered results
-        container.innerHTML = '';
-        if (productosFiltrados.length === 0) {
-            container.innerHTML = '<div class="loading-spinner">No se encontraron productos con los filtros aplicados.</div>';
-            return;
-        }
-        
-        productosFiltrados.forEach(prod => {
-            const imgSrc = resolveProductImageUrl(prod.imagen);
-            const esPeso = (String(prod.tipo_venta || '').toLowerCase() === 'peso') || (String(prod.unidad_base || '').toLowerCase() === 'kg');
-            const stockTxt = formatStockDisplay(prod);
-            const priceVal = Number(prod.precio_venta || 0);
-            const priceTxt = esPeso ? `$${priceVal.toLocaleString('es-CO')} /kg` : `$${priceVal.toLocaleString('es-CO')}`;
-            const fraccionKg = Number(prod.fraccion_minima || 0.001);
-            const fraccionGramos = kgToGramos(fraccionKg);
-            const metaPeso = esPeso ? `<p class="card-desc">Equivalencia: ${fraccionGramos} g (${fraccionKg.toFixed(3)} kg)</p>` : '';
-            const card = `
-                <div class="card-producto">
-                    <div class="card-img-wrapper">
-                        <img src="${imgSrc}" alt="${prod.nombre}" data-fallback="${FALLBACK_IMAGE}" onerror="this.onerror=null;this.src=this.dataset.fallback;">
-                    </div>
-                    <span class="stock-badge ${prod.stock_actual <= prod.stock_minimo ? 'stock-low' : ''}">
-                        Stock: ${stockTxt}
-                    </span>
-                    <div class="card-body">
-                        <h3 class="card-title">${prod.nombre}</h3>
-                        <p class="card-desc">${prod.descripcion || 'Sin descripción'}</p>
-                        <p class="price-tag">${priceTxt}</p>
-                        ${metaPeso}
-                    </div>
-                    <div class="card-footer card-footer--wrap">
-                        <button class="btn-primary btn-sm" type="button" onclick="verLotesProducto(${prod.id_producto})">Ver lotes</button>
-                        <button class="btn-edit" onclick="editarProducto(${prod.id_producto})">Editar</button>
-                        <button class="btn-danger-outline btn-sm" type="button" onclick="eliminarProducto(${prod.id_producto})">Eliminar</button>
-                    </div>
-                </div>
-            `;
-            container.innerHTML += card;
-        });
+
+        renderProductosLista(productosFiltrados);
     }
 
     function setup() {
@@ -385,17 +441,22 @@
         // Add event listeners for filters
         const filtroCategoria = document.getElementById('filtroCategoria');
         const filtroStock = document.getElementById('filtroStock');
-        
+        const filtroEstado = document.getElementById('filtroEstado');
+
         if (filtroCategoria) {
             filtroCategoria.addEventListener('change', filtrarProductosInventario);
         }
         if (filtroStock) {
             filtroStock.addEventListener('change', filtrarProductosInventario);
         }
-        
+        if (filtroEstado) {
+            filtroEstado.addEventListener('change', filtrarProductosInventario);
+        }
+
         window.cargarProductos = cargarProductos;
         window.editarProducto = editarProducto;
-        window.eliminarProducto = eliminarProducto;
+        window.inactivarProducto = inactivarProducto;
+        window.activarProducto = activarProducto;
         window.filtrarProductosInventario = filtrarProductosInventario;
     }
 

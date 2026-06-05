@@ -1,10 +1,10 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.3-2.fc44
+-- version 5.2.3
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: localhost
--- Tiempo de generación: 28-05-2026 a las 20:31:27
--- Versión del servidor: 11.8.6-MariaDB
+-- Tiempo de generación: 01-06-2026 a las 16:43:14
+-- Versión del servidor: 12.2.2-MariaDB
 -- Versión de PHP: 8.5.6
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
@@ -45,7 +45,8 @@ INSERT INTO `caja_sesiones` (`id_sesion`, `usuario_id`, `monto_apertura`, `monto
 (1, 1, 9000.00, 98.52, '2026-02-11 18:25:58', '2026-04-29 08:54:26', 'cerrada'),
 (2, 2, 9000.00, NULL, '2026-02-11 18:43:17', NULL, 'abierta'),
 (3, 3, 222220.00, NULL, '2026-04-29 08:49:11', NULL, 'abierta'),
-(4, 1, 10000.00, NULL, '2026-04-29 08:54:39', NULL, 'abierta');
+(4, 1, 10000.00, 200000.00, '2026-04-29 08:54:39', '2026-05-29 16:24:01', 'cerrada'),
+(5, 1, 5000.00, NULL, '2026-05-29 17:04:31', NULL, 'abierta');
 
 -- --------------------------------------------------------
 
@@ -132,7 +133,8 @@ INSERT INTO `detalle_factura` (`id_detalle`, `factura_id`, `producto_id`, `lote_
 (16, 16, 4, 2, 'L-BASE-002', 2000.00, 1.000, 6000.00, 6000.00),
 (17, 17, 5, 5, '7785', 0.00, 1.000, 80020.00, 80020.00),
 (18, 18, 4, 2, 'L-BASE-002', 2000.00, 2.000, 6000.00, 12000.00),
-(19, 19, 3, 12, 'L-20260415-12', 4200.00, 1.000, 6500.00, 6500.00);
+(19, 19, 3, 12, 'L-20260415-12', 4200.00, 1.000, 6500.00, 6500.00),
+(20, 20, 5, 5, '7785', 0.00, 1.000, 80020.00, 80020.00);
 
 -- --------------------------------------------------------
 
@@ -219,7 +221,8 @@ INSERT INTO `facturas` (`id_factura`, `numero_factura`, `fecha`, `cliente_id`, `
 (16, 'FAC-1777479861', '2026-04-29 11:24:21', NULL, 1, 6000.00, 0.00, 'efectivo', '', '2026-04-29 16:24:21', 4),
 (17, 'FAC-1778767834', '2026-05-14 09:10:34', NULL, 1, 80020.00, 0.00, 'efectivo', '', '2026-05-14 14:10:34', 4),
 (18, 'FAC-1779984089', '2026-05-28 11:01:29', NULL, 1, 12000.00, 0.00, 'efectivo', '', '2026-05-28 16:01:29', 4),
-(19, 'FAC-1779984489', '2026-05-28 11:08:09', NULL, 2, 6500.00, 7000.00, 'efectivo', '', '2026-05-28 16:08:09', 2);
+(19, 'FAC-1779984489', '2026-05-28 11:08:09', NULL, 2, 6500.00, 7000.00, 'efectivo', '', '2026-05-28 16:08:09', 2),
+(20, 'FAC-1780089796', '2026-05-29 16:23:16', NULL, 1, 80020.00, 0.00, 'efectivo', '', '2026-05-29 21:23:16', 4);
 
 -- --------------------------------------------------------
 
@@ -265,14 +268,17 @@ INSERT INTO `jwt_blacklist` (`jti`, `exp`, `created_at`) VALUES
 ('b03787d398de4d58e6cef63f89de3b45', 1779831973, '2026-05-26 14:09:52'),
 ('b0bd5843090e8b45cdc81249712a19e1', 1778625605, '2026-05-12 14:51:25'),
 ('b0f83ff01e8a390a9d31f244e8b9a128', 1779833459, '2026-05-26 14:12:18'),
+('b4d0035b79465dad6d59b60f367473c4', 1780121063, '2026-05-29 22:10:50'),
 ('c0f67a60954853a68363007a30a529a4', 1780013206, '2026-05-28 16:09:22'),
 ('c37c15b297563c028266ecb2c8064101', 1779828050, '2026-05-26 12:40:56'),
 ('cc27815e6bc1b0b65ba7aa2bd9a0c63e', 1777316909, '2026-04-27 16:32:14'),
 ('cd0ca54e4a6a7a16ab792b1d83717b5c', 1777499980, '2026-04-29 14:46:43'),
 ('d48c73c749a1c8ae49633ce4bf74a7f0', 1779502606, '2026-05-22 18:17:31'),
 ('dee67a0b779309a45f58cd7d9e09136e', 1776888750, '2026-04-22 12:28:58'),
+('e51da4cd2c6a7f70061bfe97b7e75102', 1780118580, '2026-05-29 21:24:01'),
 ('e70f6b8a69c47b969c0b73ee88109684', 1776886508, '2026-04-22 12:12:00'),
-('ecb3d8f383ec86226fc6f200a2215657', 1778632167, '2026-05-12 16:30:03');
+('ecb3d8f383ec86226fc6f200a2215657', 1778632167, '2026-05-12 16:30:03'),
+('ffb0bce40e70f798b62bc476150d09c4', 1780297322, '2026-05-31 23:08:05');
 
 -- --------------------------------------------------------
 
@@ -306,7 +312,7 @@ INSERT INTO `lotes_producto` (`id_lote`, `producto_id`, `proveedor_id`, `numero_
 (2, 4, 1, 'L-BASE-002', '2026-03-17 07:47:58', NULL, 2000.00, 6000.00, 40.000, 11.000, 'activo', NULL, '2026-03-17 07:47:58', '2026-05-28 16:01:29'),
 (3, 5, 1, 'L-BASE-003', '2026-03-17 07:47:58', NULL, 0.00, 6920.00, 92.000, 0.000, 'inactivo', NULL, '2026-03-17 07:47:58', '2026-04-15 09:11:30'),
 (4, 5, 1, NULL, '2026-03-24 07:35:50', NULL, 300.00, 7000.00, 6.000, 2.000, 'agotado', NULL, '2026-03-24 07:35:50', '2026-04-22 12:13:14'),
-(5, 5, 1, '7785', '2026-03-24 10:04:07', NULL, 0.00, 80020.00, 77.000, 63.000, 'activo', NULL, '2026-03-24 10:04:07', '2026-05-14 14:10:34'),
+(5, 5, 1, '7785', '2026-03-24 10:04:07', NULL, 0.00, 80020.00, 77.000, 62.000, 'activo', NULL, '2026-03-24 10:04:07', '2026-05-29 21:23:16'),
 (6, 5, 1, '5555', '2026-03-24 11:36:12', NULL, 0.00, 90020.00, 8.000, 0.000, 'inactivo', NULL, '2026-03-24 11:36:12', '2026-04-15 09:12:23'),
 (7, 5, NULL, 'L-20260328-7', '2026-03-27 19:38:24', NULL, 0.00, 6920.00, 2.000, 0.000, 'inactivo', NULL, '2026-03-27 19:38:24', '2026-03-27 19:38:24'),
 (8, 4, NULL, 'L-20260328-8', '2026-03-27 19:41:45', NULL, 0.00, 9000.00, 2.000, 0.000, 'inactivo', NULL, '2026-03-27 19:41:45', '2026-03-27 19:41:46'),
@@ -369,7 +375,8 @@ INSERT INTO `movimientos_inventario` (`id_movimiento`, `tipo`, `producto_id`, `l
 (49, 'entrada', 4, 15, 'L-20260526-15', 2000.000, '2026-05-26 09:16:22', 'Ingreso por lote', 'L-20260526-15', '2026-05-26 14:16:22'),
 (50, 'entrada', 8, 16, 'L-20260526-16', 2000.000, '2026-05-26 09:16:59', 'Ingreso por lote', 'L-20260526-16', '2026-05-26 14:16:59'),
 (51, 'salida', 4, 2, 'L-BASE-002', 2.000, '2026-05-28 11:01:29', 'Venta Factura FAC-1779984089', 'FAC-1779984089', '2026-05-28 16:01:29'),
-(52, 'salida', 3, 12, 'L-20260415-12', 1.000, '2026-05-28 11:08:09', 'Venta Factura FAC-1779984489', 'FAC-1779984489', '2026-05-28 16:08:09');
+(52, 'salida', 3, 12, 'L-20260415-12', 1.000, '2026-05-28 11:08:09', 'Venta Factura FAC-1779984489', 'FAC-1779984489', '2026-05-28 16:08:09'),
+(53, 'salida', 5, 5, '7785', 1.000, '2026-05-29 16:23:16', 'Venta Factura FAC-1780089796', 'FAC-1780089796', '2026-05-29 21:23:16');
 
 -- --------------------------------------------------------
 
@@ -402,7 +409,9 @@ INSERT INTO `notificaciones` (`id`, `usuario_id`, `titulo`, `mensaje`, `tipo`, `
 (8, 1, 'Caja abierta', 'Tu caja ha sido abierta correctamente.', 'info', 'leido', '2026-04-08 15:00:26'),
 (9, NULL, 'Caja abierta', 'Tu caja ha sido abierta correctamente.', 'info', 'leido', '2026-04-29 13:49:11'),
 (10, 1, 'Caja cerrada', 'Has cerrado tu caja. Diferencia: -57.421', 'warning', 'leido', '2026-04-29 13:54:26'),
-(11, 1, 'Caja abierta', 'Tu caja ha sido abierta correctamente.', 'info', 'leido', '2026-04-29 13:54:39');
+(11, 1, 'Caja abierta', 'Tu caja ha sido abierta correctamente.', 'info', 'leido', '2026-04-29 13:54:39'),
+(12, 1, 'Caja cerrada', 'Has cerrado tu caja. Diferencia: 11.960', 'warning', 'nuevo', '2026-05-29 21:24:01'),
+(13, 1, 'Caja abierta', 'Tu caja ha sido abierta correctamente.', 'info', 'nuevo', '2026-05-29 22:04:31');
 
 -- --------------------------------------------------------
 
@@ -426,7 +435,8 @@ CREATE TABLE `password_resets` (
 INSERT INTO `password_resets` (`id`, `email`, `code_hash`, `expires_at`, `used_at`, `created_at`) VALUES
 (17, 'victenno@gmail.com', '$2y$12$l3dZy75qg3emV2qmTrYYkuNybtMK47G8ygK6P.0qB/4wJdWlez3i2', '2026-05-22 18:52:10', '2026-05-28 11:12:39', '2026-05-22 18:37:10'),
 (18, 'holltenk@gmail.com', '$2y$12$PTPUp9W5v78xHHY0rIzDGeDvdFo55ozWbfIslciqjJjLq6/XFQusS', '2026-05-22 18:53:01', '2026-05-22 13:38:58', '2026-05-22 18:38:01'),
-(19, 'victenno@gmail.com', '$2y$12$Ajap4wHkd/2xpLcYhn9nY.Ct5.9bIkm//oFrc741.qn8hFS7RPmpm', '2026-05-28 16:27:40', NULL, '2026-05-28 16:12:40');
+(19, 'victenno@gmail.com', '$2y$12$Ajap4wHkd/2xpLcYhn9nY.Ct5.9bIkm//oFrc741.qn8hFS7RPmpm', '2026-05-28 16:27:40', '2026-05-29 16:21:32', '2026-05-28 16:12:40'),
+(20, 'victenno@gmail.com', '$2y$12$luxqhWWtEG8DKM1WRyhFUeUC6YL8dOQTLgS4KMBd3QtDrDnDBfmgq', '2026-05-29 21:36:32', '2026-05-29 16:22:41', '2026-05-29 21:21:32');
 
 -- --------------------------------------------------------
 
@@ -461,7 +471,7 @@ INSERT INTO `productos` (`id_producto`, `nombre`, `descripcion`, `categoria_id`,
 (1, 'papa pastusa', '', 2, NULL, 'unidad', 'unidad', 1.000, 0.00, 5000.00, 0.000, 0.000, NULL, 'inactivo', '2026-03-17 07:47:58', '2026-03-17 07:47:58'),
 (3, 'papa llanera', '', 2, NULL, 'unidad', 'unidad', 1.000, 0.00, 6000.00, 8.000, 0.000, 'uploads/products/6989ebd918ebd.jpeg', 'activo', '2026-03-17 07:47:58', '2026-05-28 16:08:09'),
 (4, 'aguacate', '', 3, NULL, 'unidad', 'unidad', 1.000, 0.00, 9000.00, 2011.000, 0.000, 'uploads/products/6989f6c6b0ad4.jpeg', 'activo', '2026-03-17 07:47:58', '2026-05-28 16:01:29'),
-(5, 'papa linterna', '', 2, NULL, 'unidad', 'unidad', 1.000, 0.00, 6920.00, 65.000, 5.000, 'uploads/products/69931d3b9c3ba.jpg', 'activo', '2026-03-17 07:47:58', '2026-05-14 14:10:34'),
+(5, 'papa linterna', '', 2, NULL, 'unidad', 'unidad', 1.000, 0.00, 6920.00, 64.000, 5.000, 'uploads/products/69931d3b9c3ba.jpg', 'activo', '2026-03-17 07:47:58', '2026-05-29 21:23:16'),
 (6, 'Producto QA', 'producto de prueba', 2, 2, 'unidad', 'unidad', 1.000, 3000.00, 8000.00, 0.000, 5.000, 'uploads/products/69ef8f1cd625c.jpg', 'activo', '2026-04-15 08:55:00', '2026-04-29 15:55:29'),
 (7, 'lechuga', 'lechugosa', 3, 2, 'peso', 'kg', 1.000, 7000.00, 6000.00, 5500.000, 5.000, 'uploads/products/6a15a4a5a18c1.png', 'inactivo', '2026-05-26 13:47:46', '2026-05-26 13:49:42'),
 (8, 'lechuga', 'lechugosa', 2, 2, 'peso', 'kg', 1.666, 0.00, 2000.00, 2000.000, 5.000, NULL, 'activo', '2026-05-26 14:16:59', '2026-05-26 14:16:59');
@@ -598,7 +608,7 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`id_usuario`, `nombre`, `usuario`, `contrasena`, `email`, `creado_en`, `telefono`, `avatar_url`, `preferencias`) VALUES
-(1, 'Admin Prueba', 'admin', '$2y$10$xR/qC3vL5XXJhQWgPNOxbeQVZW/runeUu1ckH7/FmsEzkvRr8HEvO', 'victenno@gmail.com', '2026-02-09 02:15:20', '', '', '{\"sidebarCollapsed\":false}'),
+(1, 'Admin Prueba', 'admin', '$2y$12$i95iGg6amX6EpDJxDCCGx.2kHz6fDxlbH/wdMuNz4kqxJIpDrblfO', 'victenno@gmail.com', '2026-02-09 02:15:20', '', '', '{\"sidebarCollapsed\":false}'),
 (2, 'Cajero', 'Cajero', '$2y$12$Wpd95c4wu8dAsRhcLh993.vl6.p9QvfENgyVlC4ZF7Zb/IoPSjKg6', 'holltenk@gmail.com', '2026-02-11 23:23:01', NULL, NULL, NULL),
 (6, 'alejandra', 'aleja', '$2y$12$5t0bYIGgk7vM.rhSun89CekKYJCEBgHMMNRrPyRuhm4TVU486M.MS', 'kellyalejandradiaztorres07@gmail.com', '2026-05-26 13:53:44', NULL, NULL, NULL);
 
@@ -756,7 +766,7 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de la tabla `caja_sesiones`
 --
 ALTER TABLE `caja_sesiones`
-  MODIFY `id_sesion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_sesion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `categorias`
@@ -774,7 +784,7 @@ ALTER TABLE `clientes`
 -- AUTO_INCREMENT de la tabla `detalle_factura`
 --
 ALTER TABLE `detalle_factura`
-  MODIFY `id_detalle` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id_detalle` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT de la tabla `egresos`
@@ -792,7 +802,7 @@ ALTER TABLE `empresa`
 -- AUTO_INCREMENT de la tabla `facturas`
 --
 ALTER TABLE `facturas`
-  MODIFY `id_factura` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id_factura` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT de la tabla `lotes_producto`
@@ -804,19 +814,19 @@ ALTER TABLE `lotes_producto`
 -- AUTO_INCREMENT de la tabla `movimientos_inventario`
 --
 ALTER TABLE `movimientos_inventario`
-  MODIFY `id_movimiento` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
+  MODIFY `id_movimiento` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=54;
 
 --
 -- AUTO_INCREMENT de la tabla `notificaciones`
 --
 ALTER TABLE `notificaciones`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT de la tabla `password_resets`
 --
 ALTER TABLE `password_resets`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT de la tabla `productos`

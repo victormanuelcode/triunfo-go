@@ -39,18 +39,36 @@ class Product {
      * @param int $offset Desplazamiento para paginación.
      * @return PDOStatement Resultado de la consulta.
      */
-    public function read($limit = 10, $offset = 0) {
-        $query = "SELECT p.*, c.nombre as categoria_nombre, pr.nombre as proveedor_nombre, pp.proveedor_id
+    public function read($limit = 10, $offset = 0, $options = []) {
+        $includeInactive = !empty($options['include_inactive']);
+        $estadoFilter = $options['estado'] ?? null;
+
+        $query = "SELECT p.*, c.nombre as categoria_nombre, pr.nombre as proveedor_nombre, pp.proveedor_id,
+                         (
+                            EXISTS (SELECT 1 FROM lotes_producto lp WHERE lp.producto_id = p.id_producto)
+                            OR EXISTS (SELECT 1 FROM movimientos_inventario mi WHERE mi.producto_id = p.id_producto)
+                            OR EXISTS (SELECT 1 FROM detalle_factura df WHERE df.producto_id = p.id_producto)
+                         ) AS tiene_historial
                   FROM " . $this->table_name . " p
                   LEFT JOIN categorias c ON p.categoria_id = c.id_categoria
                   LEFT JOIN proveedor_producto pp ON p.id_producto = pp.producto_id
                   LEFT JOIN proveedores pr ON pp.proveedor_id = pr.id_proveedor
-                  WHERE p.estado = 'activo'
-                  GROUP BY p.id_producto
-                  ORDER BY p.creado_en DESC
-                  LIMIT :limit OFFSET :offset";
-        
+                  WHERE 1=1";
+
+        if (!$includeInactive && ($estadoFilter === null || $estadoFilter === '')) {
+            $query .= " AND p.estado = 'activo'";
+        } elseif (in_array($estadoFilter, ['activo', 'inactivo'], true)) {
+            $query .= " AND p.estado = :estado";
+        }
+
+        $query .= " GROUP BY p.id_producto
+                    ORDER BY p.estado ASC, p.creado_en DESC
+                    LIMIT :limit OFFSET :offset";
+
         $stmt = $this->conn->prepare($query);
+        if (in_array($estadoFilter, ['activo', 'inactivo'], true)) {
+            $stmt->bindValue(':estado', $estadoFilter, PDO::PARAM_STR);
+        }
         $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
         $stmt->execute();
@@ -62,9 +80,22 @@ class Product {
      * 
      * @return int Número total de productos.
      */
-    public function count() {
-        $query = "SELECT COUNT(*) as total FROM " . $this->table_name . " WHERE estado = 'activo'";
+    public function count($options = []) {
+        $includeInactive = !empty($options['include_inactive']);
+        $estadoFilter = $options['estado'] ?? null;
+
+        $query = "SELECT COUNT(*) as total FROM " . $this->table_name . " WHERE 1=1";
+
+        if (!$includeInactive && ($estadoFilter === null || $estadoFilter === '')) {
+            $query .= " AND estado = 'activo'";
+        } elseif (in_array($estadoFilter, ['activo', 'inactivo'], true)) {
+            $query .= " AND estado = :estado";
+        }
+
         $stmt = $this->conn->prepare($query);
+        if (in_array($estadoFilter, ['activo', 'inactivo'], true)) {
+            $stmt->bindValue(':estado', $estadoFilter, PDO::PARAM_STR);
+        }
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row['total'];
@@ -240,21 +271,91 @@ class Product {
     }
 
     /**
-     * Realiza un borrado lógico (soft delete) del producto cambiando su estado a inactivo.
-     * Si hay stock remanente, registra una salida por baja.
-     * 
-     * @return boolean True si la operación fue exitosa.
+     * Indica si el producto tiene historial operativo (lotes, movimientos o ventas).
      */
-    public function delete() {
-        $query = "UPDATE " . $this->table_name . " SET estado = 'inactivo' WHERE id_producto = :id";
-        $stmt = $this->conn->prepare($query);
-        $this->id_producto = htmlspecialchars(strip_tags($this->id_producto));
-        $stmt->bindParam(":id", $this->id_producto);
-
-        if ($stmt->execute()) {
-            return true;
+    public function hasOperationalHistory($productId = null) {
+        $id = (int)($productId ?? $this->id_producto);
+        if ($id <= 0) {
+            return false;
         }
+
+        $checks = [
+            "SELECT COUNT(*) AS total FROM lotes_producto WHERE producto_id = :id",
+            "SELECT COUNT(*) AS total FROM movimientos_inventario WHERE producto_id = :id",
+            "SELECT COUNT(*) AS total FROM detalle_factura WHERE producto_id = :id",
+        ];
+
+        foreach ($checks as $sql) {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (((int)($row['total'] ?? 0)) > 0) {
+                return true;
+            }
+        }
+
         return false;
+    }
+
+    /**
+     * Cambia el estado del producto (activo / inactivo).
+     */
+    public function setEstado($estado) {
+        $estado = $estado === 'inactivo' ? 'inactivo' : 'activo';
+
+        $query = "UPDATE " . $this->table_name . " SET estado = :estado WHERE id_producto = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindValue(':estado', $estado, PDO::PARAM_STR);
+        $stmt->bindValue(':id', (int)$this->id_producto, PDO::PARAM_INT);
+
+        return $stmt->execute() && $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Inactiva el producto (borrado lógico).
+     */
+    public function inactivate() {
+        return $this->setEstado('inactivo');
+    }
+
+    /**
+     * Activa un producto previamente inactivo.
+     */
+    public function activate() {
+        return $this->setEstado('activo');
+    }
+
+    /**
+     * Elimina físicamente el producto. Solo debe usarse si no tiene historial operativo.
+     */
+    public function hardDelete() {
+        $id = (int)$this->id_producto;
+        if ($id <= 0 || $this->hasOperationalHistory($id)) {
+            return false;
+        }
+
+        $this->conn->beginTransaction();
+        try {
+            $stmtProv = $this->conn->prepare("DELETE FROM proveedor_producto WHERE producto_id = :id");
+            $stmtProv->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmtProv->execute();
+
+            $stmt = $this->conn->prepare("DELETE FROM " . $this->table_name . " WHERE id_producto = :id");
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+
+            if ($stmt->rowCount() <= 0) {
+                $this->conn->rollBack();
+                return false;
+            }
+
+            $this->conn->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            return false;
+        }
     }
 
     /**

@@ -146,7 +146,13 @@ $router->add('PUT', '/users/{id}', function ($id) use ($userController, $auth) {
 });
 $router->add('DELETE', '/users/{id}', function ($id) use ($userController, $auth) {
     $auth->requireRole([1]);
-    $userController->delete($id);
+    $tokenData = $auth->validateToken();
+    $userController->delete($id, $tokenData);
+});
+$router->add('PATCH', '/users/{id}/status', function ($id) use ($userController, $auth) {
+    $auth->requireRole([1]);
+    $tokenData = $auth->validateToken();
+    $userController->updateStatus($id, $tokenData);
 });
 
 $router->add('POST', '/register', function () use ($userController) {
@@ -288,6 +294,10 @@ $router->add('POST', '/products/{id}', function ($id) use ($productController, $
 $router->add('DELETE', '/products/{id}', function ($id) use ($productController, $auth) {
     $auth->requireRole([1]);
     $productController->delete($id);
+});
+$router->add('PATCH', '/products/{id}/status', function ($id) use ($productController, $auth) {
+    $auth->requireRole([1]);
+    $productController->updateStatus($id);
 });
 
 $router->add('GET', '/products/{id}/lots', function ($id) use ($lotController, $auth) {

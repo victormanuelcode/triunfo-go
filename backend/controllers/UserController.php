@@ -108,7 +108,9 @@ class UserController {
                     "usuario" => $usuario,
                     "email" => $email,
                     "rol_id" => $rol_id,
-                    "nombre_rol" => $nombre_rol
+                    "nombre_rol" => $nombre_rol,
+                    "estado" => $row['estado'] ?? 'activo',
+                    "tiene_historial" => !empty($row['tiene_historial'])
                 ];
                 array_push($users_arr, $user_item);
             }
@@ -133,6 +135,7 @@ class UserController {
 
         if($num > 0) {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            $row['tiene_historial'] = $this->user->hasOperationalHistory($id);
             http_response_code(200);
             echo json_encode($row);
         } else {
@@ -235,6 +238,12 @@ class UserController {
         }
         $currentUserData = $stmt->fetch(PDO::FETCH_ASSOC);
 
+        if (($currentUserData['estado'] ?? 'activo') === 'inactivo') {
+            http_response_code(400);
+            echo json_encode(["message" => "No se puede editar un usuario inactivo. Actívelo primero desde la lista."]);
+            return;
+        }
+
         $newNombre = $data->nombre ?? $currentUserData['nombre'];
         $newUsuario = $data->usuario ?? $currentUserData['usuario'];
         $newEmail = isset($data->email) ? $data->email : $currentUserData['email'];
@@ -283,14 +292,108 @@ class UserController {
         }
     }
 
-    public function delete($id) {
+    public function delete($id, $tokenData = null) {
         $this->user->id_usuario = $id;
-        if($this->user->delete()){
+        $stmt = $this->user->getOne();
+        if ($stmt->rowCount() === 0) {
+            http_response_code(404);
+            echo json_encode(["message" => "Usuario no encontrado."]);
+            return;
+        }
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $currentUserId = isset($tokenData['id_usuario']) ? (int)$tokenData['id_usuario'] : 0;
+
+        if ($currentUserId > 0 && $currentUserId === (int)$id) {
+            http_response_code(400);
+            echo json_encode(["message" => "No puede eliminar o desactivar su propia cuenta."]);
+            return;
+        }
+
+        if (($row['estado'] ?? 'activo') === 'inactivo') {
+            http_response_code(400);
+            echo json_encode(["message" => "El usuario ya está inactivo. Puede reactivarlo desde la lista."]);
+            return;
+        }
+
+        $tieneHistorial = $this->user->hasOperationalHistory($id);
+
+        if ($tieneHistorial) {
+            if ($this->user->inactivate()) {
+                http_response_code(200);
+                echo json_encode([
+                    "message" => "Usuario inactivado. Tiene ventas, caja o egresos registrados y no puede eliminarse.",
+                    "action" => "inactivated",
+                    "can_reactivate" => true,
+                    "tiene_historial" => true
+                ]);
+            } else {
+                http_response_code(503);
+                echo json_encode(["message" => "No se pudo inactivar el usuario."]);
+            }
+            return;
+        }
+
+        if ($this->user->hardDelete()) {
             http_response_code(200);
-            echo json_encode(["message" => "Usuario eliminado."]);
+            echo json_encode([
+                "message" => "Usuario eliminado permanentemente.",
+                "action" => "deleted"
+            ]);
         } else {
             http_response_code(503);
             echo json_encode(["message" => "No se pudo eliminar el usuario."]);
+        }
+    }
+
+    public function updateStatus($id, $tokenData = null) {
+        $data = (array) json_decode(file_get_contents("php://input"), true);
+        $estado = $data['estado'] ?? null;
+
+        if (!in_array($estado, ['activo', 'inactivo'], true)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Estado inválido. Use 'activo' o 'inactivo'."]);
+            return;
+        }
+
+        $currentUserId = isset($tokenData['id_usuario']) ? (int)$tokenData['id_usuario'] : 0;
+        if ($currentUserId > 0 && $currentUserId === (int)$id && $estado === 'inactivo') {
+            http_response_code(400);
+            echo json_encode(["message" => "No puede desactivar su propia cuenta."]);
+            return;
+        }
+
+        $this->user->id_usuario = $id;
+        $stmt = $this->user->getOne();
+        if ($stmt->rowCount() === 0) {
+            http_response_code(404);
+            echo json_encode(["message" => "Usuario no encontrado."]);
+            return;
+        }
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $estadoActual = $row['estado'] ?? 'activo';
+
+        if ($estadoActual === $estado) {
+            http_response_code(200);
+            echo json_encode([
+                "message" => $estado === 'activo' ? "El usuario ya está activo." : "El usuario ya está inactivo.",
+                "estado" => $estado
+            ]);
+            return;
+        }
+
+        $ok = $estado === 'activo' ? $this->user->activate() : $this->user->inactivate();
+        if ($ok) {
+            http_response_code(200);
+            echo json_encode([
+                "message" => $estado === 'activo' ? "Usuario reactivado correctamente." : "Usuario desactivado correctamente.",
+                "estado" => $estado,
+                "action" => $estado === 'activo' ? "activated" : "inactivated"
+            ]);
+        } else {
+            http_response_code(503);
+            echo json_encode(["message" => "No se pudo actualizar el estado del usuario."]);
         }
     }
 
@@ -387,6 +490,11 @@ class UserController {
 
         if ($num > 0) {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (($row['estado'] ?? 'activo') === 'inactivo') {
+                http_response_code(403);
+                echo json_encode(["message" => "Usuario inactivo. Contacte al administrador."]);
+                return;
+            }
             if (password_verify($data->contrasena, $row['contrasena'])) {
                 
                 // Generar JWT

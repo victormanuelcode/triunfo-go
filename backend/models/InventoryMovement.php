@@ -196,4 +196,16 @@ class InventoryMovement {
         $stmt->execute();
         return $stmt;
     }
+
+    /**
+     * Indica si el producto tiene movimientos de inventario registrados.
+     */
+    public function hasByProduct($product_id) {
+        $query = "SELECT COUNT(*) AS total FROM " . $this->table_name . " WHERE producto_id = :producto_id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindValue(':producto_id', (int)$product_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return ((int)($row['total'] ?? 0)) > 0;
+    }
 }?>

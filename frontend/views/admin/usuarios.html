@@ -49,8 +49,8 @@
                                     </select>
                                 </div>
                                 <div class="filter-group">
-                                    <span>Filtrar por estado</span>
-                                    <select id="filtroEstado" onchange="renderUsuariosFiltrados()">
+                                    <span title="Para reactivar un usuario, elija Inactivo y use el botón Activar.">Filtrar por estado</span>
+                                    <select id="filtroEstado" onchange="renderUsuariosFiltrados()" title="Para reactivar un usuario, elija Inactivo y use el botón Activar.">
                                         <option value="todos">Todos los estados</option>
                                         <option value="activo">Activo</option>
                                         <option value="inactivo">Inactivo</option>
@@ -90,7 +90,6 @@
                                     <th>Email</th>
                                     <th>Rol</th>
                                     <th>Estado</th>
-                                    <th>Último acceso</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
@@ -111,6 +110,9 @@
                 <span class="close-modal">&times;</span>
             </div>
             <div class="modal-body">
+                <div class="note-tight hidden" id="usuarioInactivoAviso">
+                    Este usuario está <strong>inactivo</strong>. No se puede editar hasta reactivarlo con el botón <strong>Activar</strong> en la tabla.
+                </div>
                 <form id="usuarioForm">
                     <input type="hidden" id="usuarioId">
                     <div class="form-group">
@@ -145,7 +147,7 @@
         </div>
     </div>
 
-    <script src="../../js/usuarios.js"></script>
+    <script src="../../js/usuarios.js?v=20260601"></script>
     <script>
         (function () {
             var nombre = localStorage.getItem('usuario_nombre') || 'Administrador';
