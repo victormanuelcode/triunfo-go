@@ -163,9 +163,9 @@ class ProductController {
 
             $this->product->nombre = $data['nombre'];
             $this->product->descripcion = $data['descripcion'] ?? null;
-            $this->product->categoria_id = $data['categoria_id'] ?? null;
-            $this->product->unidad_medida_id = $data['unidad_medida_id'] ?? null;
-            $this->product->proveedor_id = $data['proveedor_id'] ?? null;
+            $this->product->categoria_id = $this->resolveOptionalId($data['categoria_id'] ?? null);
+            $this->product->unidad_medida_id = $this->resolveOptionalId($data['unidad_medida_id'] ?? null);
+            $this->product->proveedor_id = $this->resolveOptionalId($data['proveedor_id'] ?? null);
             $this->product->precio_compra = $precioCompra;
             $this->product->precio_venta = $precioVenta;
             $this->product->stock_actual = $stockActual;
@@ -238,9 +238,9 @@ class ProductController {
 
             $this->product->nombre = $data['nombre'] ?? $oldProduct->nombre;
             $this->product->descripcion = array_key_exists('descripcion', $data) ? $data['descripcion'] : $oldProduct->descripcion;
-            $this->product->categoria_id = $data['categoria_id'] ?? $oldProduct->categoria_id;
-            $this->product->unidad_medida_id = $data['unidad_medida_id'] ?? $oldProduct->unidad_medida_id;
-            $this->product->proveedor_id = $data['proveedor_id'] ?? $oldProduct->proveedor_id;
+            $this->product->categoria_id = $this->resolveOptionalId($data['categoria_id'] ?? null, $oldProduct->categoria_id);
+            $this->product->unidad_medida_id = $this->resolveOptionalId($data['unidad_medida_id'] ?? null, $oldProduct->unidad_medida_id);
+            $this->product->proveedor_id = $this->resolveOptionalId($data['proveedor_id'] ?? null, $oldProduct->proveedor_id);
             $this->product->precio_compra = $precioCompra;
             $this->product->precio_venta = $precioVenta;
             $this->product->stock_actual = $stockActual;
@@ -345,6 +345,20 @@ class ProductController {
             http_response_code(503);
             echo json_encode(["message" => "No se pudo actualizar el estado del producto."]);
         }
+    }
+
+    /**
+     * Normaliza IDs opcionales enviados como string vacío desde FormData.
+     * En actualización conserva el valor anterior si el campo llega vacío.
+     */
+    private function resolveOptionalId($value, $fallback = null) {
+        if ($value === null || $value === '' || $value === false) {
+            return $fallback;
+        }
+        if (is_numeric($value)) {
+            return (int) $value;
+        }
+        return $fallback;
     }
 
     /**

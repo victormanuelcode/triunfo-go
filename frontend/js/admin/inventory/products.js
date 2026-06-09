@@ -246,6 +246,15 @@
             const fraccionKg = tipoVenta === 'peso' ? gramosToKg(gramosEl?.value || 1) : 1;
             const imagenInput = document.getElementById('imagen');
 
+            if (!categoria_id) {
+                alert('Seleccione una categoría antes de guardar.');
+                return;
+            }
+            if (!unidad_medida_id) {
+                alert('Seleccione una unidad de medida antes de guardar.');
+                return;
+            }
+
             const hasImage = imagenInput.files.length > 0;
             let url = `${state.API_URL}/products/${id}`;
             let options;
@@ -316,6 +325,12 @@
 
     async function editarProducto(id) {
         try {
+            await Promise.all([
+                cargarCategoriasSelect(),
+                cargarProveedoresSelect(),
+                ns.units?.cargarUnidadesSelect?.()
+            ]);
+
             const response = await fetch(`${state.API_URL}/products/${id}`, { cache: 'no-store' });
             const prod = await response.json();
             const tipoVentaEl = document.getElementById('tipo_venta');
@@ -332,9 +347,9 @@
             }
             document.getElementById('nombre').value = prod.nombre;
             document.getElementById('descripcion').value = prod.descripcion || '';
-            document.getElementById('categoria_id').value = prod.categoria_id;
-            document.getElementById('unidad_medida_id').value = prod.unidad_medida_id;
-            document.getElementById('proveedor_id').value = prod.proveedor_id || '';
+            document.getElementById('categoria_id').value = prod.categoria_id ?? '';
+            document.getElementById('unidad_medida_id').value = prod.unidad_medida_id ?? '';
+            document.getElementById('proveedor_id').value = prod.proveedor_id ?? '';
             document.getElementById('precio_venta').value = prod.precio_venta;
             document.getElementById('stock_actual').value = prod.stock_actual;
             if (tipoVentaEl) tipoVentaEl.value = (prod.tipo_venta === 'peso') ? 'peso' : 'unidad';
