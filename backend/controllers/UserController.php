@@ -698,17 +698,22 @@ class UserController {
 
         http_response_code(200);
         $response = $genericOk;
-        // En desarrollo: indicar dónde leer el código si no hay SMTP real.
-        if ($mailService->usedLogFallback()) {
+        $driver = strtolower(trim($_ENV['MAIL_DRIVER'] ?? 'smtp'));
+
+        // Modo desarrollo (log): mostrar el código en la respuesta para poder probar sin SMTP.
+        if ($driver === 'log') {
+            $response['dev_code'] = $code;
             $logPath = $mailService->getLastLogPath();
-            $response['dev_hint'] = 'SELinux bloquea el correo real. Código guardado en ' . ($logPath ?: 'backend/logs/mail.log')
-                . '. Para Gmail directo ejecute: sudo setsebool -P httpd_can_network_connect 1';
-        } elseif (strtolower(trim($_ENV['MAIL_DRIVER'] ?? '')) === 'log') {
+            $response['dev_hint'] = 'Modo desarrollo (MAIL_DRIVER=log): no se envía correo real.'
+                . ($logPath ? ' Copia guardada en ' . $logPath . '.' : '');
+        } elseif ($mailService->usedLogFallback()) {
             $logPath = $mailService->getLastLogPath();
-            if ($logPath) {
-                $response['dev_hint'] = 'Modo desarrollo: el código está en ' . $logPath;
-            }
+            $response['dev_hint'] = 'No se pudo usar SMTP. Código guardado en '
+                . ($logPath ?: 'backend/logs/mail.log')
+                . '. Revise MAIL_* en backend/.env o habilite red para Apache: sudo setsebool -P httpd_can_network_connect 1';
+            $response['dev_code'] = $code;
         }
+
         echo json_encode($response);
     }
 

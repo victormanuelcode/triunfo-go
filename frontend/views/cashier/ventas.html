@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../css/styles.css">
-    <link rel="stylesheet" href="../../css/ventas.css">
+    <link rel="stylesheet" href="../../css/ventas.css?v=20260530">
 </head>
 <body>
     <script src="../../js/auth.js"></script>
@@ -65,6 +65,7 @@
             </div>
 
             <div class="cart-footer">
+                <div class="cart-footer__body">
                 <div id="banner-caja-cerrada" class="banner-caja-cerrada">
                     <div class="banner-caja-cerrada__row">
                         <div class="banner-caja-cerrada__left">
@@ -98,18 +99,18 @@
                 </div>
 
                 <div class="payment-methods">
-                    <div class="payment-option selected" onclick="seleccionarMetodoPago('efectivo')" id="opt-efectivo">
+                    <button type="button" class="payment-option selected" onclick="seleccionarMetodoPago('efectivo')" id="opt-efectivo">
                         <div class="payment-icon">💵</div>
                         <span>Efectivo</span>
-                    </div>
-                    <div class="payment-option" onclick="seleccionarMetodoPago('tarjeta')" id="opt-tarjeta">
+                    </button>
+                    <button type="button" class="payment-option" onclick="seleccionarMetodoPago('tarjeta')" id="opt-tarjeta">
                         <div class="payment-icon">💳</div>
                         <span>Tarjeta</span>
-                    </div>
-                    <div class="payment-option" onclick="seleccionarMetodoPago('transferencia')" id="opt-transferencia">
+                    </button>
+                    <button type="button" class="payment-option" onclick="seleccionarMetodoPago('transferencia')" id="opt-transferencia">
                         <div class="payment-icon">📱</div>
-                        <span>Transf.</span>
-                    </div>
+                        <span>Transferencia</span>
+                    </button>
                 </div>
 
                 <div id="cash-details" class="cash-details">
@@ -122,8 +123,9 @@
                         <span id="texto-cambio">$0</span>
                     </div>
                 </div>
+                </div>
 
-                <button class="btn-complete-sale" id="btn-completar-venta" onclick="procesarVenta()">
+                <button type="button" class="btn-complete-sale" id="btn-completar-venta" onclick="procesarVenta()">
                     <span>Completar Venta</span>
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                 </button>
@@ -265,11 +267,11 @@
         </div>
     </div>
 
-    <script src="../../js/cashier/pos/base.js?v=20260512b"></script>
-    <script src="../../js/cashier/pos/cart.js?v=20260512b"></script>
-    <script src="../../js/cashier/pos/box.js?v=20260512b"></script>
-    <script src="../../js/cashier/pos/checkout.js?v=20260512b"></script>
-    <script src="../../js/cashier/pos/postsale.js?v=20260512b"></script>
-    <script src="../../js/ventas.js?v=20260512b"></script>
+    <script src="../../js/cashier/pos/base.js?v=20260529"></script>
+    <script src="../../js/cashier/pos/cart.js?v=20260529"></script>
+    <script src="../../js/cashier/pos/box.js?v=20260529"></script>
+    <script src="../../js/cashier/pos/checkout.js?v=20260530"></script>
+    <script src="../../js/cashier/pos/postsale.js?v=20260530"></script>
+    <script src="../../js/ventas.js?v=20260530"></script>
 </body>
 </html>

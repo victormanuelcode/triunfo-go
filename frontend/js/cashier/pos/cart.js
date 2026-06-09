@@ -100,10 +100,10 @@
                 line.style.gap = '10px';
                 line.innerHTML = `
                     <div style="display:flex; flex-direction:column;">
-                        <span style="font-weight:600; color:#111827; font-size:0.9rem;">${productName}</span>
-                        <span style="font-size:0.78rem; color:#6b7280;">Lote: #${r.lote_id} · ${Number(r.cantidad).toFixed(3)} × ${ns.base.formatCOP(r.precio_unitario)}</span>
+                        <span style="font-weight:600; color:var(--text-main); font-size:0.9rem;">${productName}</span>
+                        <span style="font-size:0.78rem; color:var(--text-secondary);">Lote: #${r.lote_id} · ${Number(r.cantidad).toFixed(3)} × ${ns.base.formatCOP(r.precio_unitario)}</span>
                     </div>
-                    <div style="font-weight:700; color:#111827;">${ns.base.formatCOP(r.subtotal)}</div>
+                    <div style="font-weight:700; color:var(--text-main);">${ns.base.formatCOP(r.subtotal)}</div>
                 `;
                 body.appendChild(line);
             });
@@ -117,7 +117,7 @@
         const search = document.getElementById('modal-lotes-search');
 
         if (subtitle) subtitle.textContent = productoNombre ? String(productoNombre) : `Producto #${productoId}`;
-        if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="padding:14px; text-align:center; color:#6b7280;">Cargando...</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="padding:14px; text-align:center; color:var(--text-secondary);">Cargando...</td></tr>';
         if (search) {
             search.value = '';
             search.oninput = () => renderModalLotes();
@@ -148,17 +148,17 @@
 
         tbody.innerHTML = '';
         if (!list || list.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="padding:14px; text-align:center; color:#6b7280;">No hay lotes disponibles.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" style="padding:14px; text-align:center; color:var(--text-secondary);">No hay lotes disponibles.</td></tr>';
             return;
         }
 
         const fifoRow = document.createElement('tr');
         fifoRow.innerHTML = `
-            <td colspan="4" style="padding:10px 12px; border-top:1px solid var(--border-color); background:#f8fafc;">
+            <td colspan="4" style="padding:10px 12px; border-top:1px solid var(--border-color); background:var(--bg-color);">
                 <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
                     <div>
-                        <div style="font-weight:700; color:#111827;">Automático (FIFO)</div>
-                        <div style="font-size:12px; color:#6b7280;">Usa los lotes por orden de antigüedad según disponibilidad.</div>
+                        <div style="font-weight:700; color:var(--text-main);">Automático (FIFO)</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">Usa los lotes por orden de antigüedad según disponibilidad.</div>
                     </div>
                     <button type="button" class="btn-qty" style="padding:6px 10px;" onclick="seleccionarLoteModal(null)">Usar FIFO</button>
                 </div>
@@ -176,7 +176,7 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td style="padding:10px 12px; border-top:1px solid var(--border-color);">
-                    <div style="font-weight:700; color:#111827;">${label}</div>
+                    <div style="font-weight:700; color:var(--text-main);">${label}</div>
                 </td>
                 <td style="padding:10px 12px; text-align:right; border-top:1px solid var(--border-color); font-weight:600;">${disponibleTxt}</td>
                 <td style="padding:10px 12px; text-align:right; border-top:1px solid var(--border-color); font-weight:700; color: var(--primary-color);">${ns.base.formatCOP(precio)}</td>
@@ -362,8 +362,8 @@
                 <td>${imgHtml}</td>
                 <td>
                     <div style="font-weight:600; font-size:0.9rem;">${item.nombre}</div>
-                    <div style="color:#666; font-size:0.8rem;">${ns.base.formatCOP(item.precio)} ${item.tipo_venta === 'peso' ? '/kg' : ''}</div>
-                    <div style="display:flex; align-items:center; gap:8px; margin-top:4px; font-size:0.75rem; color:#666;">
+                    <div style="color:var(--text-secondary); font-size:0.8rem;">${ns.base.formatCOP(item.precio)} ${item.tipo_venta === 'peso' ? '/kg' : ''}</div>
+                    <div style="display:flex; align-items:center; gap:8px; margin-top:4px; font-size:0.75rem; color:var(--text-secondary);">
                         <span>${loteLabel}</span>
                         <span>${loteModo}</span>
                         <button class="btn-qty" style="padding:2px 8px; font-size:0.75rem;" onclick="event.stopPropagation(); seleccionarLotePreferido(${item.id_producto})">Cambiar</button>

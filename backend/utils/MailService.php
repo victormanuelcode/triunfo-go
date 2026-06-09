@@ -28,20 +28,19 @@ class MailService {
         $preferred = $preferredDir . '/mail.log';
 
         if (!is_dir($preferredDir)) {
-            @mkdir($preferredDir, 0777, true);
+            @mkdir($preferredDir, 0775, true);
         }
         if (is_dir($preferredDir) && is_writable($preferredDir)) {
             return $preferred;
         }
 
-        return rtrim(sys_get_temp_dir(), '/') . '/triunfo-go-mail.log';
+        return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'triunfo-go-mail.log';
     }
 
-    private function sendViaLog($toEmail, $toName, $subject, $htmlBody, $textBody): bool {
-        $path = $this->logPath();
+    private function writeLogEntry(string $path, $toEmail, $toName, $subject, $textBody): bool {
         $dir = dirname($path);
         if (!is_dir($dir)) {
-            @mkdir($dir, 0777, true);
+            @mkdir($dir, 0775, true);
         }
 
         $entry = str_repeat('=', 72) . "\n"
@@ -52,11 +51,28 @@ class MailService {
             . $textBody . "\n";
 
         if (@file_put_contents($path, $entry, FILE_APPEND | LOCK_EX) === false) {
-            error_log('MailService: no se pudo escribir en ' . $path);
             return false;
         }
-        $this->lastLogPath = realpath($path) ?: $path;
+
+        $this->lastLogPath = (realpath($path) ?: $path);
         return true;
+    }
+
+    private function sendViaLog($toEmail, $toName, $subject, $htmlBody, $textBody): bool {
+        $paths = [
+            $this->logPath(),
+            rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'triunfo-go-mail.log',
+        ];
+        $paths = array_values(array_unique($paths));
+
+        foreach ($paths as $path) {
+            if ($this->writeLogEntry($path, $toEmail, $toName, $subject, $textBody)) {
+                return true;
+            }
+        }
+
+        error_log('MailService: no se pudo escribir el correo en ningún archivo de log.');
+        return false;
     }
 
     private function createMailer() {
@@ -194,6 +210,13 @@ HTML;
 
             if ($this->isPermissionDenied($detail) && $this->sendViaLog($toEmail, $toName, $subject, $htmlBody, $textBody)) {
                 $this->usedLogFallback = true;
+                return true;
+            }
+
+            // Último recurso: guardar en log local para no perder el código en desarrollo.
+            if ($this->sendViaLog($toEmail, $toName, $subject, $htmlBody, $textBody)) {
+                $this->usedLogFallback = true;
+                $this->lastError = 'SMTP falló; código guardado en log local. ' . $detail;
                 return true;
             }
             return false;

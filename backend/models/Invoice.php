@@ -34,6 +34,30 @@ class Invoice {
 
     public function __construct($db) {
         $this->conn = $db;
+        $this->ensurePaymentMethodsEnum();
+    }
+
+    /**
+     * Alinea el ENUM de facturas con los métodos usados en POS y egresos.
+     */
+    private function ensurePaymentMethodsEnum(): void {
+        static $checked = false;
+        if ($checked) {
+            return;
+        }
+        $checked = true;
+        try {
+            $current = $this->getAllowedPaymentMethods();
+            $required = ['efectivo', 'transferencia', 'tarjeta', 'credito', 'otros'];
+            if ($current === null || !empty(array_diff($required, $current))) {
+                $this->conn->exec(
+                    "ALTER TABLE {$this->table_name} MODIFY COLUMN metodo_pago "
+                    . "ENUM('efectivo','transferencia','tarjeta','credito','otros') NOT NULL DEFAULT 'efectivo'"
+                );
+            }
+        } catch (Throwable $e) {
+            error_log('ensurePaymentMethodsEnum: ' . $e->getMessage());
+        }
     }
 
     public function getAllowedPaymentMethods(): ?array {

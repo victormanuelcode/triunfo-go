@@ -6,37 +6,60 @@
     padding: 0;
     max-width: 1200px;
     margin: 0 auto;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
 }
+
 .header-actions {
     display: flex;
     justify-content: flex-end;
     align-items: center;
     margin-bottom: 20px;
 }
+
 .header-actions__search {
     flex: 1;
     display: flex;
     justify-content: flex-end;
 }
-.table-responsive {
+
+.history-container .table-responsive {
     overflow-x: auto;
-    background: white;
+    background: var(--white);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-table {
+
+.history-container table {
     width: 100%;
     border-collapse: collapse;
+    background: transparent;
 }
-th, td {
+
+.history-container th,
+.history-container td {
     padding: 12px 15px;
     text-align: left;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-color);
 }
-th {
-    background-color: #f8f9fa;
+
+.history-container th {
+    background-color: var(--bg-color);
     font-weight: 600;
+    color: var(--text-main);
 }
+
+.history-container td {
+    color: var(--text-main);
+    background: transparent;
+}
+
+.history-container tbody tr:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
 .btn-print {
     background-color: var(--primary-color);
     color: white;
@@ -46,6 +69,12 @@ th {
     cursor: pointer;
     font-size: 12px;
 }
+
+.btn-print:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
 .btn-back {
     text-decoration: none;
     color: var(--primary-color);
@@ -55,18 +84,29 @@ th {
     font-weight: 500;
 }
 
-.search-input {
+.history-container .search-input {
     padding: 8px 12px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     width: 100%;
     max-width: 360px;
     box-sizing: border-box;
+    background: var(--white);
+    color: var(--text-main);
+}
+
+.history-container .search-input::placeholder {
+    color: var(--text-secondary);
 }
 
 .pagination {
     margin-top: 20px;
     display: flex;
     justify-content: center;
+    align-items: center;
     gap: 10px;
+}
+
+.pagination span {
+    color: var(--text-secondary);
 }

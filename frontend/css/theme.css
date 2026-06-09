@@ -735,7 +735,8 @@
     color: var(--text-main);
 }
 
-[data-theme="dark"] .quote-breakdown {
+[data-theme="dark"] .quote-breakdown,
+[data-theme="dark"] #quote-breakdown {
     background: #1e293b;
     border-color: var(--border-color);
     color: var(--text-main);
@@ -745,18 +746,23 @@
     color: var(--text-main);
 }
 
-[data-theme="dark"] .banner-caja-cerrada {
-    background: #7f1d1d;
+[data-theme="dark"] .banner-caja-cerrada,
+[data-theme="dark"] #banner-caja-cerrada {
+    background: rgba(127, 29, 29, 0.45);
     border-color: #991b1b;
-    color: var(--text-main);
+    color: #fecaca;
+}
+
+[data-theme="dark"] .banner-caja-cerrada__icon {
+    background: rgba(153, 27, 27, 0.5);
 }
 
 [data-theme="dark"] .banner-caja-cerrada__title {
-    color: var(--text-main);
+    color: #fecaca;
 }
 
 [data-theme="dark"] .banner-caja-cerrada__subtitle {
-    color: var(--text-secondary);
+    color: #fca5a5;
 }
 
 /* Reports page dark mode */
@@ -1228,6 +1234,264 @@
 [data-theme="dark"] .modal-footer {
     border-top-color: var(--border-color);
     background: #1e293b;
+}
+
+/* Cajero — POS (ventas.html) */
+[data-theme="dark"] .content-inner--pos {
+    background: #0f172a;
+}
+
+[data-theme="dark"] .search-bar input {
+    background: #1e293b;
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .search-bar input::placeholder {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .pos-loading {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .product-img-container {
+    background-color: #0f172a;
+}
+
+[data-theme="dark"] .product-item h4,
+[data-theme="dark"] .product-item .price {
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .cart-header {
+    background-color: #111827;
+    border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .cart-footer {
+    background-color: #111827;
+    border-top-color: var(--border-color);
+    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .cart-table th {
+    background-color: #1e293b;
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .cart-table td {
+    background: transparent;
+}
+
+[data-theme="dark"] .cart-thumb {
+    background-color: #334155;
+}
+
+[data-theme="dark"] .btn-qty {
+    background: #334155;
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .btn-qty:hover {
+    background: #475569;
+}
+
+[data-theme="dark"] .btn-delete-item:hover {
+    background-color: rgba(220, 38, 38, 0.2);
+}
+
+[data-theme="dark"] .client-section {
+    background-color: #0f172a;
+}
+
+[data-theme="dark"] .payment-option.selected {
+    background-color: rgba(46, 125, 50, 0.22);
+    color: #86efac;
+    border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .cash-details {
+    background-color: #0f172a;
+}
+
+[data-theme="dark"] .cash-input-group label {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .change-display {
+    color: #86efac;
+    border-top-color: var(--border-color);
+}
+
+[data-theme="dark"] .summary-row.total {
+    border-top-color: var(--border-color);
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .success-card {
+    background: #1e293b;
+    border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .success-header h2 {
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .invoice-details {
+    background: rgba(15, 23, 42, 0.65);
+}
+
+[data-theme="dark"] .options-container {
+    background: rgba(15, 23, 42, 0.75);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .btn-option {
+    background: #334155;
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .btn-option:hover {
+    background: #475569;
+}
+
+[data-theme="dark"] .total-highlight {
+    border-top-color: var(--border-color);
+    color: #86efac !important;
+}
+
+[data-theme="dark"] .modal-caja__content {
+    background: #1e293b;
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .modal-caja__content h2 {
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .modal-caja__input,
+[data-theme="dark"] .modal-caja .form-control {
+    background: #0f172a;
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .modal-x {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .cierre-box {
+    background: #0f172a;
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .cierre-row {
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .cierre-row--top,
+[data-theme="dark"] .cierre-row--bottom {
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .cierre-row--highlight {
+    color: #86efac;
+}
+
+[data-theme="dark"] .cierre-hint {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .lotes-modal-card {
+    background: #1e293b;
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .lotes-modal-title {
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .lotes-modal-search {
+    background: #0f172a;
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .lotes-modal-thead,
+[data-theme="dark"] .lotes-modal-thead th {
+    background: #111827;
+}
+
+[data-theme="dark"] .lotes-th-left,
+[data-theme="dark"] .lotes-th-right {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .lotes-modal-table td {
+    color: var(--text-main);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .lotes-loading {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .lotes-modal-table-wrap {
+    border-color: var(--border-color);
+}
+
+/* Cajero — historial (historial.html) */
+[data-theme="dark"] .content-inner .history-container {
+    background: transparent;
+    box-shadow: none;
+}
+
+[data-theme="dark"] .history-container .search-input {
+    background: #0f172a;
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+[data-theme="dark"] .history-container .search-input::placeholder {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .history-container .table-responsive,
+[data-theme="dark"] #tabla-ventas {
+    background: #1e293b;
+}
+
+[data-theme="dark"] .history-container .table-responsive {
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .history-container th,
+[data-theme="dark"] .history-container table th,
+[data-theme="dark"] #tabla-ventas th {
+    background-color: #111827;
+    color: var(--text-main);
+    border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .history-container td,
+[data-theme="dark"] .history-container table td,
+[data-theme="dark"] #tabla-ventas td {
+    color: var(--text-main);
+    border-bottom-color: var(--border-color);
+    background: transparent;
+}
+
+[data-theme="dark"] .history-container tbody tr:hover,
+[data-theme="dark"] .history-container table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .history-container .pagination span {
+    color: var(--text-secondary);
 }
 
 @media print {

@@ -166,6 +166,8 @@ body {
     flex-direction: column;
     box-shadow: -4px 0 15px rgba(0,0,0,0.05);
     height: 100%;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .cart-header {
@@ -298,14 +300,29 @@ body {
 
 /* Footer del Carrito (Totales y Pago) */
 .cart-footer {
-    padding: 1.5rem;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
     border-top: 1px solid var(--border-color);
     background-color: #fff;
     box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
+    max-height: min(52vh, 420px);
+}
+
+.cart-footer__body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1rem 1.25rem 0;
+}
+
+.cart-footer .btn-complete-sale {
+    flex-shrink: 0;
+    margin: 0.75rem 1.25rem 1rem;
 }
 
 .totals-summary {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
 .summary-row {
@@ -327,8 +344,8 @@ body {
 
 .payment-methods {
     display: flex;
-    gap: 10px;
-    margin-bottom: 1.5rem;
+    gap: 8px;
+    margin-bottom: 0.75rem;
 }
 
 .payment-option {
@@ -343,6 +360,9 @@ body {
     gap: 6px;
     transition: all 0.2s;
     background: var(--bg-color);
+    font: inherit;
+    color: inherit;
+    text-align: center;
 }
 
 .payment-option.selected {
@@ -361,7 +381,7 @@ body {
     background-color: var(--bg-color);
     padding: 12px;
     border-radius: 8px;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.75rem;
     animation: fadeIn 0.3s;
 }
 

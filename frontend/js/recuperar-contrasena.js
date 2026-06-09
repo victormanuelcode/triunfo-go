@@ -69,12 +69,16 @@ async function solicitarCodigo(evento) {
         if (respuesta.ok) {
             emailGuardado = email;
             let msg = datos.message || 'Código enviado. Revisa tu correo.';
-            // dev_hint: ruta del log local cuando SMTP no está disponible (modo desarrollo)
-            if (datos.dev_hint) {
+            if (datos.dev_code) {
+                msg = `Código de verificación: ${datos.dev_code}`;
+                if (datos.dev_hint) {
+                    msg += '. ' + datos.dev_hint;
+                }
+            } else if (datos.dev_hint) {
                 msg += ' (' + datos.dev_hint + ')';
             }
             mostrarExito(1, msg);
-            irAlPaso2(email);
+            irAlPaso2(email, datos.dev_code || '');
         } else {
             mostrarAlerta(1, datos.message || 'No se pudo enviar el código.');
         }
@@ -108,7 +112,15 @@ async function reenviarCodigo() {
         const datos = await respuesta.json();
 
         if (respuesta.ok) {
-            mostrarExito(2, 'Se envió un nuevo código a tu correo.');
+            let msg = 'Se envió un nuevo código.';
+            if (datos.dev_code) {
+                msg = `Nuevo código: ${datos.dev_code}`;
+            }
+            mostrarExito(2, msg);
+            if (datos.dev_code) {
+                const codigoInput = document.getElementById('codigoVerificacion');
+                if (codigoInput) codigoInput.value = datos.dev_code;
+            }
         } else {
             mostrarAlerta(2, datos.message || 'No se pudo reenviar el código.');
         }
@@ -184,7 +196,7 @@ async function restablecerContrasena(evento) {
 /**
  * Muestra el formulario del paso 2 y actualiza textos e indicador visual.
  */
-function irAlPaso2(email) {
+function irAlPaso2(email, codigoPrefill = '') {
     document.getElementById('emailConfirmacion').value = email;
     document.getElementById('tituloPaso').textContent = 'Verificar código';
     document.getElementById('subtituloPaso').textContent = 'Ingresa el código recibido y tu nueva contraseña';
@@ -197,7 +209,12 @@ function irAlPaso2(email) {
         p.classList.toggle('completado', Number(p.dataset.paso) === 1);
     });
 
-    setTimeout(() => document.getElementById('codigoVerificacion').focus(), 300);
+    const codigoInput = document.getElementById('codigoVerificacion');
+    if (codigoInput && codigoPrefill) {
+        codigoInput.value = String(codigoPrefill).replace(/\D/g, '').slice(0, 6);
+    }
+
+    setTimeout(() => (codigoInput || document.getElementById('codigoVerificacion'))?.focus(), 300);
 }
 
 /** Muestra mensaje de error en el paso indicado (1 o 2). */

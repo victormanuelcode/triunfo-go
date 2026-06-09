@@ -122,13 +122,13 @@ class PasswordReset {
      * @return int Número de solicitudes en ese periodo.
      */
     public function countRecentRequests($email, $minutes = 15) {
+        $minutes = max(1, (int)$minutes);
         $query = "SELECT COUNT(*) AS total
                   FROM {$this->table_name}
                   WHERE email = :email
-                    AND created_at >= DATE_SUB(NOW(), INTERVAL :minutes MINUTE)";
+                    AND created_at >= DATE_SUB(NOW(), INTERVAL {$minutes} MINUTE)";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':email', $email);
-        $stmt->bindParam(':minutes', $minutes, PDO::PARAM_INT);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return (int)($row['total'] ?? 0);

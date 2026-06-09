@@ -1,14 +1,34 @@
 (function () {
     const ns = window.CashierPOS = window.CashierPOS || {};
-    const state = ns.state;
+
+    const METODOS_PAGO = ['efectivo', 'tarjeta', 'transferencia'];
+
+    function getMetodoPagoSeleccionado() {
+        const fromState = String(ns.state?.metodoPagoSeleccionado || '').trim().toLowerCase();
+        if (METODOS_PAGO.includes(fromState)) {
+            return fromState;
+        }
+        const selected = document.querySelector('.payment-option.selected');
+        if (!selected?.id) {
+            return 'efectivo';
+        }
+        const fromDom = selected.id.replace(/^opt-/, '').trim().toLowerCase();
+        return METODOS_PAGO.includes(fromDom) ? fromDom : 'efectivo';
+    }
+
+    function labelMetodoPago(metodo) {
+        if (metodo === 'tarjeta') return 'tarjeta';
+        if (metodo === 'transferencia') return 'transferencia';
+        return 'efectivo';
+    }
 
     async function refreshQuote() {
         const breakdown = document.getElementById('quote-breakdown');
         const body = document.getElementById('quote-breakdown-body');
 
-        if (!state.sesionCajaId) {
-            state.quoteCache = null;
-            state.quoteCartKey = null;
+        if (!ns.state.sesionCajaId) {
+            ns.state.quoteCache = null;
+            ns.state.quoteCartKey = null;
             if (breakdown) breakdown.style.display = 'none';
             if (body) body.innerHTML = '';
             ns.cart.actualizarCarritoUI();
@@ -16,9 +36,9 @@
         }
 
         const usuarioId = localStorage.getItem('usuario_id');
-        if (!usuarioId || !state.carrito || state.carrito.length === 0) {
-            state.quoteCache = null;
-            state.quoteCartKey = null;
+        if (!usuarioId || !ns.state.carrito || ns.state.carrito.length === 0) {
+            ns.state.quoteCache = null;
+            ns.state.quoteCartKey = null;
             if (breakdown) breakdown.style.display = 'none';
             if (body) body.innerHTML = '';
             ns.cart.actualizarCarritoUI();
@@ -27,21 +47,21 @@
 
         const cartKey = ns.base.getCartKey();
         try {
-            const itemsQuote = state.carrito.map(item => ({
+            const itemsQuote = ns.state.carrito.map(item => ({
                 producto_id: item.id_producto,
                 cantidad: item.cantidad,
                 lote_id: item.lote_id || null
             }));
 
-            const response = await fetch(`${state.API_URL}/invoices/quote`, {
+            const response = await fetch(`${ns.state.API_URL}/invoices/quote`, {
                 method: 'POST',
                 headers: ns.base.getAuthHeaders(true),
                 body: JSON.stringify({ usuario_id: usuarioId, items: itemsQuote })
             });
             const json = await response.json();
             if (!response.ok) {
-                state.quoteCache = null;
-                state.quoteCartKey = null;
+                ns.state.quoteCache = null;
+                ns.state.quoteCartKey = null;
                 if (breakdown) breakdown.style.display = 'none';
                 if (body) body.innerHTML = '';
                 ns.cart.actualizarCarritoUI();
@@ -50,13 +70,13 @@
 
             if (cartKey !== ns.base.getCartKey()) return;
 
-            state.quoteCache = json;
-            state.quoteCartKey = cartKey;
+            ns.state.quoteCache = json;
+            ns.state.quoteCartKey = cartKey;
             ns.cart.renderQuoteBreakdown();
             ns.cart.actualizarCarritoUI();
         } catch (e) {
-            state.quoteCache = null;
-            state.quoteCartKey = null;
+            ns.state.quoteCache = null;
+            ns.state.quoteCartKey = null;
             if (breakdown) breakdown.style.display = 'none';
             if (body) body.innerHTML = '';
             ns.cart.actualizarCarritoUI();
@@ -64,12 +84,12 @@
     }
 
     async function procesarVenta() {
-        if (state.carrito.length === 0) {
+        if (ns.state.carrito.length === 0) {
             ns.base.showToastPOS('El carrito está vacío.', 'warning');
             return;
         }
 
-        if (!state.sesionCajaId) {
+        if (!ns.state.sesionCajaId) {
             ns.base.showToastPOS('Debe ABRIR CAJA antes de realizar una venta.', 'warning');
             if (typeof window.mostrarModalAperturaCaja === 'function') {
                 window.mostrarModalAperturaCaja();
@@ -85,12 +105,12 @@
 
         let quote = null;
         try {
-            const itemsQuote = state.carrito.map(item => ({
+            const itemsQuote = ns.state.carrito.map(item => ({
                 producto_id: item.id_producto,
                 cantidad: item.cantidad,
                 lote_id: item.lote_id || null
             }));
-            const responseQuote = await fetch(`${state.API_URL}/invoices/quote`, {
+            const responseQuote = await fetch(`${ns.state.API_URL}/invoices/quote`, {
                 method: 'POST',
                 headers: ns.base.getAuthHeaders(true),
                 body: JSON.stringify({
@@ -115,7 +135,10 @@
             return;
         }
 
-        if (state.metodoPagoSeleccionado === 'efectivo') {
+        const metodoPago = getMetodoPagoSeleccionado();
+        ns.state.metodoPagoSeleccionado = metodoPago;
+
+        if (metodoPago === 'efectivo') {
             const recibido = ns.base.parseCOPInput(document.getElementById('monto-recibido')?.value);
             const minRec = ns.base.minMontoRecibidoValido(totalVenta);
             if (recibido < minRec) {
@@ -131,9 +154,9 @@
             }
         }
 
-        if (!confirm('¿Confirmar venta por ' + ns.base.formatCOP(totalVenta) + '?')) return;
+        if (!confirm('¿Confirmar venta por ' + labelMetodoPago(metodoPago) + ' por ' + ns.base.formatCOP(totalVenta) + '?')) return;
 
-        const itemsVenta = (state.carrito || []).map(item => {
+        const itemsVenta = (ns.state.carrito || []).map(item => {
             const pid = Number(item.id_producto);
             const qty = Number(item.cantidad || 0);
             if (item.lote_id) {
@@ -153,17 +176,16 @@
         const data = {
             items: itemsVenta,
             total: totalVenta,
-            metodo_pago: state.metodoPagoSeleccionado,
+            metodo_pago: metodoPago,
             cliente_id: clienteId || null,
             usuario_id: usuarioId,
-            sesion_id: state.sesionCajaId
+            sesion_id: ns.state.sesionCajaId
         };
-        if (state.metodoPagoSeleccionado === 'efectivo') {
+        if (metodoPago === 'efectivo') {
             data.monto_recibido = ns.base.parseCOPInput(document.getElementById('monto-recibido')?.value);
         }
-
         try {
-            const response = await fetch(`${state.API_URL}/invoices`, {
+            const response = await fetch(`${ns.state.API_URL}/invoices`, {
                 method: 'POST',
                 headers: ns.base.getAuthHeaders(true),
                 body: JSON.stringify(data)
@@ -171,13 +193,13 @@
 
             const result = await response.json();
             if (response.ok) {
-                state.ultimaVenta = {
+                ns.state.ultimaVenta = {
                     id_factura: result.id_factura,
                     numero_factura: result.numero_factura,
                     total: parseFloat(result.total || totalVenta),
                     cliente_nombre: clienteSelect?.options?.[clienteSelect.selectedIndex]?.text || 'Cliente General',
                     fecha: new Date().toLocaleString(),
-                    metodo_pago: state.metodoPagoSeleccionado
+                    metodo_pago: metodoPago
                 };
 
                 if (typeof window.mostrarModalExito === 'function') {
@@ -194,17 +216,16 @@
     }
 
     function limpiarDespuesDeVenta() {
-        state.carrito = [];
+        ns.state.carrito = [];
         localStorage.removeItem('pos_carrito');
-        state.quoteCache = null;
-        state.quoteCartKey = null;
+        ns.state.quoteCache = null;
+        ns.state.quoteCartKey = null;
         ns.cart.actualizarCarritoUI();
 
         const montoRecibido = document.getElementById('monto-recibido');
         const textoCambio = document.getElementById('texto-cambio');
         if (montoRecibido) montoRecibido.value = '';
         if (textoCambio) textoCambio.innerText = ns.base.formatCOP(0);
-
         if (typeof window.cargarCatalogo === 'function') {
             window.cargarCatalogo();
         }

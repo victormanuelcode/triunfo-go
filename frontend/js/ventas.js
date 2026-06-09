@@ -211,23 +211,31 @@ function actualizarCarritoUI() {
 
 // --- Gestión de Pagos ---
 function seleccionarMetodoPago(metodo) {
-    posNS.state.metodoPagoSeleccionado = metodo;
-    
-    // Actualizar UI visual
-    document.querySelectorAll('.payment-option').forEach(el => el.classList.remove('selected'));
-    document.getElementById(`opt-${metodo}`).classList.add('selected');
+    const normalizado = String(metodo || 'efectivo').trim().toLowerCase();
+    const metodosValidos = ['efectivo', 'tarjeta', 'transferencia'];
+    const metodoFinal = metodosValidos.includes(normalizado) ? normalizado : 'efectivo';
+    posNS.state.metodoPagoSeleccionado = metodoFinal;
 
-    // Mostrar/Ocultar detalles de efectivo
+    document.querySelectorAll('.payment-option').forEach(el => el.classList.remove('selected'));
+    const opt = document.getElementById(`opt-${metodoFinal}`);
+    if (opt) opt.classList.add('selected');
+
     const cashDetails = document.getElementById('cash-details');
-    if (metodo === 'efectivo') {
-        cashDetails.style.display = 'block';
-        setTimeout(() => document.getElementById('monto-recibido').focus(), 100);
+
+    if (metodoFinal === 'efectivo') {
+        if (cashDetails) cashDetails.style.display = 'block';
+        setTimeout(() => document.getElementById('monto-recibido')?.focus(), 100);
     } else {
-        cashDetails.style.display = 'none';
-        document.getElementById('monto-recibido').value = '';
-        document.getElementById('texto-cambio').innerText = posNS.base.formatCOP(0);
+        if (cashDetails) cashDetails.style.display = 'none';
+        const montoRecibido = document.getElementById('monto-recibido');
+        const textoCambio = document.getElementById('texto-cambio');
+        if (montoRecibido) montoRecibido.value = '';
+        if (textoCambio) textoCambio.innerText = posNS.base.formatCOP(0);
     }
 }
+
+window.seleccionarMetodoPago = seleccionarMetodoPago;
+window.calcularCambio = calcularCambio;
 
 function calcularCambio(totalActual) {
     if (posNS.state.metodoPagoSeleccionado !== 'efectivo') return;
